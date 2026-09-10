@@ -18,11 +18,16 @@ from typing import Callable, Optional
 
 from . import __version__
 from .catalog import passing, running, redzone, series as series_catalog
-from .templates import formations as F, defense as D, routes as R
+from .templates import (blocking as BL, defense as D, formations as F,
+                        routes as R, schemes as SC)
 from .models.play import Play, Playbook
 
 
 # ── Registries ────────────────────────────────────────────────────────────────
+
+def _uppercase(module) -> dict[str, Callable]:
+    return {k: v for k, v in _public_callables(module).items() if k.isupper()}
+
 
 def _public_callables(module) -> dict[str, Callable]:
     return {
@@ -87,13 +92,25 @@ def cmd_list(args: argparse.Namespace) -> int:
         reg = route_registry()
         print("  " + "  ".join(sorted(reg)))
         print(f"\n{len(reg)} routes")
+    elif what in ("schemes", "scheme", "blocking"):
+        for name, fn in SC.SCHEMES.items():
+            blocks = fn(1) if name not in ("big_on_big",) else fn()
+            kind = "protection" if name in SC.PROTECTIONS else "run"
+            line = " ".join(f"{k}:{v.kind.value}" for k, v in blocks.items())
+            print(f"  {name:<14} {kind:<11} {line}")
+        print(f"{chr(10)}{len(SC.SCHEMES)} schemes")
+    elif what in ("blocks",):
+        for name in sorted(_uppercase(BL)):
+            print(f"  {name}")
+        print(f"{chr(10)}{len(_uppercase(BL))} block types")
     elif what in ("series",):
         for key, fn in series_catalog.ALL_SERIES.items():
             s = fn()
             print(f"  {key:<16} {len(s):>2} plays   {s.name}")
         print(f"\n{len(series_catalog.ALL_SERIES)} series")
     else:
-        raise SystemExit("list what? plays | formations | defenses | routes | series")
+        raise SystemExit("list what? plays | formations | defenses | routes | "
+                         "series | schemes | blocks")
     return 0
 
 
@@ -272,7 +289,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
 
     lst = sub.add_parser("list", help="list catalog contents")
-    lst.add_argument("what", help="plays | formations | defenses | routes | series")
+    lst.add_argument("what",
+                     help="plays | formations | defenses | routes | series | "
+                          "schemes | blocks")
     lst.set_defaults(func=cmd_list)
 
     ren = sub.add_parser("render", help="render one play to SVG/PDF/JSON")

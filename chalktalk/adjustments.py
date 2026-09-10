@@ -210,7 +210,8 @@ class Adjustment(BaseModel):
 
     def _apply_block(self, play: Play) -> Play:
         assert self.label
-        return play.with_route(self.label, R.BLOCK()).model_copy(
+        from .templates.blocking import PASS_SET
+        return play.with_block(self.label, PASS_SET()).model_copy(
             update={"protection": self.value or play.protection}
         )
 

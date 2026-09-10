@@ -7,14 +7,14 @@ from typing import Optional
 from ..models.formation import Formation
 from ..models.play import Play, PlayType
 from ..builder import play as _b
-from ..templates import routes as R, formations as F
+from ..templates import routes as R, formations as F, schemes as SC
 
 
 def fade_corner(formation: Optional[Formation] = None) -> Play:
     """Fade + corner high-low. Attacks back-side defender in end zone."""
     f = formation or F.RED_ZONE_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.FADE(depth=9),
             Y=R.SEAM(depth=8),
@@ -35,7 +35,7 @@ def back_shoulder(formation: Optional[Formation] = None) -> Play:
     """Back shoulder fade — WR sells go, breaks back to QB."""
     f = formation or F.RED_ZONE_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.BACK_SHOULDER(depth=8),
             Z=R.POST(stem=6, depth=10),
@@ -56,7 +56,7 @@ def bunch_rubs_endzone(formation: Optional[Formation] = None) -> Play:
     """Bunch rub routes — pick/rub from tight bunch in end zone."""
     f = formation or F.RED_ZONE_BUNCH_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.CORNER_ENDZONE(),
             Y=R.SEAM(depth=7),
@@ -77,7 +77,7 @@ def end_zone_corner(formation: Optional[Formation] = None) -> Play:
     """End zone corner route — quick strike to back corner of end zone."""
     f = formation or F.SHOTGUN_BUNCH_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.POST(stem=6, depth=10),
             Y=R.CORNER_ENDZONE(),
@@ -98,8 +98,8 @@ def goal_line_power(formation: Optional[Formation] = None) -> Play:
     """Goal line power — double-tight, FB lead, short yardage."""
     f = formation or F.GOAL_LINE_HEAVY()
     return (
-        _b(f).block_ol().block("Y", "TE", "TE2")
-        .routes(FB=R.RUN(dx=2, dy=3), RB=R.RUN(dx=3, dy=6))
+        _b(f).scheme(SC.power(1, kicker="FB")).block("Y", "TE", "TE2")
+        .routes(RB=R.RUN(dx=3, dy=6))
         .bc("RB")
         .name("Goal Line Power")
         .play_type(PlayType.RUN)
@@ -114,7 +114,7 @@ def qb_sneak(formation: Optional[Formation] = None) -> Play:
     """QB Sneak — QB follows center surge, short-yardage."""
     f = formation or F.GOAL_LINE()
     return (
-        _b(f).block_ol().block("Y", "TE", "X")
+        _b(f).scheme(SC.gap_down(1)).block("Y", "TE", "X")
         .routes(QB=R.RUN(dx=0, dy=2), RB=R.RUN(dx=0, dy=1))
         .bc("QB")
         .name("QB Sneak")
@@ -130,8 +130,8 @@ def jumbo_iso(formation: Optional[Formation] = None) -> Play:
     """Jumbo Iso — 13 personnel, H-back iso block, RB straight ahead."""
     f = formation or F.JUMBO_TIGHT()
     return (
-        _b(f).block_ol().block("Y", "TE", "X")
-        .routes(TE2=R.RUN(dx=0, dy=4), RB=R.RUN(dx=1, dy=7))
+        _b(f).scheme(SC.iso(1, lead="TE2")).block("Y", "TE", "X")
+        .routes(RB=R.RUN(dx=1, dy=7))
         .bc("RB")
         .name("Jumbo Iso")
         .play_type(PlayType.RUN)
@@ -146,7 +146,7 @@ def fade_slant(formation: Optional[Formation] = None) -> Play:
     """Fade + slant — quick two-man concept vs. press coverage in red zone."""
     f = formation or F.RED_ZONE_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.FADE(depth=8),
             Z=R.SLANT(stem=1.5, depth=5),

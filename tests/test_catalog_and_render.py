@@ -62,10 +62,10 @@ def test_every_catalog_play_is_complete(fn):
     assert play.formation.personnel
     # every player either has an assignment or is explicitly unassigned
     assert all(a.player.label for a in play.assignments)
-    # linemen block
+    # every lineman is accounted for — a block, or a route if he is eligible
     for a in play.assignments:
         if a.player.is_ol:
-            assert a.route is not None, f"{play.name}: {a.player.label} has no assignment"
+            assert a.is_blocking, f"{play.name}: {a.player.label} has no assignment"
 
 
 @pytest.mark.parametrize("fn", ALL_PLAY_FNS, ids=lambda f: f.__name__)

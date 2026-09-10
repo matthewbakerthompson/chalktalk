@@ -147,6 +147,15 @@ textarea{min-height:220px;font-family:ui-monospace,Consolas,monospace;font-size:
     <h2>Players</h2>
     <div class="plist" id="playerList"></div>
 
+    <h2>Blocking scheme</h2>
+    <div class="field"><select id="schemeSel"></select></div>
+    <div class="row" style="margin-bottom:6px">
+      <button id="schemeLeft" title="Run it to the left">&#9664; Left</button>
+      <button id="schemeRight" class="on" title="Run it to the right">Right &#9654;</button>
+    </div>
+    <div class="note">Applies to the whole line at once. Individual blocks stay
+      editable below.</div>
+
     <h2>Defense</h2>
     <div class="field"><select id="defenseSel"></select></div>
 
@@ -211,6 +220,7 @@ const PLAYER_FILL="#1d4ed8", PLAYER_STROKE="#93c5fd";
 const LABEL_COLOR="#ffffff", TITLE_COLOR="#f1f5f9";
 const MOTION_COLOR="#7dd3fc";
 const DEF_DL="#374151", DEF_LB="#4b5563", DEF_DB="#6b7280", DEF_STROKE="#d1d5db";
+const BLOCK_COLOR="#e5e7eb", BLOCK_WIDTH=2.2;
 const OL = new Set(["C","LG","RG","LT","RT"]);
 const DL = new Set(["DE","DT","NT"]);
 const LB = new Set(["W","M","S","OLB","ILB","LB"]);
@@ -224,6 +234,7 @@ let level = "nfl";
 let sel = null;          // selected player label
 let selWp = -1;          // selected waypoint index
 let drag = null;         // {kind:'player'|'waypoint'|'motion', ...}
+let blockDir = 1;        // which way the next block or scheme points
 const undoStack = [];
 
 const $ = id => document.getElementById(id);
@@ -277,7 +288,8 @@ function newPlay(formationKey){
                 description: f.description ?? null},
     play_type: "pass",
     assignments: f.players.map(p => ({
-      player: p, route: OL.has(p.position) ? clone(CATALOG.routes.BLOCK) : null,
+      player: p, route: null,
+      block: OL.has(p.position) ? clone(CATALOG.blocks.BASE["1"]) : null,
       is_ball_carrier: false, motion_from: null, motion_type: null, note: null,
     })),
     defense: null, description: null, tags: [],
@@ -297,7 +309,9 @@ function setFormation(key){
     const prev = byLabel[p.label];
     return {
       player: p,
-      route: prev ? prev.route : (OL.has(p.position) ? clone(CATALOG.routes.BLOCK) : null),
+      route: prev ? prev.route : null,
+      block: prev ? prev.block
+                  : (OL.has(p.position) ? clone(CATALOG.blocks.BASE["1"]) : null),
       is_ball_carrier: prev ? prev.is_ball_carrier : false,
       motion_from: null, motion_type: null,
       note: prev ? prev.note : null,
@@ -330,6 +344,22 @@ function applyMotion(lbl, kind){
   a.player.x = snapPos[0]; a.player.y = snapPos[1];
   a.motion_from = origin; a.motion_type = kind;
   syncFormation(); renderAll();
+}
+
+function applyScheme(name, direction){
+  const scheme = CATALOG.schemes[name] && CATALOG.schemes[name][String(direction)];
+  if (!scheme) return;
+  pushUndo();
+  for (const [label, block] of Object.entries(scheme)){
+    const a = findA(label);
+    if (!a) continue;                     // not on the field in this formation
+    a.block = clone(block);
+    a.route = null;
+  }
+  if (CATALOG.protections.includes(name) && !play.protection)
+    play.protection = name.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  renderAll();
+  toast(`${name.replace(/_/g," ")} ${direction > 0 ? "right" : "left"}`);
 }
 
 function flipPlay(){
@@ -440,6 +470,68 @@ function drawMotions(g){
   }
 }
 
+function trimStart(pts, amount){
+  if (pts.length < 2 || amount <= 0) return pts;
+  const [x0,y0] = pts[0], [x1,y1] = pts[1];
+  const dx = x1-x0, dy = y1-y0, len = Math.hypot(dx,dy);
+  if (len <= amount) return pts;
+  return [[x0 + dx/len*amount, y0 + dy/len*amount], ...pts.slice(1)];
+}
+
+function blockCap(g, pts, isCut){
+  const [x0,y0] = pts[pts.length-2], [x1,y1] = pts[pts.length-1];
+  const dx = x1-x0, dy = y1-y0, len = Math.hypot(dx,dy) || 1;
+  const nx = -dy/len, ny = dx/len, half = SCALE*0.42;
+  if (isCut){
+    const ux = dx/len*half, uy = dy/len*half;
+    g.appendChild(el("line", {x1:x1-ux-nx*half, y1:y1-uy-ny*half,
+      x2:x1+ux+nx*half, y2:y1+uy+ny*half, stroke:BLOCK_COLOR,
+      "stroke-width":BLOCK_WIDTH, "stroke-linecap":"round", opacity:0.88}));
+  } else {
+    g.appendChild(el("line", {x1:x1-nx*half, y1:y1-ny*half,
+      x2:x1+nx*half, y2:y1+ny*half, stroke:BLOCK_COLOR,
+      "stroke-width":BLOCK_WIDTH, "stroke-linecap":"round", opacity:0.88}));
+  }
+}
+
+// Block paths are relative to the blocker and, unlike routes, never mirrored.
+function blockAbs(p, blk){
+  return blk.path.map(w => [sx(p.x + w.x), sy(p.y + w.y)]);
+}
+
+function drawBlocks(g){
+  const combos = new Set();
+  for (const a of assignments()){
+    let blk = a.block;
+    if (!blk){
+      if (a.route && a.route.route_type === "block") blk = CATALOG.blocks.BASE["1"];
+      else continue;
+    }
+    const pts = blockAbs(a.player, blk);
+    if (pts.length < 2) continue;
+    const trimmed = trimStart(pts, SCALE*0.42);
+    g.appendChild(el("path", {d:smoothPath(trimmed), fill:"none",
+      stroke:BLOCK_COLOR, "stroke-width":BLOCK_WIDTH, "stroke-linecap":"round",
+      "stroke-linejoin":"round", opacity:0.88}));
+    blockCap(g, trimmed, blk.kind === "cut");
+
+    if (blk.combo_with){
+      const key = [a.player.label, blk.combo_with].sort().join("|");
+      const partner = findA(blk.combo_with);
+      if (partner && !combos.has(key)){
+        combos.add(key);
+        const x1 = sx(a.player.x), y1 = sy(a.player.y);
+        const x2 = sx(partner.player.x), y2 = sy(partner.player.y);
+        const my = Math.max(y1,y2) + SCALE*0.75;
+        g.appendChild(el("path", {
+          d:`M ${x1.toFixed(1)} ${(y1+SCALE*0.5).toFixed(1)} Q ${((x1+x2)/2).toFixed(1)} ${my.toFixed(1)} ${x2.toFixed(1)} ${(y2+SCALE*0.5).toFixed(1)}`,
+          fill:"none", stroke:BLOCK_COLOR, "stroke-width":1.4,
+          "stroke-dasharray":"4,3", opacity:0.65}));
+      }
+    }
+  }
+}
+
 function drawRoutes(g){
   for (const a of assignments()){
     if (!a.route) continue;
@@ -545,7 +637,7 @@ function renderSvg(){
     width:W(), height:H(), viewBox:`0 0 ${W()} ${H()}`});
   svg.appendChild(defs());
   const art = el("g", {id:"art"});
-  drawField(art); drawMotions(art); drawRoutes(art);
+  drawField(art); drawMotions(art); drawBlocks(art); drawRoutes(art);
   drawDefense(art); drawPlayers(art); drawTitle(art);
   svg.appendChild(art);
   const ui = el("g", {id:"ui"});
@@ -587,8 +679,10 @@ function bindStage(svg){
     const a = selA();
     if (a){
       pushUndo();
-      if (!a.route || a.route.route_type === "block")
+      if (!a.route || a.route.route_type === "block"){
         a.route = {route_type:"custom", waypoints:[{x:0, y:0}], depth:null};
+        a.block = null;
+      }
       a.route.waypoints.push(wpRel(a.player, snap(fx), snap(fy)));
       a.route.route_type = "custom";
       selWp = a.route.waypoints.length - 1;
@@ -678,6 +772,18 @@ function renderInspector(){
       <label>Route</label><select id="routeSel"></select>
     </div>
     <div class="field">
+      <label>Block</label><select id="blockSel"></select>
+    </div>
+    <div class="row" style="margin-bottom:8px">
+      <div style="flex:2"><label>Target</label><input id="blockTarget"
+        value="${(a.block && a.block.target) || ""}" placeholder="M, 3T, C-gap"></div>
+      <div style="flex:1"><label>Dir</label>
+        <select id="blockDir">
+          <option value="1">Right</option>
+          <option value="-1">Left</option>
+        </select></div>
+    </div>
+    <div class="field">
       <label>Motion</label><select id="motionSel"></select>
     </div>
     <div class="row" style="margin-bottom:8px">
@@ -698,7 +804,37 @@ function renderInspector(){
     if (!e.target.value) return;
     pushUndo();
     a.route = clone(CATALOG.routes[e.target.value]);
+    a.block = null;                       // a player blocks or runs, not both
     selWp = -1; renderAll();
+  };
+
+  fillSelect($("blockSel"),
+    Object.keys(CATALOG.blocks).map(k => [k, k.replace(/_/g, " ")]),
+    null, a.block ? `${a.block.kind} (current)` : "— not blocking —");
+  $("blockDir").value = String(blockDir);
+  $("blockSel").onchange = e => {
+    if (!e.target.value) return;
+    pushUndo();
+    a.block = clone(CATALOG.blocks[e.target.value][String(blockDir)]);
+    a.route = null;                       // a player blocks or runs, not both
+    renderAll();
+  };
+  $("blockDir").onchange = e => {
+    blockDir = +e.target.value;
+    if (a.block){
+      const kind = Object.keys(CATALOG.blocks).find(
+        k => CATALOG.blocks[k]["1"].kind === a.block.kind);
+      if (kind){
+        pushUndo();
+        const target = a.block.target, partner = a.block.combo_with;
+        a.block = clone(CATALOG.blocks[kind][String(blockDir)]);
+        a.block.target = target; a.block.combo_with = partner;
+      }
+    }
+    renderAll();
+  };
+  $("blockTarget").onchange = e => {
+    if (a.block){ a.block.target = e.target.value || null; renderAll(); }
   };
 
   fillSelect($("motionSel"), CATALOG.motions.map(m => [m, m]),
@@ -715,9 +851,14 @@ function renderInspector(){
     a.is_ball_carrier = on; renderAll();
   };
   $("btnBlock").onclick = () => {
-    pushUndo(); a.route = clone(CATALOG.routes.BLOCK); renderAll();
+    pushUndo();
+    a.block = clone(CATALOG.blocks.BASE[String(blockDir)]);
+    a.route = null;
+    renderAll();
   };
-  $("btnClearRoute").onclick = () => { pushUndo(); a.route = null; selWp=-1; renderAll(); };
+  $("btnClearRoute").onclick = () => {
+    pushUndo(); a.route = null; a.block = null; selWp = -1; renderAll();
+  };
 
   const wl = $("wpList");
   if (a.route && a.route.route_type !== "block"){
@@ -895,6 +1036,21 @@ function boot(){
     renderAll();
   };
 
+  fillSelect($("schemeSel"),
+    Object.keys(CATALOG.schemes).map(k => [k, k.replace(/_/g, " ")]),
+    null, "— apply a scheme —");
+  $("schemeSel").onchange = e => {
+    if (e.target.value) applyScheme(e.target.value, blockDir);
+  };
+  const setDir = d => {
+    blockDir = d;
+    $("schemeRight").classList.toggle("on", d > 0);
+    $("schemeLeft").classList.toggle("on", d < 0);
+    if ($("schemeSel").value) applyScheme($("schemeSel").value, d);
+  };
+  $("schemeLeft").onclick = () => setDir(-1);
+  $("schemeRight").onclick = () => setDir(1);
+
   fillSelect($("catalogSel"),
     Object.entries(CATALOG.plays).map(([k,v]) => [k, v.name]),
     null, "— load a stock concept —");
@@ -937,7 +1093,8 @@ function boot(){
   $("btnBlockOl").onclick = () => {
     pushUndo();
     assignments().forEach(a => {
-      if (OL.has(a.player.position) && !a.route) a.route = clone(CATALOG.routes.BLOCK);
+      if (OL.has(a.player.position) && !a.route && !a.block)
+        a.block = clone(CATALOG.blocks.BASE["1"]);
     });
     renderAll();
   };

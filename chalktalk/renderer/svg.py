@@ -44,6 +44,10 @@ _DEF_LABEL      = "#ffffff"
 # Pre-snap motion
 _MOTION_COLOR   = "#7dd3fc"   # light cyan — clearly not a route
 
+# Blocking
+_BLOCK_COLOR    = "#e5e7eb"
+_BLOCK_WIDTH    = 2.2
+
 # Hash positions come from the field spec — they differ by level.
 
 
@@ -72,6 +76,7 @@ class SVGRenderer:
             self._defs(),
             self._field(),
             self._motions(),
+            self._blocks(),
             self._routes(),
             self._defense_players(),
             self._players(),
@@ -253,6 +258,65 @@ class SVGRenderer:
                 )
         return "\n".join(els)
 
+    # ── Blocking ──────────────────────────────────────────────────────────────
+
+    def _blocks(self) -> str:
+        """
+        Blocks are drawn the way a playbook draws them: a path ending in a bar
+        across the defender, a curve behind the line for a puller, and a
+        bracket under a double team. Block paths are never mirrored.
+        """
+        from ..models.block import BlockKind
+        from ..templates.blocking import BASE
+
+        els: list[str] = []
+        combos: set[frozenset] = set()
+
+        for a in self.play.assignments:
+            block = a.block
+            if block is None:
+                # A play built before blocks existed still says "block" with a
+                # route; draw it as a base block rather than nothing at all.
+                if a.route is not None and a.route.route_type.value == "block":
+                    block = BASE()
+                else:
+                    continue
+
+            pts = block.absolute_path(a.player.x, a.player.y)
+            if len(pts) < 2:
+                continue
+            svg_pts = _trim_start([self._s(x, y) for x, y in pts],
+                                 self.scale * 0.42)
+            els.append(
+                f'<path d="{_smooth_path(svg_pts)}" fill="none" '
+                f'stroke="{_BLOCK_COLOR}" stroke-width="{_BLOCK_WIDTH}" '
+                f'stroke-linecap="round" stroke-linejoin="round" opacity="0.88"/>'
+            )
+            els.append(_block_cap(svg_pts, self.scale, block.kind is BlockKind.CUT))
+
+            if block.combo_with:
+                pair = frozenset((a.player.label, block.combo_with))
+                partner = next((x for x in self.play.assignments
+                                if x.player.label == block.combo_with), None)
+                if partner is not None and pair not in combos:
+                    combos.add(pair)
+                    els.append(self._combo_bracket(a.player, partner.player))
+
+        return "\n".join(els)
+
+    def _combo_bracket(self, a, b) -> str:
+        """The arc under a double team."""
+        x1, y1 = self._s(a.x, a.y)
+        x2, y2 = self._s(b.x, b.y)
+        dip = self.scale * 0.75
+        mx, my = (x1 + x2) / 2, max(y1, y2) + dip
+        return (
+            f'<path d="M {x1:.1f} {y1 + self.scale * 0.5:.1f} '
+            f'Q {mx:.1f} {my:.1f} {x2:.1f} {y2 + self.scale * 0.5:.1f}" '
+            f'fill="none" stroke="{_BLOCK_COLOR}" stroke-width="1.4" '
+            f'stroke-dasharray="4,3" opacity="0.65"/>'
+        )
+
     # ── Routes ────────────────────────────────────────────────────────────────
 
     def _routes(self) -> str:
@@ -373,6 +437,48 @@ class SVGRenderer:
 
 
 # ── Path generation helpers ───────────────────────────────────────────────────
+
+def _trim_start(pts: list[tuple[float, float]], amount: float
+                ) -> list[tuple[float, float]]:
+    """Pull a path's first point back so it starts at the edge of the circle."""
+    if len(pts) < 2 or amount <= 0:
+        return pts
+    (x0, y0), (x1, y1) = pts[0], pts[1]
+    dx, dy = x1 - x0, y1 - y0
+    length = (dx * dx + dy * dy) ** 0.5
+    if length <= amount:
+        return pts
+    return [(x0 + dx / length * amount, y0 + dy / length * amount), *pts[1:]]
+
+
+def _block_cap(svg_pts: list[tuple[float, float]], scale: float,
+               is_cut: bool = False) -> str:
+    """
+    The bar across the end of a block path — the mark that says "engaged",
+    and the reason a block reads differently from a route at a glance.
+    """
+    (x0, y0), (x1, y1) = svg_pts[-2], svg_pts[-1]
+    dx, dy = x1 - x0, y1 - y0
+    length = (dx * dx + dy * dy) ** 0.5 or 1.0
+    nx, ny = -dy / length, dx / length          # unit normal
+    half = scale * 0.42
+
+    if is_cut:
+        # a slash through the end instead of a bar
+        ux, uy = dx / length * half, dy / length * half
+        return (
+            f'<line x1="{x1 - ux - nx * half:.1f}" y1="{y1 - uy - ny * half:.1f}" '
+            f'x2="{x1 + ux + nx * half:.1f}" y2="{y1 + uy + ny * half:.1f}" '
+            f'stroke="{_BLOCK_COLOR}" stroke-width="{_BLOCK_WIDTH}" '
+            f'stroke-linecap="round" opacity="0.88"/>'
+        )
+    return (
+        f'<line x1="{x1 - nx * half:.1f}" y1="{y1 - ny * half:.1f}" '
+        f'x2="{x1 + nx * half:.1f}" y2="{y1 + ny * half:.1f}" '
+        f'stroke="{_BLOCK_COLOR}" stroke-width="{_BLOCK_WIDTH}" '
+        f'stroke-linecap="round" opacity="0.88"/>'
+    )
+
 
 def _smooth_path(svg_pts: list[tuple[float, float]]) -> str:
     """

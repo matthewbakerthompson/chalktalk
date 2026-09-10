@@ -10,14 +10,14 @@ from typing import Optional
 from ..models.formation import Formation
 from ..models.play import Play, PlayType
 from ..builder import play as _b
-from ..templates import routes as R, formations as F
+from ..templates import routes as R, formations as F, schemes as SC
 
 
 def mesh_concept(formation: Optional[Formation] = None) -> Play:
     """Classic two-man mesh crossing with fly clearout."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(X=R.FLY(), Y=R.FLAT(), Z=R.MESH(5, 22), H=R.MESH(6, 22), RB=R.SWING())
         .name("Mesh Concept")
         .play_type(PlayType.PASS)
@@ -32,7 +32,7 @@ def curl_flat(formation: Optional[Formation] = None) -> Play:
     """Curl/flat — high-low stress on the hook-curl defender."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(X=R.CURL(), Y=R.FLAT(), Z=R.OUT(), H=R.CURL(depth=10), RB=R.FLAT())
         .name("Curl / Flat")
         .play_type(PlayType.PASS)
@@ -47,7 +47,7 @@ def four_verticals(formation: Optional[Formation] = None) -> Play:
     """Four Verts — stretch the coverage deep on all levels."""
     f = formation or F.GUN_DOUBLES()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(X=R.FLY(), Y=R.SEAM(), H=R.SEAM(depth=20), Z=R.FLY(), RB=R.FLAT())
         .name("Four Verticals")
         .play_type(PlayType.PASS)
@@ -62,7 +62,7 @@ def smash(formation: Optional[Formation] = None) -> Play:
     """Smash — corner + hitch high-low vs. Cover 2 cornerback."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.HITCH(),
             Z=R.CORNER(stem=6, depth=12),
@@ -83,7 +83,7 @@ def levels(formation: Optional[Formation] = None) -> Play:
     """Levels — three routes at different depths on same side. Cover 3 stress."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.FLY(),
             Z=R.IN(stem=12, depth=14),
@@ -104,7 +104,7 @@ def flood(formation: Optional[Formation] = None) -> Play:
     """Flood — three routes to one side at different depths. Overloads the flat."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.POST(),
             Z=R.CORNER(stem=8, depth=14),
@@ -125,7 +125,7 @@ def drive_concept(formation: Optional[Formation] = None) -> Play:
     """Drive — backside drag + frontside out. Stretch cover-4 horizontally."""
     f = formation or F.GUN_DOUBLES()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.DRAG(depth=5, cross=20),
             H=R.SEAM(),
@@ -146,7 +146,7 @@ def y_cross(formation: Optional[Formation] = None) -> Play:
     """Y-Cross — TE digs across the field. Middle of the field open concept."""
     f = formation or F.SHOTGUN_ACE()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.FLY(),
             Y=R.DIG(stem=10, cross=18),
@@ -167,7 +167,7 @@ def spacing(formation: Optional[Formation] = None) -> Play:
     """Spacing — 5 route combination with even distribution. Attacks zones."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.HITCH(depth=6),
             Y=R.FLAT(),
@@ -188,7 +188,7 @@ def scissors(formation: Optional[Formation] = None) -> Play:
     """Scissors — post + corner from same side. Splits the safety."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.POST(stem=8),
             Z=R.CORNER(stem=8, depth=15),
@@ -209,7 +209,7 @@ def stick(formation: Optional[Formation] = None) -> Play:
     """Stick — TE stick (stop route) + flat + seam. Quick-game triangle."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.FLY(),
             Y=R.HITCH(depth=5),
@@ -230,7 +230,7 @@ def deep_cross(formation: Optional[Formation] = None) -> Play:
     """Deep Cross (Over) — WR runs a deep crossing route across the field."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.OVER(stem=10, cross=22),
             Y=R.SEAM(),
@@ -251,7 +251,7 @@ def double_slant(formation: Optional[Formation] = None) -> Play:
     """Double Slant — slants on both sides. High-percentage quick game."""
     f = formation or F.GUN_DOUBLES()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.SLANT(),
             H=R.SLANT(),
@@ -272,7 +272,7 @@ def hitch_seam(formation: Optional[Formation] = None) -> Play:
     """Hitch + Seam — outside hitch with TE/slot seam. Beats Cover 2."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.HITCH(),
             Y=R.SEAM(depth=15),
@@ -293,7 +293,7 @@ def sail_concept(formation: Optional[Formation] = None) -> Play:
     """Sail — fly + out + flat three-level flood to one side."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.FLY(),
             Z=R.SAIL(stem=5, depth=14),
@@ -314,7 +314,7 @@ def snag(formation: Optional[Formation] = None) -> Play:
     """Snag — angle + flat + corner triangle. Quick read vs zone."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).pass_pro()
         .routes(
             X=R.CORNER(stem=5, depth=10),
             Y=R.ANGLE(),
@@ -335,7 +335,7 @@ def rpo_bubble(formation: Optional[Formation] = None) -> Play:
     """RPO Bubble — run-pass option with outside bubble screen as backside read."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).scheme(SC.inside_zone(1), protection="Run action")
         .routes(
             X=R.BUBBLE(),
             Y=R.BLOCK(),

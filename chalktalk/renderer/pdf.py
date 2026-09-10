@@ -37,6 +37,7 @@ _C_PLAYER_STK  = colors.HexColor("#93c5fd")
 _C_LABEL       = colors.white
 _C_ROUTE       = colors.white
 _C_AMBER       = colors.HexColor("#f59e0b")
+_C_BLOCK       = colors.HexColor("#e5e7eb")
 _C_PAGE_BG     = colors.HexColor("#0f172a")
 _C_PAGE_TEXT   = colors.HexColor("#e2e8f0")
 _C_MUTED       = colors.HexColor("#94a3b8")
@@ -212,6 +213,7 @@ class PDFExporter:
         diag_y = header_y - 56 - diag_h  # bottom-left of diagram
 
         self._draw_field(c, diag_x, diag_y, scale)
+        self._draw_blocks(c, play, diag_x, diag_y, scale)
         self._draw_routes(c, play, diag_x, diag_y, scale)
         self._draw_players(c, play, diag_x, diag_y, scale)
 
@@ -270,6 +272,7 @@ class PDFExporter:
                          f"{play.formation.name}  |  {play.play_type.value.upper()}")
 
             self._draw_field(c, dx, dy, scale)
+            self._draw_blocks(c, play, dx, dy, scale)
             self._draw_routes(c, play, dx, dy, scale)
             self._draw_players(c, play, dx, dy, scale)
 
@@ -324,6 +327,7 @@ class PDFExporter:
                          f"{play.formation.name}  |  {play.play_type.value.upper()}")
 
             self._draw_field(c, dx, dy, scale, y_range=y_range)
+            self._draw_blocks(c, play, dx, dy, scale, y_range=y_range)
             self._draw_routes(c, play, dx, dy, scale, y_range=y_range)
             self._draw_players(c, play, dx, dy, scale, y_range=y_range)
 
@@ -410,6 +414,64 @@ class PDFExporter:
         c.line(ox + w, oy, ox + w, oy + h)
 
     # ── Routes ────────────────────────────────────────────────────────────────
+
+    def _draw_blocks(
+        self,
+        c: rl_canvas.Canvas,
+        play: "Play",
+        ox: float,
+        oy: float,
+        scale: float,
+        y_range: tuple[float, float] | None = None,
+    ) -> None:
+        """Blocking, drawn the same way as the SVG renderer."""
+        from ..models.block import BlockKind
+        from ..templates.blocking import BASE
+
+        yr = y_range or self._Y_RANGE
+        xr = self._X_RANGE
+        combos: set[frozenset] = set()
+        to_rl = lambda fx, fy: (ox + (fx - xr[0]) * scale,  # noqa: E731
+                                oy + (fy - yr[0]) * scale)
+
+        for a in play.assignments:
+            block = a.block
+            if block is None:
+                if a.route is not None and a.route.route_type.value == "block":
+                    block = BASE()
+                else:
+                    continue
+
+            pts = block.absolute_path(a.player.x, a.player.y)
+            if len(pts) < 2:
+                continue
+            rl_pts = _trim_start([to_rl(fx, fy) for fx, fy in pts], scale * 0.42)
+
+            c.setStrokeColor(_C_BLOCK)
+            c.setLineWidth(2.0)
+            c.setLineCap(1)
+            path = c.beginPath()
+            _path_catmull_rom(path, rl_pts)
+            c.drawPath(path, stroke=1, fill=0)
+            _draw_block_cap(c, rl_pts, scale, block.kind is BlockKind.CUT)
+
+            if block.combo_with:
+                pair = frozenset((a.player.label, block.combo_with))
+                partner = next((x for x in play.assignments
+                                if x.player.label == block.combo_with), None)
+                if partner is not None and pair not in combos:
+                    combos.add(pair)
+                    x1, y1 = to_rl(a.player.x, a.player.y)
+                    x2, y2 = to_rl(partner.player.x, partner.player.y)
+                    c.setLineWidth(1.2)
+                    c.setDash(3, 3)
+                    bracket = c.beginPath()
+                    bracket.moveTo(x1, y1 - scale * 0.5)
+                    bracket.curveTo((x1 + x2) / 2, min(y1, y2) - scale * 1.25,
+                                    (x1 + x2) / 2, min(y1, y2) - scale * 1.25,
+                                    x2, y2 - scale * 0.5)
+                    c.drawPath(bracket, stroke=1, fill=0)
+                    c.setDash(1, 0)
 
     def _draw_routes(
         self,
@@ -565,6 +627,33 @@ class PDFExporter:
 
 
 # ── Path / arrowhead helpers ──────────────────────────────────────────────────
+
+def _trim_start(pts, amount: float):
+    """Pull a path's first point back so it starts at the edge of the circle."""
+    if len(pts) < 2 or amount <= 0:
+        return pts
+    (x0, y0), (x1, y1) = pts[0], pts[1]
+    dx, dy = x1 - x0, y1 - y0
+    length = (dx * dx + dy * dy) ** 0.5
+    if length <= amount:
+        return pts
+    return [(x0 + dx / length * amount, y0 + dy / length * amount), *pts[1:]]
+
+
+def _draw_block_cap(c, pts, scale: float, is_cut: bool = False) -> None:
+    """The bar across the end of a block path."""
+    (x0, y0), (x1, y1) = pts[-2], pts[-1]
+    dx, dy = x1 - x0, y1 - y0
+    length = (dx * dx + dy * dy) ** 0.5 or 1.0
+    nx, ny = -dy / length, dx / length
+    half = scale * 0.42
+    if is_cut:
+        ux, uy = dx / length * half, dy / length * half
+        c.line(x1 - ux - nx * half, y1 - uy - ny * half,
+               x1 + ux + nx * half, y1 + uy + ny * half)
+    else:
+        c.line(x1 - nx * half, y1 - ny * half, x1 + nx * half, y1 + ny * half)
+
 
 def _path_catmull_rom(
     path,

@@ -78,7 +78,10 @@ def test_protection_sets_field_not_suffix():
 
 def test_max_protect_puts_the_back_in_to_block():
     play = passing.mesh_concept().adjust(A.MAX_PROTECT("RB"))
-    assert play.assignment("RB").route.route_type.value == "block"
+    rb = play.assignment("RB")
+    assert rb.is_blocking
+    assert rb.block.kind.value == "pass_set"
+    assert rb.route is None
     assert "Max" in (play.protection or "")
 
 
@@ -86,7 +89,9 @@ def test_release_sends_the_back_out():
     play = (passing.mesh_concept()
             .adjust(A.MAX_PROTECT("RB"))
             .adjust(A.RELEASE("RB", R.WHEEL())))
-    assert play.assignment("RB").route.route_type.value == "wheel"
+    rb = play.assignment("RB")
+    assert rb.route.route_type.value == "wheel"
+    assert rb.block is None          # he cannot block and run a route
 
 
 def test_alert_and_tempo():

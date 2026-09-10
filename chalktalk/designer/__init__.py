@@ -40,7 +40,8 @@ def catalog() -> dict:
     """Everything the browser app needs, as plain JSON-able data."""
     from ..catalog import passing, redzone, running
     from ..models.field import FIELDS
-    from ..templates import defense as D, formations as F, routes as R
+    from ..templates import (blocking as BL, defense as D, formations as F,
+                             routes as R, schemes as SC)
     from ..adjustments import _MOTION_PRESETS
 
     plays: dict[str, dict] = {}
@@ -70,9 +71,45 @@ def catalog() -> dict:
         "defenses": {name: fn().model_dump(mode="json")
                      for name, fn in _uppercase_builders(D).items()},
         "plays": plays,
+        "blocks": {
+            name: {str(d): _block_sample(fn, d).model_dump(mode="json")
+                   for d in (1, -1)}
+            for name, fn in _uppercase_builders(BL).items()
+        },
+        "schemes": {
+            name: {
+                str(d): {label: block.model_dump(mode="json")
+                         for label, block in _scheme_for(fn, d).items()}
+                for d in (1, -1)
+            }
+            for name, fn in SC.SCHEMES.items()
+        },
+        "protections": sorted(SC.PROTECTIONS),
         "motions": list(_MOTION_PRESETS),
         "default_formation": DEFAULT_FORMATION,
     }
+
+
+def _block_sample(fn, direction: int):
+    """
+    Build one block for the picker. Most constructors take `direction` first,
+    but a few (BASE, COMBO) lead with something else.
+    """
+    params = inspect.signature(fn).parameters
+    kwargs = {}
+    if "direction" in params:
+        kwargs["direction"] = direction
+    if "partner" in params:
+        kwargs["partner"] = ""
+    return fn(**kwargs)
+
+
+def _scheme_for(fn, direction: int) -> dict:
+    """Build a scheme for a direction, tolerating the ones that take no argument."""
+    try:
+        return fn(direction)
+    except TypeError:
+        return fn()
 
 
 def _json_for_script(obj) -> str:

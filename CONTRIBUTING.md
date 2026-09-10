@@ -46,6 +46,19 @@ defense). Every formation needs exactly 11 players with unique labels and 5 line
 over-reaction to it. Always fill in `tell=` — the defensive reaction that makes
 the call right. That field is the whole point of a series.
 
+## Adding a blocking scheme
+
+`chalktalk/templates/schemes.py`. A scheme takes a `direction` (+1 right, -1
+left) and returns `{label: Block}`. Use `_sides(direction)` to get playside and
+backside labels rather than hard-coding `RT`/`LT`, so the scheme flips correctly.
+
+Block paths are **never mirrored** by the renderer — the scheme is responsible
+for pointing each path the right way. If you find yourself wanting the renderer
+to flip a block, the scheme is wrong.
+
+Both members of a double team carry a `COMBO` block naming each other, and
+exactly one of them gets `climb=True`. A test enforces both.
+
 ## Adding an adjustment
 
 `chalktalk/adjustments.py`. Add a value to `AdjustmentKind`, an `_apply_<kind>`

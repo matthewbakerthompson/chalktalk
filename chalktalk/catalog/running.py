@@ -7,14 +7,14 @@ from typing import Optional
 from ..models.formation import Formation
 from ..models.play import Play, PlayType
 from ..builder import play as _b
-from ..templates import routes as R, formations as F
+from ..templates import routes as R, formations as F, schemes as SC
 
 
 def inside_zone(formation: Optional[Formation] = None) -> Play:
     """Base inside zone — RB reads backside A/B gap."""
     f = formation or F.I_FORM_PRO_RIGHT()
     return (
-        _b(f).block_ol().block("Y", "X", "Z", "FB")
+        _b(f).scheme(SC.inside_zone(1)).block("Y", "X", "Z", "FB")
         .routes(RB=R.RUN(dx=1.5, dy=7))
         .bc("RB")
         .name("Inside Zone")
@@ -30,7 +30,7 @@ def outside_zone(formation: Optional[Formation] = None) -> Play:
     """Outside zone — OL stretch, RB looks for cutback or corner."""
     f = formation or F.I_FORM_PRO_RIGHT()
     return (
-        _b(f).block_ol().block("Y", "X", "Z", "FB")
+        _b(f).scheme(SC.outside_zone(1)).block("Y", "X", "Z", "FB")
         .routes(RB=R.RUN(dx=7, dy=5))
         .bc("RB")
         .name("Outside Zone")
@@ -46,8 +46,8 @@ def power_right(formation: Optional[Formation] = None) -> Play:
     """Power Right — pulling guard, FB lead, off-tackle."""
     f = formation or F.I_FORM_STRONG_RIGHT()
     return (
-        _b(f).block_ol().block("Y", "X", "Z")
-        .routes(FB=R.RUN(dx=4, dy=4), RB=R.RUN(dx=4, dy=7))
+        _b(f).scheme(SC.power(1, kicker="FB")).block("Y", "X", "Z")
+        .routes(RB=R.RUN(dx=4, dy=7))
         .bc("RB")
         .name("Power Right")
         .play_type(PlayType.RUN)
@@ -62,7 +62,7 @@ def power_left(formation: Optional[Formation] = None) -> Play:
     """Power Left — mirror of power right."""
     f = formation or F.I_FORM_PRO_RIGHT()
     return (
-        _b(f).block_ol().block("Y", "X", "Z")
+        _b(f).scheme(SC.power(-1, kicker=None)).block("Y", "X", "Z")
         .routes(FB=R.RUN(dx=-4, dy=4), RB=R.RUN(dx=-4, dy=7))
         .bc("RB")
         .name("Power Left")
@@ -77,7 +77,7 @@ def counter_trey(formation: Optional[Formation] = None) -> Play:
     """Counter Trey — two pulling linemen, misdirection off zone-fake."""
     f = formation or F.GUN_OFFSET_BACK_RIGHT()
     return (
-        _b(f).block_ol().block("Y", "X", "Z")
+        _b(f).scheme(SC.counter(1)).block("Y", "X", "Z")
         .routes(RB=R.RUN(dx=-3, dy=6))
         .bc("RB")
         .name("Counter Trey")
@@ -93,7 +93,7 @@ def trap(formation: Optional[Formation] = None) -> Play:
     """Trap — guard traps the backside DT. Quick-hitting A/B gap."""
     f = formation or F.I_FORM_PRO_RIGHT()
     return (
-        _b(f).block_ol().block("Y", "X", "Z", "FB")
+        _b(f).scheme(SC.trap(1)).block("Y", "X", "Z", "FB")
         .routes(RB=R.RUN(dx=1, dy=6))
         .bc("RB")
         .name("Trap")
@@ -109,7 +109,7 @@ def draw(formation: Optional[Formation] = None) -> Play:
     """Draw — QB drop-back fake, delayed hand-off to RB."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).scheme(SC.big_on_big(), protection="Draw - show pass")
         .routes(
             X=R.FLY(),
             Z=R.FLY(),
@@ -131,7 +131,7 @@ def speed_sweep(formation: Optional[Formation] = None) -> Play:
     """Speed Sweep — WR/RB jet sweep to the perimeter."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol()
+        _b(f).scheme(SC.outside_zone(1))
         .routes(
             X=R.BLOCK(),
             Y=R.BLOCK(),
@@ -153,7 +153,7 @@ def toss_sweep(formation: Optional[Formation] = None) -> Play:
     """Toss Sweep — QB toss to RB going outside."""
     f = formation or F.I_FORM_PRO_RIGHT()
     return (
-        _b(f).block_ol().block("Y", "X", "Z")
+        _b(f).scheme(SC.outside_zone(1)).block("Y", "X", "Z")
         .routes(FB=R.RUN(dx=6, dy=2), RB=R.RUN(dx=8, dy=4))
         .bc("RB")
         .name("Toss Sweep")
@@ -169,8 +169,8 @@ def lead_iso(formation: Optional[Formation] = None) -> Play:
     """Isolation — FB isolates MLB, RB runs off the block."""
     f = formation or F.I_FORM_PRO_RIGHT()
     return (
-        _b(f).block_ol().block("Y", "X", "Z")
-        .routes(FB=R.RUN(dx=0, dy=5), RB=R.RUN(dx=0, dy=8))
+        _b(f).scheme(SC.iso(1, lead="FB")).block("Y", "X", "Z")
+        .routes(RB=R.RUN(dx=0, dy=8))
         .bc("RB")
         .name("Lead Iso")
         .play_type(PlayType.RUN)
@@ -185,7 +185,7 @@ def veer_read(formation: Optional[Formation] = None) -> Play:
     """Zone Read / Veer — QB reads unblocked DE; hand-off or keep."""
     f = formation or F.GUN_OFFSET_BACK_RIGHT()
     return (
-        _b(f).block_ol().block("Y")
+        _b(f).scheme(SC.inside_zone(1)).block("Y")
         .routes(
             X=R.BLOCK(),
             Z=R.BLOCK(),
@@ -206,7 +206,7 @@ def qb_keeper(formation: Optional[Formation] = None) -> Play:
     """QB Keeper — QB runs behind pulling OL."""
     f = formation or F.SHOTGUN_TRIPS_RIGHT()
     return (
-        _b(f).block_ol().block("Y", "X", "Z", "H")
+        _b(f).scheme(SC.power(1, kicker=None)).block("Y", "X", "Z", "H")
         .routes(
             QB=R.RUN(dx=5, dy=6),
             RB=R.BLOCK(),

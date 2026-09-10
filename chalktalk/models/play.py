@@ -2,6 +2,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional, TYPE_CHECKING  # TYPE_CHECKING used for SVGRenderer
 from pydantic import BaseModel
+from .block import Block
 from .formation import Formation
 from .assignment import Assignment
 from .route import Route
@@ -67,10 +68,12 @@ class Play(BaseModel):
         if self.adjustments:
             lines.append(f"Adjustments: {', '.join(self.adjustments)}")
         for a in self.assignments:
+            mo = f" (motion: {a.motion_type})" if a.motion_type else ""
             if a.route:
                 bc = " [BC]" if a.is_ball_carrier else ""
-                mo = f" (motion: {a.motion_type})" if a.motion_type else ""
                 lines.append(f"  {a.player.label:>4s}: {a.route.route_type.value}{bc}{mo}")
+            elif a.block:
+                lines.append(f"  {a.player.label:>4s}: {a.block.describe()}{mo}")
         for al in self.alerts:
             lines.append(f"  ! {al}")
         if self.situation:
@@ -84,12 +87,35 @@ class Play(BaseModel):
     # ── Immutable mutation helpers (return new Play) ──────────────────────────
 
     def with_route(self, label: str, route: Route) -> "Play":
-        """Return a copy of this play with one player's route replaced."""
+        """
+        Return a copy with one player's route replaced. A player either runs a
+        route or blocks, so this clears any blocking assignment he had.
+        """
         new_assignments = [
-            a.model_copy(update={"route": route}) if a.player.label == label else a
+            a.model_copy(update={"route": route, "block": None})
+            if a.player.label == label else a
             for a in self.assignments
         ]
         return self.model_copy(update={"assignments": new_assignments})
+
+    def with_block(self, label: str, block: "Block") -> "Play":
+        """Return a copy with one player's blocking assignment replaced."""
+        new_assignments = [
+            a.model_copy(update={"block": block, "route": None})
+            if a.player.label == label else a
+            for a in self.assignments
+        ]
+        return self.model_copy(update={"assignments": new_assignments})
+
+    def with_scheme(self, blocks: dict[str, "Block"],
+                    protection: Optional[str] = None) -> "Play":
+        """Apply a whole-line scheme; labels not on the field are ignored."""
+        present = {a.player.label for a in self.assignments}
+        play = self
+        for label, block in blocks.items():
+            if label in present:
+                play = play.with_block(label, block)
+        return play.protect(protection) if protection else play
 
     def with_routes(self, **kwargs: Route) -> "Play":
         """Return a copy with multiple routes replaced at once."""
@@ -131,6 +157,7 @@ class Play(BaseModel):
                 "player": a.player.model_copy(update={"x": -a.player.x},),
                 "motion_from": (None if a.motion_from is None
                                 else (-a.motion_from[0], a.motion_from[1])),
+                "block": None if a.block is None else a.block.mirrored(),
             })
             for a in self.assignments
         ]

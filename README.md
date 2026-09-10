@@ -74,6 +74,7 @@ The designer has none — it is one HTML file with no network calls.
 | **30 named routes** | Full route tree plus red-zone specialties (fade, back-shoulder, sail, bubble) |
 | **37 stock plays** | Mesh, smash, flood, levels, snag, four verts, inside/outside zone, power, counter, RPOs |
 | **6 scripted series** | Inside zone, power/counter, mesh, sprint-out, red zone, two-minute |
+| **14 blocking schemes** | Inside/outside zone, power, counter, trap, iso, plus slide, half-slide, big-on-big, sprint and boot protections |
 | **12 adjustment types** | Motion, shift, tag, flip, formation, protection, tempo, alert, max protect, release, play action, personnel |
 | **3 field levels** | NFL, college and high school hashes — switchable everywhere |
 | **Visual designer** | Single-file browser app: drag players, draw routes, round-trips the same JSON |
@@ -201,6 +202,37 @@ S.Situation.opp(8).zone  # FieldZone.LOW_RED
 
 ---
 
+## Blocking
+
+A route says where a receiver runs; a block says who a lineman has and how he
+gets there. They are different shapes — a puller goes backwards before he goes
+forwards, a combo is two players on one defender before one climbs — so blocking
+is its own model, drawn in playbook notation: a bar across the end of an engaged
+block, a curve behind the line for a puller, a bracket under a double team.
+
+```python
+from chalktalk.templates import schemes as S, blocking as B
+
+play.with_scheme(S.power(+1), protection="Power Rt")   # whole line at once
+play.with_block("LG", B.WRAP(+1, target="M"))          # one man
+```
+
+```bash
+chalk list schemes
+```
+
+Schemes take a direction — `+1` right, `-1` left — and work out playside and
+backside for you, so `S.counter(-1)` swaps which guard kicks and which tackle
+wraps. Every catalog run play now carries a real scheme, which is why power,
+counter and inside zone finally draw as three different plays.
+
+**One rule to know:** routes are authored right-side and mirrored for left-side
+players; **block paths are never mirrored**. A pull to the right is a pull to the
+right whether the left guard or the right guard is doing it. `Play.mirror()`
+flips blocks explicitly through `Block.mirrored()`.
+
+---
+
 ## The designer
 
 ```bash
@@ -219,6 +251,8 @@ no CDN, no build step — and opens it. Inside:
 - pick a stock route from the tree, or draw your own
 - apply **motion** (jet, orbit, across, return, short, out, in) and watch the
   pre-snap trail and snap position update
+- drop a **blocking scheme** on the whole line and flip it left or right, or set
+  one blocker's assignment, direction and target by hand
 - drop in any of the 23 defensive looks
 - **Flip** the whole play, **Undo** with <kbd>Ctrl</kbd>+<kbd>Z</kbd>
 - fill in protection, tempo, alerts, tags and the situation it is called in
@@ -262,7 +296,7 @@ chalk design --level ncaa
 
 ```bash
 chalk design                         # visual play designer
-chalk list plays                     # or formations | defenses | routes | series
+chalk list plays                     # or formations | defenses | routes | series | schemes | blocks
 chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --level hs
 chalk show mesh_concept              # assignments as text
 chalk series mesh --out out/mesh_series
@@ -318,6 +352,9 @@ a clean SVG render, and every adjustment for immutability and JSON round-trippin
 
 ## Roadmap
 
+- Defensive assignments: coverage drops, man match-ups, blitz paths and stunts,
+  so `play.vs(...)` teaches instead of just showing alignment
+- Quarterback mechanics: dropback depth, mesh point, boot and sprint paths
 - Playbook-level editing in the designer (multiple plays, drag to reorder)
 - A concept taxonomy for the pass game — horizontal, vertical and three-level
   stretches, isolation concepts — so plays are classified by what they attack
