@@ -30,7 +30,8 @@ a new module is picked up everywhere the moment it lands in PLAY_MODULES.
 import inspect
 from typing import Callable
 
-from . import passing, playaction, redzone, rpo, running, screens, series
+from . import (passing, playaction, redzone, rpo, running, screens,
+               series, systems)
 
 #: Every module that contributes plays. Add new ones here and they show up in
 #: the CLI, the designer and the test sweep without another edit.
@@ -54,6 +55,7 @@ def all_plays() -> dict[str, "object"]:
 
 
 __all__ = [
-    "passing", "running", "redzone", "playaction", "screens", "rpo", "series",
+    "passing", "running", "redzone", "playaction", "screens", "rpo",
+    "series", "systems",
     "PLAY_MODULES", "play_builders", "all_plays",
 ]

@@ -30,11 +30,12 @@ from typing import TYPE_CHECKING, Optional
 
 from pydantic import BaseModel
 
-from .models.play import Play, Playbook
+from .models.play import Play, Playbook, PlayType
 from .models.situation import Situation
 
 if TYPE_CHECKING:
-    from .script import Script
+    from .callsheet import CallSheet
+    from .script import PracticeScript, Script
 
 
 class Role(str, Enum):
@@ -238,4 +239,307 @@ def series(name: str, description: Optional[str] = None) -> SeriesBuilder:
     return SeriesBuilder(name, description)
 
 
-__all__ = ["Role", "SeriesEntry", "Series", "SeriesBuilder", "series"]
+# ════════════════════════════════════════════════════════════════════════════
+# SERIES SETS
+# ════════════════════════════════════════════════════════════════════════════
+
+class SeriesSetEntry(BaseModel):
+    """One series inside a set, and when it goes in."""
+    series: Series
+    install_week: int = 1
+    priority: int = 0                 # lower sorts first inside a week
+    note: Optional[str] = None
+
+
+class SeriesSet(BaseModel):
+    """
+    Several series treated as one thing: a system, a game plan, an install.
+
+    A series answers a question. A set of series is an offense — and the useful
+    questions are about the whole of it: what goes in first, how it gets repped,
+    whether it is balanced, and what it still cannot answer.
+    """
+    name: str
+    description: Optional[str] = None
+    team: Optional[str] = None
+    season: Optional[int] = None
+    entries: list[SeriesSetEntry] = []
+    tags: list[str] = []
+
+    # ── Access ────────────────────────────────────────────────────────────────
+
+    @property
+    def series(self) -> list[Series]:
+        return [e.series for e in self.entries]
+
+    @property
+    def plays(self) -> list[Play]:
+        return [p for e in self.entries for p in e.series.plays]
+
+    @property
+    def bases(self) -> list[Play]:
+        return [e.series.base for e in self.entries if e.series.base]
+
+    def get(self, name: str) -> Optional[Series]:
+        """Find a series by exact name, then by case-insensitive substring."""
+        for e in self.entries:
+            if e.series.name == name:
+                return e.series
+        lowered = name.lower()
+        return next((e.series for e in self.entries
+                     if lowered in e.series.name.lower()), None)
+
+    def by_week(self) -> dict[int, list[Series]]:
+        out: dict[int, list[Series]] = {}
+        for e in sorted(self.entries, key=lambda e: (e.install_week, e.priority)):
+            out.setdefault(e.install_week, []).append(e.series)
+        return out
+
+    def ordered(self) -> list["SeriesSetEntry"]:
+        return sorted(self.entries, key=lambda e: (e.install_week, e.priority))
+
+    # ── Installing ────────────────────────────────────────────────────────────
+
+    def install(self, weeks: Optional[int] = None) -> dict[int, list[Play]]:
+        """
+        The teaching order, week by week.
+
+        Inside a week every base goes in before anybody's constraints, because
+        a constraint installed before the play it constrains teaches nothing.
+        """
+        plan: dict[int, list[Play]] = {}
+        for week, series_list in self.by_week().items():
+            ordered: list[Play] = []
+            for s in series_list:                       # every base first
+                if s.base is not None:
+                    ordered.append(s.base.model_copy(update={"install_day": week}))
+            for s in series_list:                       # then the answers
+                for entry in s.sorted().entries:
+                    if entry.role is not Role.BASE:
+                        ordered.append(
+                            entry.play.model_copy(update={"install_day": week}))
+            plan[week] = ordered
+
+        if weeks is not None:
+            for week in range(1, weeks + 1):
+                plan.setdefault(week, [])
+        return dict(sorted(plan.items()))
+
+    # ── Repping ───────────────────────────────────────────────────────────────
+
+    def to_script(self, reps: int = 1, looks: Optional[list] = None,
+                  week: Optional[int] = None) -> "Script":
+        """One continuous script across every series in the set."""
+        from .script import Script
+
+        script = Script(name=f"{self.name} - Install")
+        for entry in self.ordered():
+            if week is not None and entry.install_week != week:
+                continue
+            script = script.extend(
+                entry.series.to_script(reps=reps, period=entry.series.name,
+                                       looks=looks))
+        return script
+
+    def to_practice(self, minutes: int = 12, reps: int = 1,
+                    looks: Optional[list] = None,
+                    week: Optional[int] = None) -> "PracticeScript":
+        """A practice with one period per series — the way it gets repped."""
+        from .script import PracticeScript
+
+        practice = PracticeScript(name=f"{self.name} Practice", team=self.team)
+        for entry in self.ordered():
+            if week is not None and entry.install_week != week:
+                continue
+            practice = practice.add_period(
+                entry.series.name,
+                entry.series.to_script(reps=reps, looks=looks),
+                minutes=minutes,
+                focus=entry.note or entry.series.description,
+            )
+        return practice
+
+    # ── Printing ──────────────────────────────────────────────────────────────
+
+    def to_playbook(self) -> Playbook:
+        return Playbook(name=self.name, team=self.team, season=self.season,
+                        plays=self.plays)
+
+    def to_call_sheet(self, name: Optional[str] = None) -> "CallSheet":
+        """Every play in the set, bucketed by the situation it is called in."""
+        from .callsheet import CallSheet
+        return CallSheet.from_playbook(self.to_playbook(),
+                                       name=name or self.name).number()
+
+    def render_all(self, directory: str) -> list[str]:
+        """One folder per series, one SVG per play."""
+        import os
+        import re
+        paths: list[str] = []
+        for entry in self.ordered():
+            slug = re.sub(r"[^a-z0-9]+", "_", entry.series.name.lower()).strip("_")
+            paths.extend(entry.series.render_all(os.path.join(directory, slug)))
+        return paths
+
+    # ── Checking it ───────────────────────────────────────────────────────────
+
+    def balance(self) -> dict:
+        """Is this an offense, or five versions of the same play?"""
+        counts: dict[str, int] = {}
+        personnel: dict[str, int] = {}
+        formations: dict[str, int] = {}
+        roles: dict[str, int] = {}
+        for entry in self.entries:
+            for e in entry.series.entries:
+                play = e.play
+                counts[play.play_type.value] = counts.get(play.play_type.value, 0) + 1
+                key = play.formation.personnel
+                personnel[key] = personnel.get(key, 0) + 1
+                formations[play.formation.name] = (
+                    formations.get(play.formation.name, 0) + 1)
+                roles[e.role.value] = roles.get(e.role.value, 0) + 1
+        total = max(len(self.plays), 1)
+        runs = counts.get(PlayType.RUN.value, 0)
+        passes = (counts.get(PlayType.PASS.value, 0)
+                  + counts.get(PlayType.SCREEN.value, 0))
+        return {
+            "series": len(self.entries),
+            "plays": len(self.plays),
+            "by_type": counts,
+            "run_pct": round(100 * runs / total),
+            "pass_pct": round(100 * passes / total),
+            "personnel": personnel,
+            "formations": formations,
+            "roles": roles,
+            "answers_per_base": {
+                e.series.name: len(e.series) - 1 for e in self.ordered()
+            },
+        }
+
+    def gaps(self) -> list[str]:
+        """
+        What this system cannot answer yet.
+
+        Not a style linter — these are the holes a defensive coordinator finds
+        on Sunday: a base play with no constraint off it, a series with nothing
+        that goes over the top, everything from one personnel grouping.
+        """
+        notes: list[str] = []
+        b = self.balance()
+
+        for name, answers in b["answers_per_base"].items():
+            if answers < 2:
+                notes.append(f"{name}: only {answers} answer off the base play")
+
+        for entry in self.ordered():
+            roles = {e.role for e in entry.series.entries}
+            if not roles & {Role.SHOT, Role.PLAY_ACTION}:
+                notes.append(f"{entry.series.name}: nothing that goes over the top")
+            if Role.CONSTRAINT not in roles:
+                notes.append(f"{entry.series.name}: no constraint on the base")
+
+        if b["plays"] and (b["run_pct"] > 70 or b["pass_pct"] > 70):
+            notes.append(
+                f"the whole set is {b['run_pct']}% run / {b['pass_pct']}% pass")
+
+        if len(b["personnel"]) < 2:
+            notes.append("everything comes from one personnel grouping")
+
+        situations = {p.situation.describe() for p in self.plays
+                      if p.situation is not None}
+        if len(self.entries) >= 3 and len(situations) < 3:
+            notes.append("the set is not spread across situations")
+
+        return notes
+
+    # ── Display ───────────────────────────────────────────────────────────────
+
+    def describe(self) -> str:
+        lines = [self.name]
+        if self.description:
+            lines.append(self.description)
+        b = self.balance()
+        lines.append(f"{b['series']} series | {b['plays']} plays | "
+                     f"{b['run_pct']}% run / {b['pass_pct']}% pass")
+        lines.append("=" * max(len(self.name), 28))
+        for week, series_list in self.by_week().items():
+            lines.append("")
+            lines.append(f"Week {week}")
+            for s in series_list:
+                base = s.base.name if s.base else "-"
+                lines.append(f"  {s.name}  ({len(s)} plays, base: {base})")
+        holes = self.gaps()
+        if holes:
+            lines.append("")
+            lines.append("Gaps")
+            lines.extend(f"  - {note}" for note in holes)
+        return "\n".join(lines)
+
+    def to_html(self, **kwargs) -> str:
+        from .renderer.sheets import series_set_html
+        return series_set_html(self, **kwargs)
+
+    def save_html(self, path: str, **kwargs) -> None:
+        import os
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(self.to_html(**kwargs))
+
+    def save(self, path: str) -> None:
+        import os
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(self.model_dump_json(indent=2))
+
+    @classmethod
+    def load(cls, path: str) -> "SeriesSet":
+        with open(path, encoding="utf-8") as fh:
+            return cls.model_validate_json(fh.read())
+
+    def __len__(self) -> int:
+        return len(self.entries)
+
+    def __iter__(self):
+        return iter(self.series)
+
+
+class SeriesSetBuilder:
+    """Fluent builder — see the module docstring."""
+
+    def __init__(self, name: str, description: Optional[str] = None) -> None:
+        self._name = name
+        self._description = description
+        self._entries: list[SeriesSetEntry] = []
+        self._tags: list[str] = []
+        self._team: Optional[str] = None
+        self._season: Optional[int] = None
+
+    def add(self, series_: Series, install_week: int = 1, priority: int = 0,
+            note: Optional[str] = None) -> "SeriesSetBuilder":
+        self._entries.append(SeriesSetEntry(
+            series=series_, install_week=install_week, priority=priority,
+            note=note))
+        return self
+
+    def team(self, name: str, season: Optional[int] = None) -> "SeriesSetBuilder":
+        self._team = name
+        self._season = season
+        return self
+
+    def tag(self, *tags: str) -> "SeriesSetBuilder":
+        self._tags.extend(tags)
+        return self
+
+    def build(self) -> SeriesSet:
+        return SeriesSet(name=self._name, description=self._description,
+                         team=self._team, season=self._season,
+                         entries=self._entries, tags=self._tags)
+
+
+def series_set(name: str, description: Optional[str] = None) -> SeriesSetBuilder:
+    """Shorthand: `series_set('Base Offense').add(iz).add(mesh).build()`"""
+    return SeriesSetBuilder(name, description)
+
+
+__all__ = ["Role", "SeriesEntry", "Series", "SeriesBuilder", "series",
+           "SeriesSet", "SeriesSetEntry", "SeriesSetBuilder", "series_set"]

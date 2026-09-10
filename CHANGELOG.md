@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.0
+
+**Series sets** — several series treated as one offense.
+
+- `SeriesSet` groups series with an install week and a priority, and rolls them
+  up: `install()` (every base before anybody's constraints), `to_script()`,
+  `to_practice()` (one period per series), `to_call_sheet()`, `to_playbook()`,
+  and an install-book HTML export.
+- `balance()` reports run/pass, personnel spread, roles, and **answers per
+  base**; `gaps()` reports what the system cannot answer yet — a base with no
+  constraint, a series with nothing over the top, a one-sided set.
+- Three new series: play action, screens, short yardage — the first two cover
+  the plays added in 0.4.0, which the series catalog had not caught up with.
+- Four stock systems in `catalog.systems`: base offense, spread, pro style and
+  a one-week game plan.
+- CLI: `chalk list systems`, `chalk system <name> --balance --out <dir>`.
+
 ## 0.4.0
 
 **The catalog got the plays it was missing.** 37 concepts → 54.
