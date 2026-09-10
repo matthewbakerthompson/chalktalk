@@ -1,13 +1,13 @@
 """
-gridiron command line — browse the catalog and render plays without writing
+chalktalk command line — browse the catalog and render plays without writing
 any Python.
 
-    gridiron list plays
-    gridiron render mesh_concept -o out/mesh.svg
-    gridiron series mesh --out out/mesh_series
-    gridiron script inside_zone --reps 2
-    gridiron callsheet inside_zone mesh red_zone -o out/week3.html
-    gridiron demo --out out/demo
+    chalk list plays
+    chalk render mesh_concept -o out/mesh.svg
+    chalk series mesh --out out/mesh_series
+    chalk script inside_zone --reps 2
+    chalk callsheet inside_zone mesh red_zone -o out/week3.html
+    chalk demo --out out/demo
 """
 from __future__ import annotations
 import argparse
@@ -57,7 +57,7 @@ def _resolve(reg: dict, key: str, kind: str):
     if len(matches) == 1:
         return reg[matches[0]]
     if not matches:
-        raise SystemExit(f"unknown {kind} '{key}'. Try: gridiron list {kind}s")
+        raise SystemExit(f"unknown {kind} '{key}'. Try: chalk list {kind}s")
     raise SystemExit(f"ambiguous {kind} '{key}': {', '.join(sorted(matches))}")
 
 
@@ -116,7 +116,7 @@ def cmd_render(args: argparse.Namespace) -> int:
     play = _build_play(args.play, args.formation, args.defense, args.flip)
     out = args.out or f"{args.play}.svg"
     if out.endswith(".pdf"):
-        Playbook(name=play.name, plays=[play]).save_pdf(out)
+        Playbook(name=play.name, plays=[play]).save_pdf(out, level=args.level)
         print(f"Saved: {os.path.abspath(out)}")
     elif out.endswith(".json"):
         os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
@@ -124,7 +124,7 @@ def cmd_render(args: argparse.Namespace) -> int:
             fh.write(play.to_json())
         print(f"Saved: {os.path.abspath(out)}")
     else:
-        play.render(scale=args.scale).save(out)
+        play.render(scale=args.scale, level=args.level).save(out)
     if args.describe:
         print()
         print(play.describe())
@@ -144,7 +144,7 @@ def _series_by_key(key: str):
     matches = [k for k in reg if key.lower() in k.lower()]
     if len(matches) == 1:
         return reg[matches[0]]()
-    raise SystemExit(f"unknown series '{key}'. Try: gridiron list series")
+    raise SystemExit(f"unknown series '{key}'. Try: chalk list series")
 
 
 def cmd_series(args: argparse.Namespace) -> int:
@@ -199,6 +199,28 @@ def cmd_callsheet(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_design(args: argparse.Namespace) -> int:
+    """Open the visual designer, optionally on an existing play."""
+    from .designer import open_in_browser, write
+
+    play = None
+    if args.play:
+        if os.path.exists(args.play):
+            with open(args.play, encoding="utf-8") as fh:
+                play = Play.from_json(fh.read())
+        else:
+            play = _build_play(args.play, args.formation, args.defense, args.flip)
+
+    out = args.out or os.path.join("output", "designer.html")
+    path = write(out, play=play, level=args.level)
+    print(f"Designer: {path}")
+    if play is not None:
+        print(f"Loaded:   {play.call}")
+    if not args.no_open:
+        open_in_browser(path)
+    return 0
+
+
 def cmd_demo(args: argparse.Namespace) -> int:
     """Generate one of everything so you can see what the package does."""
     from .callsheet import CallSheet, Wristband
@@ -231,6 +253,9 @@ def cmd_demo(args: argparse.Namespace) -> int:
         fh.write(practice.to_html())
     practice.save_csv(os.path.join(out, "practice.csv"))
 
+    from .designer import write as write_designer
+    write_designer(os.path.join(out, "designer.html"), level=args.level)
+
     print(f"{len(plays)} plays across {len(all_series)} series -> {os.path.abspath(out)}")
     for f in sorted(os.listdir(out)):
         print(f"  {f}")
@@ -241,9 +266,9 @@ def cmd_demo(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="gridiron",
+        prog="chalktalk",
         description="Design, script, and print American football plays.")
-    p.add_argument("--version", action="version", version=f"gridiron {__version__}")
+    p.add_argument("--version", action="version", version=f"chalktalk {__version__}")
     sub = p.add_subparsers(dest="command", required=True)
 
     lst = sub.add_parser("list", help="list catalog contents")
@@ -257,6 +282,8 @@ def build_parser() -> argparse.ArgumentParser:
     ren.add_argument("-d", "--defense", help="draw a defensive look")
     ren.add_argument("--flip", action="store_true", help="mirror the play")
     ren.add_argument("--scale", type=float, default=18.0)
+    ren.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"],
+                     help="hash marks: nfl | ncaa | hs")
     ren.add_argument("--describe", action="store_true")
     ren.set_defaults(func=cmd_render)
 
@@ -289,9 +316,22 @@ def build_parser() -> argparse.ArgumentParser:
     cs.add_argument("--wristband", help="also write a wristband .html")
     cs.set_defaults(func=cmd_callsheet)
 
+    des = sub.add_parser("design", help="open the visual play designer")
+    des.add_argument("play", nargs="?",
+                     help="a saved play .json, or a catalog play name")
+    des.add_argument("-o", "--out", help="where to write the designer HTML")
+    des.add_argument("-f", "--formation", help="override the formation")
+    des.add_argument("-d", "--defense", help="draw a defensive look")
+    des.add_argument("--flip", action="store_true")
+    des.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
+    des.add_argument("--no-open", action="store_true",
+                     help="write the file without launching a browser")
+    des.set_defaults(func=cmd_design)
+
     dem = sub.add_parser("demo", help="generate a full example package")
     dem.add_argument("--out", default="output/demo")
     dem.add_argument("--team")
+    dem.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
     dem.set_defaults(func=cmd_demo)
     return p
 

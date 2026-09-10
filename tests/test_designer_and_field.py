@@ -1,0 +1,204 @@
+"""
+The designer draws in the browser; Python renders the result. These tests pin
+the contract between the two — anything that drifts here puts a drawn route in
+a different place than the coach put it.
+"""
+import json
+import re
+
+import pytest
+
+from chalktalk import designer
+from chalktalk.catalog import passing
+from chalktalk.models import Play
+from chalktalk.models.assignment import Assignment
+from chalktalk.models.core import Point
+from chalktalk.models.field import HS, NCAA, NFL, Level, field_for
+from chalktalk.models.player import Player, Position
+from chalktalk.models.route import Route, RouteType
+from chalktalk.models.situation import Hash
+
+
+# ── Field levels ──────────────────────────────────────────────────────────────
+
+def test_hash_separation_matches_the_rulebooks():
+    # NFL 18'6", NCAA 40'0", NFHS 53'4" — converted to yards
+    assert NFL.hash_separation == pytest.approx(6.167, abs=0.01)
+    assert NCAA.hash_separation == pytest.approx(13.333, abs=0.01)
+    assert HS.hash_separation == pytest.approx(17.778, abs=0.01)
+
+
+def test_hashes_get_wider_as_the_level_drops():
+    assert NFL.hash_from_center < NCAA.hash_from_center < HS.hash_from_center
+
+
+def test_every_level_is_the_same_width():
+    for spec in (NFL, NCAA, HS):
+        assert spec.width == pytest.approx(53.33, abs=0.01)
+
+
+def test_boundary_and_field_split_on_a_hash():
+    # On a high school hash the field side is twice the boundary; in the NFL
+    # the two sides are nearly even. That is the whole point of the setting.
+    assert HS.field_width(Hash.LEFT) / HS.boundary_width(Hash.LEFT) == \
+        pytest.approx(2.0, abs=0.05)
+    assert NFL.field_width(Hash.LEFT) / NFL.boundary_width(Hash.LEFT) == \
+        pytest.approx(1.26, abs=0.05)
+    for spec in (NFL, NCAA, HS):
+        assert spec.boundary_width(Hash.LEFT) + spec.field_width(Hash.LEFT) == \
+            pytest.approx(spec.width)
+
+
+def test_middle_of_field_is_symmetric():
+    assert NCAA.hash_x(Hash.MIDDLE) == 0.0
+    assert NCAA.hash_x(None) == 0.0
+    assert NCAA.hash_x(Hash.LEFT) == -NCAA.hash_x(Hash.RIGHT)
+
+
+@pytest.mark.parametrize("value,expected", [
+    ("nfl", NFL), ("ncaa", NCAA), ("hs", HS),
+    (Level.HS, HS), (None, NFL), (NCAA, NCAA),
+])
+def test_field_for_accepts_any_spelling(value, expected):
+    assert field_for(value) is expected
+
+
+def test_renderer_moves_the_hashes_with_the_level():
+    play = passing.mesh_concept()
+    marks = {}
+    for level in ("nfl", "ncaa", "hs"):
+        svg = play.render(level=level).render()
+        # hash ticks are the only 1.5-width lines drawn in the hash colour
+        xs = re.findall(r'x1="([\d.]+)" y1="[\d.]+" x2="[\d.]+" y2="[\d.]+" '
+                        r'stroke="rgba\(255,255,255,0\.20\)"', svg)
+        marks[level] = min(float(x) for x in xs)
+    # a wider hash separation puts the left hash further left on the page
+    assert marks["hs"] < marks["ncaa"] < marks["nfl"]
+
+
+def test_ball_spot_is_drawn_only_when_a_hash_is_known():
+    from chalktalk.models import situation as S
+    play = passing.mesh_concept()
+    assert "#c2703a" not in play.render().render()
+    on_hash = play.at(S.Situation(down=1, distance=10, hash_mark=Hash.LEFT))
+    assert "#c2703a" in on_hash.render().render()
+
+
+# ── The mirroring convention ──────────────────────────────────────────────────
+
+def _assignment(x: float, waypoints: list[tuple[float, float]]) -> Assignment:
+    return Assignment(
+        player=Player(label="X", position=Position.X, x=x, y=0.0),
+        route=Route(route_type=RouteType.CUSTOM,
+                    waypoints=[Point(x=wx, y=wy) for wx, wy in waypoints]),
+    )
+
+
+def test_right_side_routes_are_stored_as_drawn():
+    a = _assignment(20.0, [(0, 0), (0, 10), (6, 14)])
+    assert a.absolute_waypoints() == [(20.0, 0.0), (20.0, 10.0), (26.0, 14.0)]
+
+
+def test_left_side_routes_are_mirrored_on_the_way_out():
+    # This is exactly what the browser stores when a coach drags a point on a
+    # left-side receiver to (-18, 12) and (-4, 14).
+    a = _assignment(-22.0, [(0, 0), (-4, 12), (-18, 14)])
+    assert a.absolute_waypoints() == [(-22.0, 0.0), (-18.0, 12.0), (-4.0, 14.0)]
+
+
+def test_the_convention_survives_a_flip():
+    from chalktalk import adjustments as A
+    play = Play(name="t", formation=passing.mesh_concept().formation,
+                play_type="pass", assignments=[_assignment(-22.0, [(0, 0), (-4, 12)])])
+    flipped = play.adjust(A.FLIP())
+    assert flipped.assignments[0].absolute_waypoints() == [(22.0, 0.0), (18.0, 12.0)]
+
+
+def test_no_route_means_no_waypoints():
+    a = Assignment(player=Player(label="QB", position=Position.QB, x=0, y=-5))
+    assert a.absolute_waypoints() == []
+
+
+# ── Designer build ────────────────────────────────────────────────────────────
+
+def test_catalog_carries_everything_the_browser_needs():
+    cat = designer.catalog()
+    for key in ("fields", "routes", "formations", "defenses", "plays",
+                "motions", "default_formation"):
+        assert key in cat, key
+    assert set(cat["fields"]) == {"nfl", "ncaa", "hs"}
+    assert cat["default_formation"] in cat["formations"]
+    assert len(cat["plays"]) >= 30
+    assert "BLOCK" in cat["routes"]
+
+
+def test_catalog_is_json_serializable():
+    json.dumps(designer.catalog())
+
+
+def test_catalog_plays_round_trip_back_into_python():
+    for name, raw in designer.catalog()["plays"].items():
+        Play.model_validate(raw), name
+
+
+def test_build_inlines_the_catalog_and_leaves_no_placeholder():
+    html = designer.build()
+    assert "/*__CATALOG__*/{}" not in html
+    assert html.lstrip().startswith("<!doctype html>")
+    assert '"formations"' in html
+
+
+def test_build_can_preload_a_play():
+    play = passing.mesh_concept()
+    html = designer.build(play=play)
+    assert "/*__PLAY__*/null" not in html
+    assert "Mesh Concept" in html
+
+
+def test_build_honours_the_level():
+    assert 'let level = "hs";' in designer.build(level="hs")
+    assert 'let level = "nfl";' in designer.build()
+
+
+def test_inlined_json_cannot_break_out_of_the_script_tag():
+    play = passing.mesh_concept().rename("</script><script>alert(1)</script>")
+    html = designer.build(play=play)
+    assert "</script><script>alert(1)" not in html
+    assert html.count("</script>") == 1
+
+
+def test_designer_is_self_contained():
+    # The SVG namespace is an identifier, not something the page fetches.
+    html = designer.build().replace("http://www.w3.org/2000/svg", "")
+    assert "http://" not in html
+    assert "https://" not in html
+    assert "<script src=" not in html
+    assert "<link rel=" not in html
+    assert "fetch(" not in html
+
+
+def test_write_creates_the_file(tmp_path):
+    path = designer.write(str(tmp_path / "d" / "designer.html"))
+    with open(path, encoding="utf-8") as fh:
+        assert len(fh.read()) > 50_000
+
+
+def test_app_template_keeps_both_placeholders():
+    with open(designer._TEMPLATE, encoding="utf-8") as fh:
+        src = fh.read()
+    assert src.count("/*__CATALOG__*/{}") == 1
+    assert src.count("/*__PLAY__*/null") == 1
+
+
+def test_designer_mirrors_the_python_motion_geometry():
+    """The JS copy of _motion_geometry must stay in step with the Python one."""
+    from chalktalk.adjustments import _MOTION_PRESETS, _motion_geometry
+    with open(designer._TEMPLATE, encoding="utf-8") as fh:
+        src = fh.read()
+    for kind in _MOTION_PRESETS:
+        assert f'case "{kind}"' in src or kind == "short", kind
+    # spot-check the numbers the JS hard-codes against the Python source
+    assert _motion_geometry("jet", 20.0, -1.0) == ((20.0, -1.0), (-2.0, -1.5))
+    assert _motion_geometry("orbit", 12.0, -1.0) == ((12.0, -1.0), (-5.0, -5.0))
+    assert 'cl(-side*2.0), y-0.5' in src
+    assert 'cl(-side*5.0), y-4.0' in src

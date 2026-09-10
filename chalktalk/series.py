@@ -1,5 +1,5 @@
 """
-gridiron.series — scripted series: families of plays that build off each other.
+chalktalk.series — scripted series: families of plays that build off each other.
 
 A series is how offenses actually get built. You have a base play, the
 defense over-reacts to stop it, and every other play in the series punishes
@@ -8,8 +8,8 @@ does that makes this the right call.
 
 Usage
 -----
-from gridiron.series import series, Role
-from gridiron.catalog import running, passing
+from chalktalk.series import series, Role
+from chalktalk.catalog import running, passing
 
 iz = (
     series("Inside Zone Series", "Everything off the IZ mesh point")

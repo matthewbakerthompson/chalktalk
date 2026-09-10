@@ -1,5 +1,5 @@
 """
-gridiron.callsheet — game-day call sheets and player wristbands.
+chalktalk.callsheet — game-day call sheets and player wristbands.
 
 A CallSheet is the laminated page in a coordinator's hands: plays bucketed by
 situation. A Wristband is the numbered grid on a player's forearm, generated
@@ -7,8 +7,8 @@ from the same source so the numbers always agree.
 
 Usage
 -----
-from gridiron.callsheet import CallSheet, Wristband
-from gridiron.models import situation as S
+from chalktalk.callsheet import CallSheet, Wristband
+from chalktalk.models import situation as S
 
 sheet = (
     CallSheet(name="Week 3", opponent="Central")

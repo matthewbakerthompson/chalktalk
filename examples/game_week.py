@@ -16,13 +16,13 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from gridiron import adjustments as A
-from gridiron.callsheet import CallSheet, Wristband
-from gridiron.catalog import passing, series as SR
-from gridiron.models import Playbook
-from gridiron.models import situation as S
-from gridiron.script import PracticeScript, Script
-from gridiron.templates import defense as D
+from chalktalk import adjustments as A
+from chalktalk.callsheet import CallSheet, Wristband
+from chalktalk.catalog import passing, series as SR
+from chalktalk.models import Playbook
+from chalktalk.models import situation as S
+from chalktalk.script import PracticeScript, Script
+from chalktalk.templates import defense as D
 
 TEAM = "Riverside HS"
 OPPONENT = "Central"

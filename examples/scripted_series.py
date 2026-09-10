@@ -13,12 +13,12 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from gridiron import adjustments as A
-from gridiron.catalog import passing, running
-from gridiron.models import situation as S
-from gridiron.renderer.sheets import series_html
-from gridiron.series import series
-from gridiron.templates import defense as D, routes as R
+from chalktalk import adjustments as A
+from chalktalk.catalog import passing, running
+from chalktalk.models import situation as S
+from chalktalk.renderer.sheets import series_html
+from chalktalk.series import series
+from chalktalk.templates import defense as D, routes as R
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "output", "series")
 

@@ -1,12 +1,12 @@
 import pytest
 
-from gridiron.callsheet import CallSheet, Wristband, STANDARD_BUCKETS
-from gridiron.catalog import passing, running, series as SR
-from gridiron.models import Playbook
-from gridiron.models import situation as S
-from gridiron.script import Script, PracticeScript
-from gridiron.series import series, Role
-from gridiron.templates import defense as D
+from chalktalk.callsheet import CallSheet, Wristband, STANDARD_BUCKETS
+from chalktalk.catalog import passing, running, series as SR
+from chalktalk.models import Playbook
+from chalktalk.models import situation as S
+from chalktalk.script import Script, PracticeScript
+from chalktalk.series import series, Role
+from chalktalk.templates import defense as D
 
 
 # ── Series ────────────────────────────────────────────────────────────────────

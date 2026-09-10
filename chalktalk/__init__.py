@@ -1,14 +1,14 @@
 """
-gridiron — design, manage, and render American football plays.
+chalktalk — design, manage, and render American football plays.
 
 Playbook as code: plays are data, so they diff in git, round-trip through
 JSON, and render to SVG, PDF, and printable call sheets.
 
 Quick-start
 -----------
-from gridiron import adjustments as A
-from gridiron.catalog import passing, running, redzone
-from gridiron.templates import routes as R, defense as D
+from chalktalk import adjustments as A
+from chalktalk.catalog import passing, running, redzone
+from chalktalk.templates import routes as R, defense as D
 
 mesh = passing.mesh_concept()
 mesh.render().save("mesh.svg")
@@ -17,7 +17,7 @@ mesh.render().save("mesh.svg")
 mesh_jet = mesh.adjust(A.MOTION("Z", "jet"), A.PROTECTION("Slide Rt"))
 
 # Scripted series — a base play plus everything that punishes over-reaction
-from gridiron.catalog import series as SR
+from chalktalk.catalog import series as SR
 iz = SR.inside_zone_series()
 print(iz.describe())
 

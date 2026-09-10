@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gridiron"
+name = "chalktalk"
 version = "0.3.0"
 description = "Design, script, and print American football plays — playbook as code"
 readme = "README.md"
@@ -32,11 +32,15 @@ dependencies = [
 dev = ["pytest", "pytest-cov"]
 
 [project.scripts]
-gridiron = "gridiron.cli:main"
+chalk = "chalktalk.cli:main"
+chalktalk = "chalktalk.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["gridiron*"]
+include = ["chalktalk*"]
+
+[tool.setuptools.package-data]
+chalktalk = ["designer/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

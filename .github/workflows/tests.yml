@@ -23,5 +23,9 @@ jobs:
         run: python -m pytest
       - name: Smoke-test the CLI
         run: |
-          gridiron list series
-          gridiron demo --out /tmp/demo
+          chalk list series
+          chalk demo --out /tmp/demo
+      - name: Designer demo page is up to date
+        run: |
+          chalk design --out docs/index.html --no-open
+          git diff --exit-code docs/index.html

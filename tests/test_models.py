@@ -1,8 +1,8 @@
 import pytest
 
-from gridiron.catalog import passing, running
-from gridiron.models import Play, Playbook, PlayType
-from gridiron.models.situation import (
+from chalktalk.catalog import passing, running
+from chalktalk.models import Play, Playbook, PlayType
+from chalktalk.models.situation import (
     Situation, FieldZone, Distance, Hash, zone_for, distance_for,
 )
 
@@ -85,7 +85,7 @@ def test_mirror_negates_x_and_is_reversible():
 
 
 def test_with_route_is_immutable():
-    from gridiron.templates import routes as R
+    from chalktalk.templates import routes as R
     play = passing.mesh_concept()
     changed = play.with_route("X", R.POST())
     assert play.assignment("X").route.route_type.value == "fly"
@@ -93,14 +93,14 @@ def test_with_route_is_immutable():
 
 
 def test_with_formation_transfers_routes_by_label():
-    from gridiron.templates import formations as F
+    from chalktalk.templates import formations as F
     play = passing.mesh_concept().with_formation(F.GUN_TREY_RIGHT())
     assert play.formation.name == F.GUN_TREY_RIGHT().name
     assert play.assignment("X").route is not None
 
 
 def test_call_string_includes_formation_and_alts():
-    from gridiron import adjustments as A
+    from chalktalk import adjustments as A
     play = passing.mesh_concept().adjust(A.PROTECTION("Slide Rt"),
                                          A.MOTION("Z", "jet"))
     assert "Mesh" in play.call

@@ -1,10 +1,10 @@
 import pytest
 
-from gridiron import adjustments as A
-from gridiron.catalog import passing, running
-from gridiron.models import Play, PlayType
-from gridiron.models.situation import Tempo
-from gridiron.templates import routes as R, formations as F
+from chalktalk import adjustments as A
+from chalktalk.catalog import passing, running
+from chalktalk.models import Play, PlayType
+from chalktalk.models.situation import Tempo
+from chalktalk.templates import routes as R, formations as F
 
 
 def test_tag_swaps_one_route_and_names_itself():

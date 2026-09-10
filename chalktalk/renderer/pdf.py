@@ -41,7 +41,7 @@ _C_PAGE_BG     = colors.HexColor("#0f172a")
 _C_PAGE_TEXT   = colors.HexColor("#e2e8f0")
 _C_MUTED       = colors.HexColor("#94a3b8")
 _C_ACCENT      = colors.HexColor("#3b82f6")
-_NFL_HASH_X    = 13.33
+from ..models.field import field_for as _field_for
 
 
 class PDFExporter:
@@ -56,10 +56,12 @@ class PDFExporter:
         playbook: "Playbook",
         path: str,
         plays_per_page: int = 1,
+        level=None,
     ):
         self.playbook = playbook
         self.path = path
         self.ppp = plays_per_page
+        self.field = _field_for(level)
 
         if plays_per_page == 1:
             self._page_size = letter          # 612 × 792 pt  (portrait)
@@ -172,7 +174,7 @@ class PDFExporter:
         # Footer
         c.setFillColor(_C_MUTED)
         c.setFont("Helvetica", 8)
-        c.drawRightString(pw - m, m, f"Generated {date.today().isoformat()} by gridiron")
+        c.drawRightString(pw - m, m, f"Generated {date.today().isoformat()} by chalktalk")
 
     # ── 1-per-page layout ─────────────────────────────────────────────────────
 
@@ -389,7 +391,8 @@ class PDFExporter:
         c.setLineWidth(0.5)
 
         # Hash mark ticks
-        for hx in (-_NFL_HASH_X, _NFL_HASH_X):
+        hash_x = self.field.hash_from_center
+        for hx in (-hash_x, hash_x):
             sx = ox + (hx - xr[0]) * scale
             tick = scale * 0.22
             for y_yd in range(int(yr[0]) - 1, int(yr[1]) + 2):
@@ -426,9 +429,7 @@ class PDFExporter:
             if a.route.route_type.value == "block":
                 continue
 
-            route = a.route.mirror() if a.player.is_left_side else a.route
-            px, py = a.player.x, a.player.y
-            abs_pts = [(px + wp.x, py + wp.y) for wp in route.waypoints]
+            abs_pts = a.absolute_waypoints()
 
             # Convert to reportlab coords
             rl_pts = [

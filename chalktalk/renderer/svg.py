@@ -44,8 +44,7 @@ _DEF_LABEL      = "#ffffff"
 # Pre-snap motion
 _MOTION_COLOR   = "#7dd3fc"   # light cyan — clearly not a route
 
-# NFL hash mark positions (±13.33 yards from center)
-_NFL_HASH_X = 13.33
+# Hash positions come from the field spec — they differ by level.
 
 
 class SVGRenderer:
@@ -56,12 +55,15 @@ class SVGRenderer:
         x_range: tuple[float, float] = (-29.0, 29.0),
         y_range: tuple[float, float] = (-8.0,  22.0),
         padding: int = 28,
+        level=None,
     ):
+        from ..models.field import field_for
         self.play    = play
         self.scale   = scale
         self.x_range = x_range
         self.y_range = y_range
         self.pad     = padding
+        self.field   = field_for(level)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -164,7 +166,8 @@ class SVGRenderer:
                 )
 
         # Hash marks (short ticks)
-        for hx in (-_NFL_HASH_X, _NFL_HASH_X):
+        hash_x = self.field.hash_from_center
+        for hx in (-hash_x, hash_x):
             sx = self._sx(hx)
             for y_yd in range(int(self.y_range[0]), int(self.y_range[1]) + 1):
                 sy = self._sy(y_yd)
@@ -174,14 +177,25 @@ class SVGRenderer:
                     f'stroke="{_HASH_COLOR}" stroke-width="1.5"/>'
                 )
 
-        # Sidelines
-        for field_x in (self.x_range[0], self.x_range[1]):
+        # Sidelines — the real ones, 53 1/3 yards apart, not the edge of the view
+        for field_x in (-self.field.sideline, self.field.sideline):
+            if not (self.x_range[0] <= field_x <= self.x_range[1]):
+                continue
             sx = self._sx(field_x)
             y_top = self._sy(self.y_range[1])
             y_bot = self._sy(self.y_range[0])
             els.append(
                 f'<line x1="{sx:.1f}" y1="{y_top:.1f}" x2="{sx:.1f}" y2="{y_bot:.1f}" '
                 f'stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>'
+            )
+
+        # Ball spot on the hash this play is run from
+        if self.play.situation is not None and self.play.situation.hash_mark:
+            bx, by = self._s(self.field.hash_x(self.play.situation.hash_mark), 0)
+            els.append(
+                f'<ellipse cx="{bx:.1f}" cy="{by:.1f}" rx="{self.scale * 0.3:.1f}" '
+                f'ry="{self.scale * 0.18:.1f}" fill="#c2703a" '
+                f'stroke="rgba(255,255,255,0.85)" stroke-width="1"/>'
             )
 
         # LOS label
@@ -250,13 +264,7 @@ class SVGRenderer:
             if rt == "block":
                 continue   # OL blocking — skip route lines for now
 
-            # Mirror waypoints for left-side players
-            route = a.route.mirror() if a.player.is_left_side else a.route
-            waypoints = route.waypoints
-
-            # Convert to absolute field coords
-            px, py = a.player.x, a.player.y
-            abs_pts = [(px + wp.x, py + wp.y) for wp in waypoints]
+            abs_pts = a.absolute_waypoints()
 
             # Determine color and marker
             if a.is_ball_carrier or rt == "run":

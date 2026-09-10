@@ -102,7 +102,7 @@ def _header(title: str, left_bits: Sequence[str] = (),
 
 def _footer(note: str = "") -> str:
     return (f"<div class=\"foot\"><span>{_e(note)}</span>"
-            f"<span>generated with gridiron</span></div>")
+            f"<span>generated with chalktalk</span></div>")
 
 
 # ── Script ────────────────────────────────────────────────────────────────────
@@ -238,8 +238,9 @@ def wristband_html(band: "Wristband", cell_height: int = 34) -> str:
 
 # ── Playbook / series pages with diagrams ─────────────────────────────────────
 
-def _play_card(play: "Play", scale: float, extra: str = "") -> str:
-    svg = play.render(scale=scale).render()
+def _play_card(play: "Play", scale: float, extra: str = "",
+               level: Optional[str] = None) -> str:
+    svg = play.render(scale=scale, level=level).render()
     meta = []
     if play.situation:
         meta.append(play.situation.describe())
@@ -255,8 +256,9 @@ def _play_card(play: "Play", scale: float, extra: str = "") -> str:
 
 
 def playbook_html(playbook: "Playbook", columns: int = 2, scale: float = 9.0,
-                  subtitle: Optional[str] = None) -> str:
-    cards = "".join(_play_card(p, scale) for p in playbook.plays)
+                  subtitle: Optional[str] = None,
+                  level: Optional[str] = None) -> str:
+    cards = "".join(_play_card(p, scale, level=level) for p in playbook.plays)
     body = (
         _header(playbook.name, [subtitle or ""],
                 [playbook.team or "", str(playbook.season or ""),
@@ -267,13 +269,14 @@ def playbook_html(playbook: "Playbook", columns: int = 2, scale: float = 9.0,
     return _page(playbook.name, body)
 
 
-def series_html(series: "Series", columns: int = 2, scale: float = 9.0) -> str:
+def series_html(series: "Series", columns: int = 2, scale: float = 9.0,
+                level: Optional[str] = None) -> str:
     cards = []
     for entry in series.sorted().entries:
         tell = (f"<div class=\"note\"><b>{_e(entry.role.display)}</b>"
                 + (f" — {_e(entry.tell or entry.note)}"
                    if (entry.tell or entry.note) else "") + "</div>")
-        cards.append(_play_card(entry.play, scale, extra=tell))
+        cards.append(_play_card(entry.play, scale, extra=tell, level=level))
     body = (
         _header(series.name, [series.description or ""],
                 [f"{len(series)} plays"])

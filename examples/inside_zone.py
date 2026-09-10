@@ -16,8 +16,8 @@ Routes
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from gridiron import Play, PlayType, Assignment
-from gridiron.templates import routes as R, formations as F
+from chalktalk import Play, PlayType, Assignment
+from chalktalk.templates import routes as R, formations as F
 
 formation = F.I_FORM_PRO_RIGHT()
 players   = {p.label: p for p in formation.players}

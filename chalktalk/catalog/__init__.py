@@ -1,9 +1,9 @@
 """
-gridiron.catalog — ready-to-use named play concepts and scripted series.
+chalktalk.catalog — ready-to-use named play concepts and scripted series.
 
 Usage
 -----
-from gridiron.catalog import passing, running, redzone, series
+from chalktalk.catalog import passing, running, redzone, series
 
 mesh      = passing.mesh_concept()
 iz        = running.inside_zone()

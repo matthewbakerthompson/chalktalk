@@ -1,14 +1,14 @@
 """
-gridiron.script — practice scripts, install scripts, and opening scripts.
+chalktalk.script — practice scripts, install scripts, and opening scripts.
 
 A Script is an ordered list of calls with the situation, the scout look to
 give, and how many reps each gets. Practice scripts group those into periods.
 
 Usage
 -----
-from gridiron.script import Script, PracticeScript, Period
-from gridiron.models import situation as S
-from gridiron.templates import defense as D
+from chalktalk.script import Script, PracticeScript, Period
+from chalktalk.models import situation as S
+from chalktalk.templates import defense as D
 
 opening = (
     Script(name="Opening 15", opponent="Central")

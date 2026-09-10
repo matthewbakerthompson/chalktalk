@@ -18,3 +18,17 @@ class Assignment(BaseModel):
     @property
     def in_motion(self) -> bool:
         return self.motion_from is not None
+
+    def absolute_waypoints(self) -> list[tuple[float, float]]:
+        """
+        The route in field coordinates.
+
+        Routes are authored as if the player is on the right side of the ball
+        and mirrored for left-side players, so this is the one place that
+        convention is applied. The browser designer mirrors this exactly; if
+        the two ever disagree, a play drawn on screen renders somewhere else.
+        """
+        if self.route is None:
+            return []
+        route = self.route.mirror() if self.player.is_left_side else self.route
+        return [(self.player.x + w.x, self.player.y + w.y) for w in route.waypoints]

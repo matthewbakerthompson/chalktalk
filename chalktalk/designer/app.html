@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chalktalk Designer</title>
+<style>
+:root{
+  --bg:#0b1220; --panel:#111b2e; --panel-2:#16233b; --line:#26364f;
+  --ink:#e8eef8; --muted:#8ba0bf; --accent:#3b82f6; --accent-2:#7dd3fc;
+  --amber:#f59e0b; --danger:#ef4444; --ok:#22c55e;
+  --radius:8px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:13px/1.45 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  overflow:hidden;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{
+  background:var(--panel-2);border:1px solid var(--line);border-radius:6px;
+  padding:5px 9px;cursor:pointer;
+}
+button:hover{border-color:var(--accent);background:#1c2c49}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover{background:#2563eb}
+button.danger:hover{border-color:var(--danger);color:#fca5a5}
+button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+input,select,textarea{
+  background:#0d1728;border:1px solid var(--line);border-radius:6px;padding:4px 7px;
+  width:100%;
+}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);margin:0 0 3px}
+.row{display:flex;gap:6px}
+.row>*{flex:1;min-width:0}
+.field{margin-bottom:8px}
+
+#app{display:grid;grid-template-columns:250px 1fr 260px;grid-template-rows:auto 1fr;
+  height:100vh}
+header{
+  grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;
+}
+header h1{font-size:14px;margin:0;letter-spacing:-.01em;white-space:nowrap}
+header h1 span{color:var(--accent-2)}
+header .sep{width:1px;height:22px;background:var(--line)}
+header .spacer{flex:1}
+header .hint{color:var(--muted);font-size:11px}
+
+aside{background:var(--panel);overflow-y:auto;padding:10px}
+aside.left{border-right:1px solid var(--line)}
+aside.right{border-left:1px solid var(--line)}
+h2{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
+  margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+h2:first-child{margin-top:0}
+
+main{position:relative;overflow:auto;display:flex;align-items:flex-start;
+  justify-content:center;padding:14px}
+#stage{background:#0e1a12;border-radius:var(--radius);box-shadow:0 10px 30px #0006}
+svg{display:block;border-radius:var(--radius)}
+svg *{-webkit-user-select:none;user-select:none}
+.grabbable{cursor:grab}
+.grabbing{cursor:grabbing}
+
+.plist{display:flex;flex-wrap:wrap;gap:4px}
+.chip{
+  background:var(--panel-2);border:1px solid var(--line);border-radius:5px;
+  padding:3px 7px;cursor:pointer;font-size:11px;font-variant-numeric:tabular-nums;
+}
+.chip:hover{border-color:var(--accent)}
+.chip.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.ol{opacity:.62}
+.chip .rt{color:var(--muted);font-size:9px;margin-left:4px}
+.chip.sel .rt{color:#dbeafe}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.stack{display:flex;flex-direction:column;gap:5px}
+.note{color:var(--muted);font-size:11px;line-height:1.4}
+.tag{display:inline-flex;align-items:center;gap:4px;background:var(--panel-2);
+  border:1px solid var(--line);border-radius:99px;padding:2px 8px;font-size:10px;
+  color:var(--muted)}
+.tag b{color:var(--ink);font-weight:600}
+kbd{background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:4px;padding:0 4px;font-size:10px;font-family:inherit}
+#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+  background:var(--panel-2);border:1px solid var(--accent);border-radius:99px;
+  padding:7px 16px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+.wpline{display:flex;align-items:center;gap:6px;font-size:11px;
+  font-variant-numeric:tabular-nums;color:var(--muted)}
+.wpline b{color:var(--ink);font-weight:600;min-width:14px}
+.wpline button{padding:1px 6px;font-size:10px}
+@media (max-width:1150px){
+  html,body{overflow:auto;height:auto}
+  #app{grid-template-columns:1fr;grid-template-rows:none;height:auto;min-height:100vh}
+  header{order:-2;position:sticky;top:0;z-index:5}
+  main{order:-1;padding:10px;overflow:visible}
+  aside{max-height:none;overflow:visible}
+  aside.left{border-right:none;border-bottom:1px solid var(--line)}
+  aside.right{border-left:none;border-top:1px solid var(--line)}
+}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+  border-radius:var(--radius);max-width:min(680px,92vw);width:100%;padding:16px}
+dialog::backdrop{background:#000a}
+textarea{min-height:220px;font-family:ui-monospace,Consolas,monospace;font-size:11px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>chalk<span>talk</span></h1>
+    <div class="sep"></div>
+    <input id="playName" style="width:190px;flex:none" placeholder="Play name">
+    <select id="playType" style="width:110px;flex:none"></select>
+    <select id="levelSel" style="width:158px;flex:none" title="Hash marks differ by level"></select>
+    <div class="sep"></div>
+    <button id="btnFlip" title="Mirror the play (F)">Flip</button>
+    <button id="btnBlockOl" title="Assign BLOCK to every lineman">Block OL</button>
+    <button id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
+    <span class="tag" id="fieldInfo"></span>
+    <div class="spacer"></div>
+    <span class="hint" id="hint">Click a player, then click the field to draw route points</span>
+    <div class="sep"></div>
+    <button id="btnImport">Import</button>
+    <button id="btnJson">JSON</button>
+    <button id="btnSvg">SVG</button>
+    <button class="primary" id="btnSave">Save .json</button>
+  </header>
+
+  <aside class="left">
+    <h2>Formation</h2>
+    <div class="field">
+      <select id="formationSel"></select>
+    </div>
+    <div class="field">
+      <div class="row">
+        <div><label>Name</label><input id="formationName"></div>
+        <div style="max-width:70px"><label>Pers</label><input id="personnel"></div>
+      </div>
+    </div>
+
+    <h2>Players</h2>
+    <div class="plist" id="playerList"></div>
+
+    <h2>Defense</h2>
+    <div class="field"><select id="defenseSel"></select></div>
+
+    <h2>Load a concept</h2>
+    <div class="field"><select id="catalogSel"></select></div>
+    <div class="note">Loading a concept replaces the current play. Everything
+      stays editable.</div>
+  </aside>
+
+  <main><div id="stage"></div></main>
+
+  <aside class="right">
+    <div id="inspector"></div>
+
+    <h2>Call sheet</h2>
+    <div class="field"><label>Protection</label><input id="protection" placeholder="Slide Rt"></div>
+    <div class="field"><label>Tempo</label><select id="tempo"></select></div>
+    <div class="field"><label>Alerts (one per line)</label><textarea id="alerts" style="min-height:52px"></textarea></div>
+    <div class="field"><label>Tags (comma separated)</label><input id="tags"></div>
+
+    <h2>Situation</h2>
+    <div class="grid3">
+      <div><label>Down</label><input id="sitDown" type="number" min="1" max="4"></div>
+      <div><label>Dist</label><input id="sitDist" type="number" min="0"></div>
+      <div><label>Hash</label><select id="sitHash"></select></div>
+    </div>
+    <div class="field" style="margin-top:6px">
+      <label>Ball on (yards to opponent goal)</label>
+      <input id="sitYard" type="number" min="1" max="99" placeholder="e.g. 32 = Opp 32">
+    </div>
+    <div class="note" id="sitOut"></div>
+
+    <h2>Notes</h2>
+    <div class="field"><textarea id="description" style="min-height:70px"
+      placeholder="Coaching points, reads, when to call it"></textarea></div>
+  </aside>
+</div>
+
+<dialog id="ioDialog">
+  <h2 style="margin-top:0" id="ioTitle">JSON</h2>
+  <textarea id="ioText" spellcheck="false"></textarea>
+  <div class="row" style="margin-top:10px">
+    <button id="ioCopy">Copy</button>
+    <button id="ioLoad" class="primary">Load into designer</button>
+    <button id="ioClose">Close</button>
+  </div>
+  <div class="note" style="margin-top:8px">This is the exact schema the Python
+    package reads: <code>Play.from_json(...)</code>.</div>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+const CATALOG = /*__CATALOG__*/{};
+const INITIAL_PLAY = /*__PLAY__*/null;
+
+/* ─── constants mirrored from chalktalk/renderer/svg.py ─────────────────── */
+const FIELD_GREEN="#1e5c2e", FIELD_GREEN_ALT="#1a5229";
+const LINE_COLOR="rgba(255,255,255,0.30)", LOS_COLOR="rgba(255,255,255,0.85)";
+const HASH_COLOR="rgba(255,255,255,0.20)";
+const PLAYER_FILL="#1d4ed8", PLAYER_STROKE="#93c5fd";
+const LABEL_COLOR="#ffffff", TITLE_COLOR="#f1f5f9";
+const MOTION_COLOR="#7dd3fc";
+const DEF_DL="#374151", DEF_LB="#4b5563", DEF_DB="#6b7280", DEF_STROKE="#d1d5db";
+const OL = new Set(["C","LG","RG","LT","RT"]);
+const DL = new Set(["DE","DT","NT"]);
+const LB = new Set(["W","M","S","OLB","ILB","LB"]);
+
+const X_RANGE=[-29,29], Y_RANGE=[-8,22], PAD=28;
+let SCALE=17;
+
+/* ─── state ─────────────────────────────────────────────────────────────── */
+let play = null;
+let level = "nfl";
+let sel = null;          // selected player label
+let selWp = -1;          // selected waypoint index
+let drag = null;         // {kind:'player'|'waypoint'|'motion', ...}
+const undoStack = [];
+
+const $ = id => document.getElementById(id);
+const clone = o => JSON.parse(JSON.stringify(o));
+const snap = v => Math.round(v * 2) / 2;
+const fmt = v => (Math.round(v * 10) / 10).toString();
+
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove("show"), 1600);
+}
+
+function pushUndo(){
+  undoStack.push(clone(play));
+  if (undoStack.length > 60) undoStack.shift();
+}
+function undo(){
+  if (!undoStack.length) return toast("Nothing to undo");
+  play = undoStack.pop(); sel = null; selWp = -1; renderAll();
+}
+
+/* ─── geometry ──────────────────────────────────────────────────────────── */
+const W = () => Math.round((X_RANGE[1]-X_RANGE[0])*SCALE + 2*PAD);
+const H = () => Math.round((Y_RANGE[1]-Y_RANGE[0])*SCALE + 2*PAD);
+const sx = x => (x - X_RANGE[0]) * SCALE + PAD;
+const sy = y => (Y_RANGE[1] - y) * SCALE + PAD;
+const ix = px => (px - PAD) / SCALE + X_RANGE[0];
+const iy = py => Y_RANGE[1] - (py - PAD) / SCALE;
+
+const isLeft = p => p.x < -1.0;
+// Routes are authored as if the player is on the right; the renderer mirrors
+// them for left-side players. Store and display through this pair so a drawn
+// path survives the round trip into Python untouched.
+const wpAbs = (p, w) => [p.x + (isLeft(p) ? -w.x : w.x), p.y + w.y];
+const wpRel = (p, ax, ay) => ({x: (isLeft(p) ? -(ax - p.x) : (ax - p.x)), y: ay - p.y});
+
+/* ─── play helpers ──────────────────────────────────────────────────────── */
+const assignments = () => play.assignments;
+const findA = lbl => play.assignments.find(a => a.player.label === lbl);
+const selA = () => sel ? findA(sel) : null;
+
+function syncFormation(){
+  play.formation.players = play.assignments.map(a => clone(a.player));
+}
+
+function newPlay(formationKey){
+  const f = clone(CATALOG.formations[formationKey]);
+  return {
+    name: "New Play", concept: null,
+    formation: {name: f.name, personnel: f.personnel, players: clone(f.players),
+                description: f.description ?? null},
+    play_type: "pass",
+    assignments: f.players.map(p => ({
+      player: p, route: OL.has(p.position) ? clone(CATALOG.routes.BLOCK) : null,
+      is_ball_carrier: false, motion_from: null, motion_type: null, note: null,
+    })),
+    defense: null, description: null, tags: [],
+    protection: null, tempo: "normal", alerts: [], adjustments: [],
+    situation: null, install_day: null, call_number: null,
+  };
+}
+
+function setFormation(key){
+  pushUndo();
+  const f = clone(CATALOG.formations[key]);
+  const byLabel = {};
+  play.assignments.forEach(a => byLabel[a.player.label] = a);
+  play.formation = {name: f.name, personnel: f.personnel, players: clone(f.players),
+                    description: f.description ?? null};
+  play.assignments = f.players.map(p => {
+    const prev = byLabel[p.label];
+    return {
+      player: p,
+      route: prev ? prev.route : (OL.has(p.position) ? clone(CATALOG.routes.BLOCK) : null),
+      is_ball_carrier: prev ? prev.is_ball_carrier : false,
+      motion_from: null, motion_type: null,
+      note: prev ? prev.note : null,
+    };
+  });
+  sel = null; selWp = -1; renderAll();
+}
+
+/* mirrors chalktalk/adjustments.py::_motion_geometry */
+const SIDELINE_CLAMP = 25.0;
+function motionGeometry(kind, x, y){
+  const side = x >= 0 ? 1 : -1;
+  const cl = v => Math.max(-SIDELINE_CLAMP, Math.min(SIDELINE_CLAMP, v));
+  switch(kind){
+    case "jet":    return [[x,y],[cl(-side*2.0), y-0.5]];
+    case "orbit":  return [[x,y],[cl(-side*5.0), y-4.0]];
+    case "across": return [[x,y],[cl(-x), y]];
+    case "return": return [[cl(x-side*8.0), y],[x,y]];
+    case "out":    return [[cl(x-side*6.0), y],[x,y]];
+    case "in":     return [[cl(x+side*6.0), y],[x,y]];
+    default:       return [[cl(x-side*3.5), y],[x,y]];
+  }
+}
+
+function applyMotion(lbl, kind){
+  const a = findA(lbl); if (!a) return;
+  pushUndo();
+  if (!kind){ a.motion_from = null; a.motion_type = null; syncFormation(); return renderAll(); }
+  const [origin, snapPos] = motionGeometry(kind, a.player.x, a.player.y);
+  a.player.x = snapPos[0]; a.player.y = snapPos[1];
+  a.motion_from = origin; a.motion_type = kind;
+  syncFormation(); renderAll();
+}
+
+function flipPlay(){
+  pushUndo();
+  play.assignments.forEach(a => {
+    a.player.x = -a.player.x;
+    if (a.motion_from) a.motion_from = [-a.motion_from[0], a.motion_from[1]];
+  });
+  if (play.defense) play.defense.players.forEach(d => d.x = -d.x);
+  const swap = s => s && s.replace(/Right|Left|\bRt\b|\bLt\b/g,
+      m => ({Right:"Left",Left:"Right",Rt:"Lt",Lt:"Rt"}[m]));
+  play.formation.name = swap(play.formation.name);
+  play.name = swap(play.name);
+  syncFormation(); renderAll();
+}
+
+/* ─── SVG drawing (mirrors svg.py) ──────────────────────────────────────── */
+function el(tag, attrs, text){
+  const n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const k in attrs) if (attrs[k] !== null && attrs[k] !== undefined)
+    n.setAttribute(k, attrs[k]);
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+function smoothPath(pts){
+  if (pts.length < 2) return "";
+  if (pts.length === 2)
+    return `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)} L ${pts[1][0].toFixed(1)},${pts[1][1].toFixed(1)}`;
+  const out = [`M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`];
+  const n = pts.length;
+  for (let i = 0; i < n - 1; i++){
+    const p0 = pts[Math.max(0, i-1)], p1 = pts[i], p2 = pts[i+1],
+          p3 = pts[Math.min(n-1, i+2)];
+    const c1x = p1[0] + (p2[0]-p0[0])/6, c1y = p1[1] + (p2[1]-p0[1])/6;
+    const c2x = p2[0] - (p3[0]-p1[0])/6, c2y = p2[1] - (p3[1]-p1[1])/6;
+    out.push(`C ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`);
+  }
+  return out.join(" ");
+}
+
+function drawField(g){
+  const w = W(), h = H();
+  g.appendChild(el("rect", {width:w, height:h, fill:FIELD_GREEN}));
+  for (let yd = -5; yd < Y_RANGE[1] + 5; yd += 10){
+    const y0 = sy(yd + 5), y1 = sy(yd);
+    g.appendChild(el("rect", {x:0, y:Math.min(y0,y1), width:w,
+      height:Math.abs(y1-y0), fill:FIELD_GREEN_ALT, opacity:0.4}));
+  }
+  for (let yd = Math.ceil(Y_RANGE[0]); yd <= Y_RANGE[1]; yd += 5){
+    const y = sy(yd);
+    if (yd === 0){
+      g.appendChild(el("line", {x1:sx(X_RANGE[0]), y1:y, x2:sx(X_RANGE[1]), y2:y,
+        stroke:LOS_COLOR, "stroke-width":2.5, "stroke-dasharray":"10,6"}));
+    } else {
+      g.appendChild(el("line", {x1:sx(X_RANGE[0]), y1:y, x2:sx(X_RANGE[1]), y2:y,
+        stroke:LINE_COLOR, "stroke-width":0.8}));
+    }
+  }
+  const hx = CATALOG.fields[level].hash_from_center;
+  for (const h_ of [-hx, hx]){
+    const px = sx(h_), tick = SCALE * 0.25;
+    for (let yd = Math.ceil(Y_RANGE[0]); yd <= Y_RANGE[1]; yd++){
+      const y = sy(yd);
+      g.appendChild(el("line", {x1:px-tick, y1:y, x2:px+tick, y2:y,
+        stroke:HASH_COLOR, "stroke-width":1.5}));
+    }
+  }
+  // Real sidelines — 53 1/3 yards apart, not the edge of the view
+  const side = CATALOG.fields[level].width / 2;
+  for (const fx of [-side, side]){
+    if (fx < X_RANGE[0] || fx > X_RANGE[1]) continue;
+    g.appendChild(el("line", {x1:sx(fx), y1:sy(Y_RANGE[1]), x2:sx(fx), y2:sy(Y_RANGE[0]),
+      stroke:"rgba(255,255,255,0.55)", "stroke-width":1.5}));
+  }
+  const hm = play.situation && play.situation.hash_mark;
+  if (hm){
+    const bx = sx(hm === "L" ? -hx : hm === "R" ? hx : 0), by = sy(0);
+    g.appendChild(el("ellipse", {cx:bx, cy:by, rx:SCALE*0.3, ry:SCALE*0.18,
+      fill:"#c2703a", stroke:"rgba(255,255,255,0.85)", "stroke-width":1}));
+  }
+  g.appendChild(el("text", {x:sx(X_RANGE[0]+0.8), y:sy(0)-5,
+    fill:"rgba(255,255,255,0.65)", "font-family":"Arial,sans-serif",
+    "font-size":11, "font-weight":"bold"}, "LOS"));
+}
+
+function drawMotions(g){
+  for (const a of assignments()){
+    if (!a.motion_from) continue;
+    const [fx, fy] = a.motion_from;
+    const s = [sx(fx), sy(fy)], e = [sx(a.player.x), sy(a.player.y)];
+    const dx = e[0]-s[0], dy = e[1]-s[1];
+    const dist = Math.hypot(dx, dy) || 1, gap = SCALE * 0.55;
+    const ex = e[0] - dx/dist*gap, ey = e[1] - dy/dist*gap;
+    const mx = (s[0]+ex)/2, my = (s[1]+ey)/2 - SCALE*0.55;
+    g.appendChild(el("path", {
+      d:`M ${s[0].toFixed(1)} ${s[1].toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`,
+      fill:"none", stroke:MOTION_COLOR, "stroke-width":1.8,
+      "stroke-dasharray":"5,4", "stroke-linecap":"round",
+      "marker-end":"url(#arr-motion)", opacity:0.9}));
+    const r = SCALE * 0.42;
+    g.appendChild(el("circle", {cx:s[0], cy:s[1], r:r, fill:"none",
+      stroke:MOTION_COLOR, "stroke-width":1.4, "stroke-dasharray":"3,3", opacity:0.75}));
+    if (a.motion_type)
+      g.appendChild(el("text", {x:s[0], y:s[1]-r-4, "text-anchor":"middle",
+        fill:MOTION_COLOR, "font-family":"Arial,sans-serif", "font-size":9,
+        "font-weight":"bold", opacity:0.9}, a.motion_type.toUpperCase()));
+  }
+}
+
+function drawRoutes(g){
+  for (const a of assignments()){
+    if (!a.route) continue;
+    const rt = a.route.route_type;
+    if (rt === "block") continue;
+    const pts = a.route.waypoints.map(w => {
+      const [ax, ay] = wpAbs(a.player, w);
+      return [sx(ax), sy(ay)];
+    });
+    const runner = a.is_ball_carrier || rt === "run";
+    g.appendChild(el("path", {d:smoothPath(pts), fill:"none",
+      stroke: runner ? "#f59e0b" : "#ffffff",
+      "stroke-width": runner ? 2.8 : 2.2,
+      "stroke-linecap":"round", "stroke-linejoin":"round",
+      "marker-end": runner ? "url(#arr-amber)" : "url(#arr-white)",
+      opacity:0.92}));
+  }
+}
+
+function drawDefense(g){
+  if (!play.defense) return;
+  for (const d of play.defense.players){
+    const px = sx(d.x), py = sy(d.y), r = 10;
+    const fill = DL.has(d.position) ? DEF_DL : (LB.has(d.position) ? DEF_LB : DEF_DB);
+    g.appendChild(el("rect", {x:px-r, y:py-r, width:r*2, height:r*2, rx:2,
+      fill, stroke:DEF_STROKE, "stroke-width":1.5, opacity:0.92}));
+    const fs = d.label.length > 2 ? 9 : 10;
+    g.appendChild(el("text", {x:px, y:py+fs*0.37, "text-anchor":"middle",
+      fill:"#fff", "font-family":"Arial,sans-serif", "font-size":fs,
+      "font-weight":"bold"}, d.label));
+  }
+}
+
+function drawPlayers(g){
+  for (const a of assignments()){
+    const p = a.player;
+    const px = sx(p.x), py = sy(p.y), r = OL.has(p.position) ? 9 : 11;
+    g.appendChild(el("circle", {cx:px, cy:py, r,
+      fill:PLAYER_FILL, stroke:PLAYER_STROKE, "stroke-width":1.5}));
+    const fs = p.label.length > 2 ? 9 : 10;
+    g.appendChild(el("text", {x:px, y:py+fs*0.37, "text-anchor":"middle",
+      fill:LABEL_COLOR, "font-family":"Arial,sans-serif", "font-size":fs,
+      "font-weight":"bold"}, p.label));
+  }
+}
+
+function drawTitle(g){
+  const w = W();
+  g.appendChild(el("text", {x:w/2, y:H()-10, "text-anchor":"middle",
+    fill:TITLE_COLOR, "font-family":"Arial,sans-serif", "font-size":15,
+    "font-weight":"bold"}, play.name || ""));
+  const sub = `${play.formation.name}  ·  ${play.formation.personnel} personnel  ·  ${(play.play_type||"").toUpperCase()}`;
+  g.appendChild(el("text", {x:w/2, y:PAD-8, "text-anchor":"middle",
+    fill:"rgba(255,255,255,0.55)", "font-family":"Arial,sans-serif",
+    "font-size":11}, sub));
+}
+
+function defs(){
+  const d = el("defs");
+  const arrow = (id, color) => {
+    const m = el("marker", {id, markerWidth:10, markerHeight:7, refX:9, refY:3.5,
+      orient:"auto"});
+    m.appendChild(el("polygon", {points:"0 0, 10 3.5, 0 7", fill:color}));
+    return m;
+  };
+  d.appendChild(arrow("arr-white", "#ffffff"));
+  d.appendChild(arrow("arr-amber", "#f59e0b"));
+  d.appendChild(arrow("arr-gray", "#9ca3af"));
+  d.appendChild(arrow("arr-motion", MOTION_COLOR));
+  return d;
+}
+
+/* interactive overlay — never exported */
+function drawUI(g){
+  for (const a of assignments()){
+    const p = a.player;
+    const px = sx(p.x), py = sy(p.y), r = OL.has(p.position) ? 9 : 11;
+    const hit = el("circle", {cx:px, cy:py, r:r+5, fill:"transparent",
+      class:"grabbable", "data-player":p.label});
+    if (p.label === sel)
+      g.appendChild(el("circle", {cx:px, cy:py, r:r+4, fill:"none",
+        stroke:"#fde047", "stroke-width":2, "stroke-dasharray":"4,3"}));
+    g.appendChild(hit);
+    if (a.motion_from){
+      g.appendChild(el("circle", {cx:sx(a.motion_from[0]), cy:sy(a.motion_from[1]),
+        r:9, fill:"transparent", class:"grabbable", "data-motion":p.label}));
+    }
+  }
+  const a = selA();
+  if (a && a.route && a.route.route_type !== "block"){
+    a.route.waypoints.forEach((w, i) => {
+      const [ax, ay] = wpAbs(a.player, w);
+      g.appendChild(el("circle", {cx:sx(ax), cy:sy(ay), r:5.5,
+        fill: i === selWp ? "#fde047" : "#0b1220",
+        stroke:"#fde047", "stroke-width":2, class:"grabbable",
+        "data-wp":i}));
+    });
+  }
+}
+
+function renderSvg(){
+  const svg = el("svg", {xmlns:"http://www.w3.org/2000/svg",
+    width:W(), height:H(), viewBox:`0 0 ${W()} ${H()}`});
+  svg.appendChild(defs());
+  const art = el("g", {id:"art"});
+  drawField(art); drawMotions(art); drawRoutes(art);
+  drawDefense(art); drawPlayers(art); drawTitle(art);
+  svg.appendChild(art);
+  const ui = el("g", {id:"ui"});
+  drawUI(ui);
+  svg.appendChild(ui);
+  return svg;
+}
+
+/* ─── pointer interaction ───────────────────────────────────────────────── */
+function stagePoint(evt, svg){
+  const r = svg.getBoundingClientRect();
+  return [ix(evt.clientX - r.left), iy(evt.clientY - r.top)];
+}
+
+function bindStage(svg){
+  svg.addEventListener("pointerdown", evt => {
+    const t = evt.target;
+    const [fx, fy] = stagePoint(evt, svg);
+    if (t.dataset && t.dataset.player !== undefined){
+      sel = t.dataset.player; selWp = -1;
+      pushUndo();
+      drag = {kind:"player", label:sel};
+      svg.setPointerCapture(evt.pointerId);
+      renderAll(); return;
+    }
+    if (t.dataset && t.dataset.motion !== undefined){
+      sel = t.dataset.motion; pushUndo();
+      drag = {kind:"motion", label:sel};
+      svg.setPointerCapture(evt.pointerId);
+      renderAll(); return;
+    }
+    if (t.dataset && t.dataset.wp !== undefined){
+      selWp = +t.dataset.wp; pushUndo();
+      drag = {kind:"waypoint", index:selWp};
+      svg.setPointerCapture(evt.pointerId);
+      renderAll(); return;
+    }
+    // empty field: extend the selected player's route
+    const a = selA();
+    if (a){
+      pushUndo();
+      if (!a.route || a.route.route_type === "block")
+        a.route = {route_type:"custom", waypoints:[{x:0, y:0}], depth:null};
+      a.route.waypoints.push(wpRel(a.player, snap(fx), snap(fy)));
+      a.route.route_type = "custom";
+      selWp = a.route.waypoints.length - 1;
+      renderAll();
+    } else {
+      sel = null; selWp = -1; renderAll();
+    }
+  });
+
+  svg.addEventListener("pointermove", evt => {
+    if (!drag) return;
+    const [fx, fy] = stagePoint(evt, svg);
+    const a = findA(drag.kind === "waypoint" ? sel : drag.label);
+    if (!a) return;
+    if (drag.kind === "player"){
+      a.player.x = snap(fx); a.player.y = snap(fy);
+      syncFormation();
+    } else if (drag.kind === "motion"){
+      a.motion_from = [snap(fx), snap(fy)];
+    } else {
+      a.route.waypoints[drag.index] = wpRel(a.player, snap(fx), snap(fy));
+      a.route.route_type = "custom";
+    }
+    renderStage(); renderInspector();
+  });
+
+  const end = () => { if (drag){ drag = null; renderAll(); } };
+  svg.addEventListener("pointerup", end);
+  svg.addEventListener("pointercancel", end);
+
+  svg.addEventListener("dblclick", evt => {
+    const t = evt.target;
+    if (t.dataset && t.dataset.wp !== undefined){
+      const a = selA(); if (!a || !a.route) return;
+      pushUndo();
+      a.route.waypoints.splice(+t.dataset.wp, 1);
+      if (a.route.waypoints.length < 2) a.route = null;
+      selWp = -1; renderAll();
+    }
+  });
+}
+
+/* ─── panels ────────────────────────────────────────────────────────────── */
+function option(value, label, selected){
+  const o = document.createElement("option");
+  o.value = value; o.textContent = label; o.selected = !!selected;
+  return o;
+}
+
+function fillSelect(node, entries, current, placeholder){
+  node.innerHTML = "";
+  if (placeholder) node.appendChild(option("", placeholder, !current));
+  for (const [value, label] of entries)
+    node.appendChild(option(value, label, value === current));
+}
+
+function renderPlayerList(){
+  const box = $("playerList"); box.innerHTML = "";
+  for (const a of assignments()){
+    const b = document.createElement("button");
+    b.className = "chip" + (a.player.label === sel ? " sel" : "")
+                + (OL.has(a.player.position) ? " ol" : "");
+    const rt = a.route ? a.route.route_type : "—";
+    b.innerHTML = `${a.player.label}<span class="rt">${rt}</span>`;
+    b.onclick = () => { sel = a.player.label; selWp = -1; renderAll(); };
+    box.appendChild(b);
+  }
+}
+
+function renderInspector(){
+  const box = $("inspector");
+  const a = selA();
+  if (!a){
+    box.innerHTML = `<h2>Player</h2><div class="note">Select a player to edit the
+      assignment. Then click the field to add route points, drag the yellow
+      handles to shape it, and double-click a handle to delete it.</div>`;
+    return;
+  }
+  const p = a.player;
+  box.innerHTML = `
+    <h2>${p.label} &middot; ${p.position}</h2>
+    <div class="grid2">
+      <div><label>X (yd)</label><input id="pX" type="number" step="0.5" value="${p.x}"></div>
+      <div><label>Y (yd)</label><input id="pY" type="number" step="0.5" value="${p.y}"></div>
+    </div>
+    <div class="field" style="margin-top:8px">
+      <label>Route</label><select id="routeSel"></select>
+    </div>
+    <div class="field">
+      <label>Motion</label><select id="motionSel"></select>
+    </div>
+    <div class="row" style="margin-bottom:8px">
+      <button id="btnBc" class="${a.is_ball_carrier ? "on" : ""}">Ball carrier</button>
+      <button id="btnBlock">Block</button>
+    </div>
+    <div class="field"><label>Note</label><input id="pNote" value="${a.note ?? ""}"></div>
+    <h2>Waypoints</h2>
+    <div class="stack" id="wpList"></div>
+    <div class="row" style="margin-top:8px">
+      <button id="btnClearRoute" class="danger">Clear route</button>
+    </div>`;
+
+  fillSelect($("routeSel"),
+    Object.keys(CATALOG.routes).map(k => [k, k.replace(/_/g," ")]),
+    null, a.route ? `${a.route.route_type} (current)` : "— none —");
+  $("routeSel").onchange = e => {
+    if (!e.target.value) return;
+    pushUndo();
+    a.route = clone(CATALOG.routes[e.target.value]);
+    selWp = -1; renderAll();
+  };
+
+  fillSelect($("motionSel"), CATALOG.motions.map(m => [m, m]),
+    a.motion_type, "— no motion —");
+  $("motionSel").onchange = e => applyMotion(p.label, e.target.value || null);
+
+  $("pX").onchange = e => { pushUndo(); p.x = +e.target.value; syncFormation(); renderAll(); };
+  $("pY").onchange = e => { pushUndo(); p.y = +e.target.value; syncFormation(); renderAll(); };
+  $("pNote").onchange = e => { a.note = e.target.value || null; };
+  $("btnBc").onclick = () => {
+    pushUndo();
+    const on = !a.is_ball_carrier;
+    assignments().forEach(x => x.is_ball_carrier = false);
+    a.is_ball_carrier = on; renderAll();
+  };
+  $("btnBlock").onclick = () => {
+    pushUndo(); a.route = clone(CATALOG.routes.BLOCK); renderAll();
+  };
+  $("btnClearRoute").onclick = () => { pushUndo(); a.route = null; selWp=-1; renderAll(); };
+
+  const wl = $("wpList");
+  if (a.route && a.route.route_type !== "block"){
+    a.route.waypoints.forEach((w, i) => {
+      const [ax, ay] = wpAbs(p, w);
+      const row = document.createElement("div");
+      row.className = "wpline";
+      row.innerHTML = `<b>${i+1}</b> x ${fmt(ax)} &nbsp; y ${fmt(ay)}`;
+      const del = document.createElement("button");
+      del.textContent = "×"; del.title = "Delete waypoint";
+      del.onclick = () => {
+        pushUndo(); a.route.waypoints.splice(i,1);
+        if (a.route.waypoints.length < 2) a.route = null;
+        renderAll();
+      };
+      row.appendChild(del);
+      wl.appendChild(row);
+    });
+  } else {
+    wl.innerHTML = `<div class="note">No route. Pick one above, or click the
+      field to draw your own.</div>`;
+  }
+}
+
+function renderMeta(){
+  $("playName").value = play.name || "";
+  $("formationName").value = play.formation.name || "";
+  $("personnel").value = play.formation.personnel || "";
+  $("protection").value = play.protection || "";
+  $("alerts").value = (play.alerts || []).join("\n");
+  $("tags").value = (play.tags || []).join(", ");
+  $("description").value = play.description || "";
+  $("playType").value = play.play_type;
+  $("tempo").value = play.tempo || "normal";
+  const s = play.situation || {};
+  $("sitDown").value = s.down ?? "";
+  $("sitDist").value = s.distance ?? "";
+  $("sitYard").value = s.yard_line ?? "";
+  $("sitHash").value = s.hash_mark ?? "";
+  $("sitOut").textContent = describeSituation(play.situation);
+  $("defenseSel").value = play.defense ? (play.defense._key || "") : "";
+}
+
+function describeSituation(s){
+  if (!s) return "No situation set — the play lands in “Base” on a call sheet.";
+  const ord = {1:"1st",2:"2nd",3:"3rd",4:"4th"};
+  const bits = [];
+  if (s.down) bits.push(`${ord[s.down]}${s.distance != null ? " & " + (s.yard_line != null && s.distance >= s.yard_line ? "Goal" : s.distance) : ""}`);
+  if (s.yard_line != null)
+    bits.push(s.yard_line === 50 ? "50" : (s.yard_line > 50 ? `Own ${100-s.yard_line}` : `Opp ${s.yard_line}`));
+  if (s.hash_mark) bits.push(`${s.hash_mark} Hash`);
+  return bits.join(", ") || "No situation set";
+}
+
+function readSituation(){
+  const down = $("sitDown").value, dist = $("sitDist").value,
+        yard = $("sitYard").value, hash = $("sitHash").value;
+  if (!down && !dist && !yard && !hash){ play.situation = null; }
+  else {
+    play.situation = {
+      down: down ? +down : null, distance: dist ? +dist : null,
+      yard_line: yard ? +yard : null, hash_mark: hash || null,
+      tempo: play.tempo || "normal", personnel: null, clock: null,
+      score_diff: null, label: null, notes: null,
+    };
+  }
+  $("sitOut").textContent = describeSituation(play.situation);
+}
+
+function renderFieldInfo(){
+  const f = CATALOG.fields[level];
+  $("fieldInfo").innerHTML =
+    `hashes <b>±${f.hash_from_center.toFixed(2)} yd</b> &middot; ` +
+    `on a hash: boundary <b>${f.boundary}</b> / field <b>${f.field_side}</b>`;
+}
+
+function renderStage(){
+  const stage = $("stage");
+  stage.innerHTML = "";
+  const svg = renderSvg();
+  stage.appendChild(svg);
+  bindStage(svg);
+  renderFieldInfo();
+}
+
+function renderAll(){
+  syncFormation();
+  renderStage(); renderPlayerList(); renderInspector(); renderMeta();
+  save();
+}
+
+/* ─── export / import ───────────────────────────────────────────────────── */
+function exportPlay(){
+  const out = clone(play);
+  syncFormation();
+  out.formation.players = clone(play.formation.players);
+  if (out.defense) delete out.defense._key;
+  return out;
+}
+
+function playJson(){ return JSON.stringify(exportPlay(), null, 2); }
+
+function download(name, text, type){
+  const blob = new Blob([text], {type: type || "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function slug(s){
+  return (s || "play").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+}
+
+function exportSvg(){
+  const svg = renderSvg();
+  svg.querySelector("#ui").remove();
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.outerHTML;
+}
+
+function loadPlay(obj){
+  if (!obj || !obj.assignments || !obj.formation)
+    return toast("That doesn't look like a play");
+  pushUndo();
+  play = obj;
+  play.tags = play.tags || [];
+  play.alerts = play.alerts || [];
+  play.adjustments = play.adjustments || [];
+  play.tempo = play.tempo || "normal";
+  sel = null; selWp = -1;
+  renderAll();
+  toast(`Loaded ${play.name}`);
+}
+
+/* ─── persistence ───────────────────────────────────────────────────────── */
+const LS_KEY = "chalktalk.designer.play";
+function save(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(exportPlay())); } catch(e){}
+}
+function restore(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e){}
+  return null;
+}
+
+/* ─── boot ──────────────────────────────────────────────────────────────── */
+function fitScale(){
+  const avail = document.querySelector("main").clientWidth - 28;
+  const span = (X_RANGE[1]-X_RANGE[0]);
+  SCALE = Math.max(6.5, Math.min(20, (avail - 2*PAD) / span));
+}
+
+function boot(){
+  fitScale();
+  play = INITIAL_PLAY || restore()
+      || newPlay(CATALOG.default_formation || Object.keys(CATALOG.formations)[0]);
+
+  fillSelect($("formationSel"),
+    Object.entries(CATALOG.formations).map(([k,v]) => [k, `${v.name} (${v.personnel})`]),
+    null, "— pick a formation —");
+  $("formationSel").onchange = e => { if (e.target.value) setFormation(e.target.value); };
+
+  fillSelect($("defenseSel"),
+    Object.entries(CATALOG.defenses).map(([k,v]) => [k, v.name + (v.coverage ? " · " + v.coverage : "")]),
+    null, "— no defense —");
+  $("defenseSel").onchange = e => {
+    pushUndo();
+    if (!e.target.value) play.defense = null;
+    else {
+      play.defense = clone(CATALOG.defenses[e.target.value]);
+      play.defense._key = e.target.value;
+    }
+    renderAll();
+  };
+
+  fillSelect($("catalogSel"),
+    Object.entries(CATALOG.plays).map(([k,v]) => [k, v.name]),
+    null, "— load a stock concept —");
+  $("catalogSel").onchange = e => {
+    if (e.target.value) loadPlay(clone(CATALOG.plays[e.target.value]));
+    e.target.value = "";
+  };
+
+  fillSelect($("playType"), [["pass","Pass"],["run","Run"],["rpo","RPO"],
+    ["screen","Screen"],["special","Special"]], play.play_type);
+  $("playType").onchange = e => { play.play_type = e.target.value; renderStage(); save(); };
+
+  fillSelect($("levelSel"),
+    Object.entries(CATALOG.fields).map(([k,v]) => [k, v.name + " hashes"]), level);
+  $("levelSel").onchange = e => { level = e.target.value; renderStage(); };
+
+  fillSelect($("tempo"), [["normal","Normal"],["no_huddle","No huddle"],
+    ["check","Check with me"],["freeze","Freeze"],["kill","Kill"]], play.tempo);
+  $("tempo").onchange = e => { play.tempo = e.target.value; save(); };
+
+  fillSelect($("sitHash"), [["L","Left"],["M","Middle"],["R","Right"]],
+    play.situation?.hash_mark, "—");
+
+  $("playName").oninput = e => { play.name = e.target.value; renderStage(); save(); };
+  $("formationName").oninput = e => { play.formation.name = e.target.value; renderStage(); save(); };
+  $("personnel").oninput = e => { play.formation.personnel = e.target.value; renderStage(); save(); };
+  $("protection").oninput = e => { play.protection = e.target.value || null; save(); };
+  $("alerts").oninput = e => {
+    play.alerts = e.target.value.split("\n").map(s=>s.trim()).filter(Boolean); save();
+  };
+  $("tags").oninput = e => {
+    play.tags = e.target.value.split(",").map(s=>s.trim()).filter(Boolean); save();
+  };
+  $("description").oninput = e => { play.description = e.target.value || null; save(); };
+  for (const id of ["sitDown","sitDist","sitYard","sitHash"])
+    $(id).onchange = () => { readSituation(); save(); };
+
+  $("btnFlip").onclick = flipPlay;
+  $("btnUndo").onclick = undo;
+  $("btnBlockOl").onclick = () => {
+    pushUndo();
+    assignments().forEach(a => {
+      if (OL.has(a.player.position) && !a.route) a.route = clone(CATALOG.routes.BLOCK);
+    });
+    renderAll();
+  };
+  $("btnSave").onclick = () => download(slug(play.name) + ".json", playJson());
+  $("btnSvg").onclick = () => download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml");
+  $("btnJson").onclick = () => openIo("JSON", playJson());
+  $("btnImport").onclick = () => openIo("Paste a play JSON", "");
+
+  $("ioClose").onclick = () => $("ioDialog").close();
+  $("ioCopy").onclick = async () => {
+    try { await navigator.clipboard.writeText($("ioText").value); toast("Copied"); }
+    catch(e){ $("ioText").select(); document.execCommand("copy"); toast("Copied"); }
+  };
+  $("ioLoad").onclick = () => {
+    try { loadPlay(JSON.parse($("ioText").value)); $("ioDialog").close(); }
+    catch(e){ toast("Invalid JSON"); }
+  };
+
+  document.addEventListener("keydown", e => {
+    if (e.target.matches("input,textarea,select")) return;
+    if ((e.ctrlKey||e.metaKey) && e.key === "z"){ e.preventDefault(); undo(); }
+    else if (e.key === "f"){ flipPlay(); }
+    else if (e.key === "Escape"){ sel = null; selWp = -1; renderAll(); }
+    else if (e.key === "Backspace" && sel){
+      const a = selA();
+      if (a && a.route && a.route.waypoints.length > 2){
+        pushUndo(); a.route.waypoints.pop(); renderAll();
+      }
+    }
+  });
+
+  window.addEventListener("resize", () => { fitScale(); renderStage(); });
+  renderAll();
+}
+
+function openIo(title, text){
+  $("ioTitle").textContent = title;
+  $("ioText").value = text;
+  $("ioDialog").showModal();
+}
+
+boot();
+</script>
+</body>
+</html>

@@ -3,16 +3,16 @@ import inspect
 
 import pytest
 
-from gridiron.callsheet import CallSheet, Wristband
-from gridiron.catalog import passing, running, redzone, series as SR
-from gridiron.models import Playbook
-from gridiron.models.player import OL_POSITIONS
-from gridiron.renderer.sheets import (
+from chalktalk.callsheet import CallSheet, Wristband
+from chalktalk.catalog import passing, running, redzone, series as SR
+from chalktalk.models import Playbook
+from chalktalk.models.player import OL_POSITIONS
+from chalktalk.renderer.sheets import (
     call_sheet_html, playbook_html, practice_html, script_html, series_html,
     wristband_html,
 )
-from gridiron.script import PracticeScript
-from gridiron.templates import formations as F, defense as D, routes as R
+from chalktalk.script import PracticeScript
+from chalktalk.templates import formations as F, defense as D, routes as R
 
 
 def _catalog_functions(module):
@@ -82,7 +82,7 @@ def test_run_plays_have_a_ball_carrier():
 
 
 def test_svg_draws_motion_only_when_present():
-    from gridiron import adjustments as A
+    from chalktalk import adjustments as A
     plain = passing.mesh_concept().render().render()
     moved = passing.mesh_concept().adjust(A.MOTION("Z", "jet")).render().render()
     assert 'marker-end="url(#arr-motion)"' not in plain

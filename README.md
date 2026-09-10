@@ -1,19 +1,27 @@
-# gridiron
+# chalktalk
 
-**Playbook as code.** Design American football plays in Python, then render them to
-diagrams, practice scripts, call sheets, and wristbands.
+**Design football plays in a browser. Keep them as code.**
 
-Plays are plain data. That means they diff in git, round-trip through JSON, get
-generated in loops, and rebuild themselves in CI — instead of living inside a
-$900/year cloud subscription that owns your playbook.
+A visual play designer and a Python library that share one file format. Drag
+players and draw routes on screen, or generate a hundred variants in a loop —
+either way you get the same JSON, and the same diagrams, call sheets, practice
+scripts and wristbands come out the other end.
+
+The designer is a single HTML file — `docs/index.html` in this repo. Open it
+locally, or serve `docs/` with GitHub Pages for a live version.
+
+```bash
+chalk design                 # open the designer
+chalk demo --out out/        # one of everything: playbook, call sheet, wristband
+```
 
 ```python
-from gridiron import adjustments as A
-from gridiron.catalog import passing
-from gridiron.templates import routes as R
+from chalktalk import adjustments as A
+from chalktalk.catalog import passing
+from chalktalk.templates import routes as R
 
 mesh = passing.mesh_concept()
-mesh.render().save("mesh.svg")
+mesh.render(level="hs").save("mesh.svg")     # high school hashes
 
 # Alts are data, not clicks
 third_down = mesh.adjust(
@@ -38,7 +46,7 @@ None of them let you *program* your playbook, and none of them let you own the f
 The open-source side is nearly empty — one Qt desktop app, and analytics libraries
 that read play-by-play data but can't draw a play.
 
-`gridiron` fills that gap, and covers the parts coaches actually spend Sunday
+`chalktalk` fills that gap, and covers the parts coaches actually spend Sunday
 night on: **scripted series, install plans, practice scripts, call sheets, and
 wristbands** — generated from the same source of truth so the numbers always agree.
 
@@ -47,10 +55,13 @@ wristbands** — generated from the same source of truth so the numbers always a
 ## Install
 
 ```bash
+git clone https://github.com/matthewbakerthompson/chalktalk
+cd chalktalk
 pip install -e .
 ```
 
-Requires Python 3.10+. Dependencies: `pydantic` and `reportlab` (PDF export).
+Requires Python 3.10+. Two dependencies: `pydantic` and `reportlab` (PDF export).
+The designer has none — it is one HTML file with no network calls.
 
 ---
 
@@ -64,6 +75,8 @@ Requires Python 3.10+. Dependencies: `pydantic` and `reportlab` (PDF export).
 | **37 stock plays** | Mesh, smash, flood, levels, snag, four verts, inside/outside zone, power, counter, RPOs |
 | **6 scripted series** | Inside zone, power/counter, mesh, sprint-out, red zone, two-minute |
 | **12 adjustment types** | Motion, shift, tag, flip, formation, protection, tempo, alert, max protect, release, play action, personnel |
+| **3 field levels** | NFL, college and high school hashes — switchable everywhere |
+| **Visual designer** | Single-file browser app: drag players, draw routes, round-trips the same JSON |
 | **Renderers** | SVG, multi-page PDF playbooks, printable HTML call sheets / scripts / wristbands, CSV |
 
 ---
@@ -73,8 +86,8 @@ Requires Python 3.10+. Dependencies: `pydantic` and `reportlab` (PDF export).
 ### 1. Formations and plays
 
 ```python
-from gridiron.catalog import passing, running, redzone
-from gridiron.templates import formations as F
+from chalktalk.catalog import passing, running, redzone
+from chalktalk.templates import formations as F
 
 iz = running.inside_zone()                              # stock play
 iz_gun = running.inside_zone(formation=F.GUN_DOUBLES()) # same concept, new look
@@ -84,9 +97,9 @@ smash_left = passing.smash().mirror()
 Or build your own with the fluent builder:
 
 ```python
-from gridiron import build_play
-from gridiron.templates import routes as R, formations as F
-from gridiron.models import PlayType
+from chalktalk import build_play
+from chalktalk.templates import routes as R, formations as F
+from chalktalk.models import PlayType
 
 play = (
     build_play(F.SHOTGUN_TRIPS_RIGHT())
@@ -103,7 +116,7 @@ Every alt is a small serializable object, so a variant is just *base + adjustmen
 It prints itself onto the call sheet and diffs cleanly in git.
 
 ```python
-from gridiron import adjustments as A
+from chalktalk import adjustments as A
 
 mesh.adjust(A.MOTION("Z", "jet"))          # jet, orbit, across, return, short, out, in
 mesh.adjust(A.SHIFT("Y", -7.0, 0.0))       # trade the tight end
@@ -126,8 +139,8 @@ A base play plus every call that punishes over-reaction to it. Each entry
 records the **tell**: what you see that makes it the right call.
 
 ```python
-from gridiron.series import series
-from gridiron.catalog import running, passing
+from chalktalk.series import series
+from chalktalk.catalog import running, passing
 
 iz = (
     series("Inside Zone Series", "Everything off the same mesh point")
@@ -145,15 +158,15 @@ iz.to_script(reps=2)        # practice script
 iz.render_all("out/iz")     # one SVG per play
 ```
 
-Six stock series ship in `gridiron.catalog.series`.
+Six stock series ship in `chalktalk.catalog.series`.
 
 ### 4. Scripts, call sheets, wristbands
 
 ```python
-from gridiron.script import Script, PracticeScript
-from gridiron.callsheet import CallSheet, Wristband
-from gridiron.models import situation as S
-from gridiron.templates import defense as D
+from chalktalk.script import Script, PracticeScript
+from chalktalk.callsheet import CallSheet, Wristband
+from chalktalk.models import situation as S
+from chalktalk.templates import defense as D
 
 openers = (
     Script(name="Opening 15", opponent="Central")
@@ -188,16 +201,78 @@ S.Situation.opp(8).zone  # FieldZone.LOW_RED
 
 ---
 
+## The designer
+
+```bash
+chalk design                          # a blank formation
+chalk design mesh_concept             # start from a catalog concept
+chalk design my_play.json             # keep editing a saved play
+chalk design --level hs --out designer.html --no-open
+```
+
+It writes one self-contained HTML file — the whole catalog inlined, no server,
+no CDN, no build step — and opens it. Inside:
+
+- **click a player** to select, **drag** to move (snapped to half yards)
+- **click the field** to add route points, **drag** the yellow handles to shape
+  the route, **double-click** one to delete it
+- pick a stock route from the tree, or draw your own
+- apply **motion** (jet, orbit, across, return, short, out, in) and watch the
+  pre-snap trail and snap position update
+- drop in any of the 23 defensive looks
+- **Flip** the whole play, **Undo** with <kbd>Ctrl</kbd>+<kbd>Z</kbd>
+- fill in protection, tempo, alerts, tags and the situation it is called in
+- **Save .json** and open it right back up in Python
+
+Routes are authored as if the player is on the right side of the ball and
+mirrored for left-side players. The designer and the Python renderer share that
+convention through one function, `Assignment.absolute_waypoints()`, and a test
+pins the two together — so a route drawn on screen lands exactly there on paper.
+
+---
+
+## Field levels
+
+The field is 53 1/3 yards wide everywhere. The inbound lines are not, and that
+one number changes every leverage read in a play:
+
+| Level | Hashes apart | From the middle | On a hash: boundary / field |
+|---|---|---|---|
+| NFL | 18 ft 6 in | ±3.08 yd | 23.6 / 29.8 |
+| College | 40 ft | ±6.67 yd | 20.0 / 33.3 |
+| High school | 53 ft 4 in | ±8.89 yd | 17.8 / 35.6 |
+
+A high school hash leaves twice as much grass on the field side as the boundary.
+An NFL hash is nearly in the middle. Draw a play on the wrong hashes and the
+spacing lies to you.
+
+```python
+play.render(level="hs").save("play.svg")
+playbook.save_pdf("book.pdf", level="ncaa")
+```
+
+```bash
+chalk render mesh_concept --level hs -o mesh.svg
+chalk design --level ncaa
+```
+
+---
+
 ## Command line
 
 ```bash
-gridiron list plays                     # or formations | defenses | routes | series
-gridiron render mesh_concept -o out/mesh.svg -d NICKEL_425
-gridiron series mesh --out out/mesh_series
-gridiron script inside_zone --reps 2 --looks NICKEL_425 FIRE_ZONE --hashes
-gridiron callsheet mesh red_zone -o out/week3.html --wristband out/band.html
-gridiron demo --out out/demo           # one of everything
+chalk design                         # visual play designer
+chalk list plays                     # or formations | defenses | routes | series
+chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --level hs
+chalk show mesh_concept              # assignments as text
+chalk series mesh --out out/mesh_series
+chalk script inside_zone --reps 2 --looks NICKEL_425 FIRE_ZONE --hashes
+chalk callsheet mesh red_zone -o out/week3.html --wristband out/band.html
+chalk demo --out out/demo            # one of everything
 ```
+
+`chalktalk` works as an alias for `chalk`, and `python -m chalktalk` works
+without installing the console script.
 
 ---
 
@@ -243,12 +318,16 @@ a clean SVG render, and every adjustment for immutability and JSON round-trippin
 
 ## Roadmap
 
+- Playbook-level editing in the designer (multiple plays, drag to reorder)
+- A concept taxonomy for the pass game — horizontal, vertical and three-level
+  stretches, isolation concepts — so plays are classified by what they attack
+- Pressure checks and hot answers as first-class objects next to alerts
+- Modern two-high defensive structures: coverage tools and checks against
+  trips and bunch, rather than only named base fronts
+- Self-scout: tendency reports by down, distance, hash, personnel and formation
 - Flag football (5v5, 7v7) field sizes and formation sets
 - Special teams: kickoff, punt, field goal, return units
-- Coverage overlays and animated route timing
-- Play install/teaching sheets with coaching points per position
 - Import from Hudl / Pro Quick Draw exports
-- A small web viewer for published playbooks
 
 Contributions welcome — the catalog especially. Adding a play is one function.
 

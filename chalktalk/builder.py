@@ -3,9 +3,9 @@ PlayBuilder — fluent API for constructing Play objects concisely.
 
 Usage
 -----
-from gridiron.builder import play
-from gridiron.templates import routes as R, formations as F
-from gridiron.models import PlayType
+from chalktalk.builder import play
+from chalktalk.templates import routes as R, formations as F
+from chalktalk.models import PlayType
 
 mesh = (
     play(F.SHOTGUN_TRIPS_RIGHT())

@@ -7,8 +7,8 @@ then exports it at all three density levels.
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from gridiron import Play, PlayType, Assignment, Playbook, PDFExporter
-from gridiron.templates import routes as R, formations as F
+from chalktalk import Play, PlayType, Assignment, Playbook, PDFExporter
+from chalktalk.templates import routes as R, formations as F
 
 os.makedirs("output", exist_ok=True)
 
@@ -154,7 +154,7 @@ rz_fade = Play(
 # ── Assemble playbook ─────────────────────────────────────────────────────────
 playbook = Playbook(
     name="Sample Offensive Playbook",
-    team="Gridiron FC",
+    team="Chalktalk FC",
     season=2026,
     plays=[mesh, curl_flat, four_verts, bunch_rub, inside_zone, power, rz_fade],
 )

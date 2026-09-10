@@ -1,5 +1,5 @@
 """
-gridiron.adjustments — composable, serializable play alts.
+chalktalk.adjustments — composable, serializable play alts.
 
 An Adjustment is a small piece of data (not an opaque lambda) that turns one
 Play into another. Because they are data, a variant of a play is just
@@ -8,8 +8,8 @@ prints itself onto a call sheet.
 
 Usage
 -----
-from gridiron import adjustments as A
-from gridiron.templates import routes as R
+from chalktalk import adjustments as A
+from chalktalk.templates import routes as R
 
 mesh = passing.mesh_concept()
 

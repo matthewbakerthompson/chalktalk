@@ -3,7 +3,7 @@ Stock scripted series — a base play plus the calls that punish each way a
 defense can over-play it. Every entry records the *tell*: the thing you see
 on film (or on the sideline) that makes it the right call.
 
-    from gridiron.catalog import series as SR
+    from chalktalk.catalog import series as SR
 
     iz = SR.inside_zone_series()
     print(iz.describe())

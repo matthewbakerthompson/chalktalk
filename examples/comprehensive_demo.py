@@ -13,9 +13,9 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 os.makedirs("output", exist_ok=True)
 
-from gridiron import PlayType, Playbook, PDFExporter, build_play
-from gridiron.catalog import passing, running, redzone
-from gridiron.templates import routes as R, formations as F, defense as D
+from chalktalk import PlayType, Playbook, PDFExporter, build_play
+from chalktalk.catalog import passing, running, redzone
+from chalktalk.templates import routes as R, formations as F, defense as D
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. Catalog plays (zero boilerplate)
