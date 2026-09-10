@@ -74,6 +74,7 @@ The designer has none — it is one HTML file with no network calls.
 | **30 named routes** | Full route tree plus red-zone specialties (fade, back-shoulder, sail, bubble) |
 | **37 stock plays** | Mesh, smash, flood, levels, snag, four verts, inside/outside zone, power, counter, RPOs |
 | **6 scripted series** | Inside zone, power/counter, mesh, sprint-out, red zone, two-minute |
+| **10 coverages + fronts** | Cover 0-6, Tampa 2, fire zone, zero blitz, line games — with zone drops, man match-ups and blitz paths |
 | **14 blocking schemes** | Inside/outside zone, power, counter, trap, iso, plus slide, half-slide, big-on-big, sprint and boot protections |
 | **12 adjustment types** | Motion, shift, tag, flip, formation, protection, tempo, alert, max protect, release, play action, personnel |
 | **3 field levels** | NFL, college and high school hashes — switchable everywhere |
@@ -233,6 +234,45 @@ flips blocks explicitly through `Block.mirrored()`.
 
 ---
 
+## Defense
+
+A defensive look used to be eleven dots. Now every defender has a job: a gap to
+rush, a receiver to travel with, or a spot on the grass to get to.
+
+```python
+from chalktalk.templates import coverages as C, defense as D
+
+play.vs(D.NICKEL_425(), C.cover_3)         # attach a look and a call
+play.with_coverage(C.cover_1)              # man, matched to this play's receivers
+C.line_game(C.cover_3(look))               # a front layered over a coverage
+```
+
+```bash
+chalk list coverages
+chalk render mesh_concept -d NICKEL_425 --coverage cover_3 -o mesh.svg
+```
+
+Zone drops are drawn as a short arrow toward the landmark with the area behind
+it; man coverage draws a line to the receiver; rushers get an arrow into the
+backfield. **Zones move with the ball** — a landmark is computed from the field
+spec and the hash the play is run from, so the boundary flat really is a smaller
+area than the field flat.
+
+Man coverage needs to know who is on the field, which is why `with_coverage`
+passes the play's own formation: corners take the widest receiver on their own
+side, working inside from there, and any spare defender becomes a rat in the
+hole (or a rusher, if the call is already a pressure).
+
+Two things worth knowing:
+
+- Defenders get **unique labels**. Playbooks draw two ends as `E E`, but
+  assignments are keyed by label, so repeats get an alignment prefix — `LDE`,
+  `RDE`, `LCB`, `RCB`. That happens automatically.
+- Like blocks, **assignment paths are never mirrored**; `mirror()` flips them
+  explicitly, along with the zone `side`.
+
+---
+
 ## The designer
 
 ```bash
@@ -253,6 +293,9 @@ no CDN, no build step — and opens it. Inside:
   pre-snap trail and snap position update
 - drop a **blocking scheme** on the whole line and flip it left or right, or set
   one blocker's assignment, direction and target by hand
+- pick a **defensive look and a coverage**, then click any defender to change his
+  role, zone, match-up or gap — man assignments are recomputed against whoever
+  is actually on the field
 - drop in any of the 23 defensive looks
 - **Flip** the whole play, **Undo** with <kbd>Ctrl</kbd>+<kbd>Z</kbd>
 - fill in protection, tempo, alerts, tags and the situation it is called in
@@ -296,8 +339,8 @@ chalk design --level ncaa
 
 ```bash
 chalk design                         # visual play designer
-chalk list plays                     # or formations | defenses | routes | series | schemes | blocks
-chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --level hs
+chalk list plays                     # or formations | defenses | routes | series | schemes | blocks | coverages
+chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs
 chalk show mesh_concept              # assignments as text
 chalk series mesh --out out/mesh_series
 chalk script inside_zone --reps 2 --looks NICKEL_425 FIRE_ZONE --hashes
@@ -352,9 +395,9 @@ a clean SVG render, and every adjustment for immutability and JSON round-trippin
 
 ## Roadmap
 
-- Defensive assignments: coverage drops, man match-ups, blitz paths and stunts,
-  so `play.vs(...)` teaches instead of just showing alignment
 - Quarterback mechanics: dropback depth, mesh point, boot and sprint paths
+- Coverage *checks* against trips and bunch, the way modern two-high defenses
+  actually adjust, rather than one call for every formation
 - Playbook-level editing in the designer (multiple plays, drag to reorder)
 - A concept taxonomy for the pass game — horizontal, vertical and three-level
   stretches, isolation concepts — so plays are classified by what they attack

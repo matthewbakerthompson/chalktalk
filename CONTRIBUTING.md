@@ -59,6 +59,20 @@ to flip a block, the scheme is wrong.
 Both members of a double team carry a `COMBO` block naming each other, and
 exactly one of them gets `climb=True`. A test enforces both.
 
+## Adding a coverage
+
+`chalktalk/templates/coverages.py`. A coverage takes a `DefensiveFormation`,
+optionally the offensive `Formation`, and a `strength`, and returns a new look
+with **every** defender assigned — a parametrized test runs each coverage
+against all 23 defensive fronts and fails if anybody is left standing around.
+
+Sort defenders by role (`defense.corners`, `.safeties`, `.linebackers`) rather
+than by label, so the call works from any front. Use `match_man` for man
+assignments so match-ups stay consistent with the browser's copy of the rule.
+
+A call that only touches the line is a **front**, not a coverage — put it in
+`FRONTS` so it can layer over a coverage instead of replacing one.
+
 ## Adding an adjustment
 
 `chalktalk/adjustments.py`. Add a value to `AdjustmentKind`, an `_apply_<kind>`
@@ -86,10 +100,11 @@ Two rules keep it honest:
 
 1. **The browser and Python must agree on geometry.** Routes are stored relative
    to the player and mirrored for left-side players. Python applies that in
-   `Assignment.absolute_waypoints()`; the JS mirrors it in `wpAbs`/`wpRel`. Motion
-   geometry is duplicated the same way (`_motion_geometry` in
-   `chalktalk/adjustments.py`, `motionGeometry` in the app). If you change one,
-   change the other — `tests/test_designer_and_field.py` will catch you.
+   `Assignment.absolute_waypoints()`; the JS mirrors it in `wpAbs`/`wpRel`. The
+   same duplication exists for motion (`_motion_geometry` ↔ `motionGeometry`),
+   blocks (`blockAbs`), rush paths (`defPath`) and man match-ups (`match_man` ↔
+   `matchMan`, including the order the rat is picked in). If you change one,
+   change the other — the designer tests will catch you.
 2. **Commit `docs/index.html` when the app changes.** CI rebuilds it and fails if
    it drifts from the source.
 

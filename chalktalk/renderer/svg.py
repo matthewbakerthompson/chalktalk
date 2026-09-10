@@ -11,7 +11,7 @@ Resulting transform:
 """
 from __future__ import annotations
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ..models.play import Play
@@ -48,6 +48,12 @@ _MOTION_COLOR   = "#7dd3fc"   # light cyan — clearly not a route
 _BLOCK_COLOR    = "#e5e7eb"
 _BLOCK_WIDTH    = 2.2
 
+# Defensive assignments
+_DEF_ASSIGN     = "#f87171"   # red — the defense's side of the ink
+_ZONE_FILL      = "rgba(248,113,113,0.07)"
+_ZONE_SCALE     = 0.7    # draw the area smaller than it really is,
+                         # or five overlapping bubbles hide the play
+
 # Hash positions come from the field spec — they differ by level.
 
 
@@ -60,6 +66,7 @@ class SVGRenderer:
         y_range: tuple[float, float] = (-8.0,  22.0),
         padding: int = 28,
         level=None,
+        zones: bool = True,
     ):
         from ..models.field import field_for
         self.play    = play
@@ -68,6 +75,7 @@ class SVGRenderer:
         self.y_range = y_range
         self.pad     = padding
         self.field   = field_for(level)
+        self.zones   = zones
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -78,6 +86,7 @@ class SVGRenderer:
             self._motions(),
             self._blocks(),
             self._routes(),
+            self._defense_assignments(),
             self._defense_players(),
             self._players(),
             self._title(),
@@ -132,6 +141,8 @@ class SVGRenderer:
             + "  " + arrowhead("arr-white",  "#ffffff") + "\n"
             + "  " + arrowhead("arr-amber",  "#f59e0b") + "\n"
             + "  " + arrowhead("arr-gray",   "#9ca3af") + "\n"
+            + "  " + arrowhead("arr-motion", _MOTION_COLOR) + "\n"
+            + "  " + arrowhead("arr-def",    _DEF_ASSIGN) + "\n"
             + "</defs>"
         )
 
@@ -381,6 +392,101 @@ class SVGRenderer:
             )
 
         return "\n".join(els)
+
+    # ── Defensive assignments ─────────────────────────────────────────────────
+
+    @property
+    def _ball_x(self) -> float:
+        """Zones move with the ball, so a boundary flat is a smaller area."""
+        sit = self.play.situation
+        if sit is None or sit.hash_mark is None:
+            return 0.0
+        return self.field.hash_x(sit.hash_mark)
+
+    def _defense_assignments(self) -> str:
+        from ..models.defense import DefensiveRole, zone_size
+
+        if not self.play.defense:
+            return ""
+        els: list[str] = []
+        offense = {a.player.label: a.player for a in self.play.assignments}
+
+        for d in self.play.defense.players:
+            call = d.assignment
+            if call is None:
+                continue
+
+            if call.role is DefensiveRole.ZONE or (
+                    call.role is DefensiveRole.ROBOT and call.zone):
+                spot = call.landmark(self.field, self._ball_x)
+                if spot is None:
+                    continue
+                if self.zones:
+                    half_w, half_h = zone_size(call.zone)
+                    cx, cy = self._s(*spot)
+                    els.append(
+                        f'<ellipse cx="{cx:.1f}" cy="{cy:.1f}" '
+                        f'rx="{half_w * self.scale * _ZONE_SCALE:.1f}" '
+                        f'ry="{half_h * self.scale * _ZONE_SCALE:.1f}" '
+                        f'fill="{_ZONE_FILL}" stroke="{_DEF_ASSIGN}" '
+                        f'stroke-width="1" stroke-dasharray="5,6" opacity="0.45"/>'
+                    )
+                els.append(self._def_arrow((d.x, d.y), spot, dashed=True,
+                                           max_yards=6.0))
+
+            elif call.role is DefensiveRole.MAN and call.covers in offense:
+                target = offense[call.covers]
+                els.append(self._def_arrow((d.x, d.y), (target.x, target.y),
+                                           dashed=False, gap=0.55,
+                                           min_yards=2.2))
+
+            elif call.path:
+                pts = [self._s(x, y) for x, y in call.absolute_path(d.x, d.y)]
+                pts = _trim_start(pts, self.scale * 0.5)
+                els.append(
+                    f'<path d="{_smooth_path(pts)}" fill="none" '
+                    f'stroke="{_DEF_ASSIGN}" stroke-width="2.2" '
+                    f'stroke-linecap="round" marker-end="url(#arr-def)" '
+                    f'opacity="0.9"/>'
+                )
+
+        return "\n".join(els)
+
+    def _def_arrow(self, start: tuple[float, float], end: tuple[float, float],
+                   dashed: bool, gap: float = 0.5,
+                   max_yards: Optional[float] = None,
+                   min_yards: float = 0.0) -> str:
+        """
+        A drop is drawn as a short arrow toward the landmark rather than a line
+        all the way across the field. A press corner standing on his receiver
+        still gets a visible mark, which is what `min_yards` is for.
+        """
+        sx, sy = self._s(*start)
+        ex, ey = self._s(*end)
+        dx, dy = ex - sx, ey - sy
+        dist = (dx * dx + dy * dy) ** 0.5
+        if dist < 1e-6:                       # exactly on top of him
+            dx, dy, dist = 0.0, -self.scale, self.scale
+        ux, uy = dx / dist, dy / dist
+
+        if max_yards is not None:
+            dist = min(dist, max_yards * self.scale)
+
+        trim = self.scale * gap
+        visible = dist - 2 * trim
+        floor = min_yards * self.scale
+        if visible < floor:
+            visible = floor
+        sx += ux * trim
+        sy += uy * trim
+        ex, ey = sx + ux * visible, sy + uy * visible
+
+        dash = ' stroke-dasharray="7,5"' if dashed else ""
+        return (
+            f'<line x1="{sx:.1f}" y1="{sy:.1f}" x2="{ex:.1f}" y2="{ey:.1f}" '
+            f'stroke="{_DEF_ASSIGN}" stroke-width="2"{dash} '
+            f'marker-end="url(#arr-def)" opacity="0.85"/>'
+        )
 
     # ── Defensive players ─────────────────────────────────────────────────────
 

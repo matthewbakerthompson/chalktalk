@@ -40,8 +40,9 @@ def catalog() -> dict:
     """Everything the browser app needs, as plain JSON-able data."""
     from ..catalog import passing, redzone, running
     from ..models.field import FIELDS
-    from ..templates import (blocking as BL, defense as D, formations as F,
-                             routes as R, schemes as SC)
+    from ..templates import (blocking as BL, coverages as CV, defense as D,
+                             formations as F, routes as R, schemes as SC)
+    from ..models.defense import DefensiveRole, Zone, _ZONE_GEOMETRY
     from ..adjustments import _MOTION_PRESETS
 
     plays: dict[str, dict] = {}
@@ -85,9 +86,57 @@ def catalog() -> dict:
             for name, fn in SC.SCHEMES.items()
         },
         "protections": sorted(SC.PROTECTIONS),
+        "coverages": sorted(CV.COVERAGES),
+        "fronts": sorted(CV.FRONTS),
+        "pressures": sorted(CV.PRESSURES),
+        "zones": {
+            z.value: {
+                "name": z.display,
+                "base_x": geom[0], "depth": geom[1],
+                "half_w": geom[2], "half_h": geom[3],
+                "deep": z.is_deep,
+            }
+            for z, geom in _ZONE_GEOMETRY.items()
+        },
+        "def_roles": [r.value for r in DefensiveRole],
+        # Coverage calls, precomputed per defensive look. Paths are left out —
+        # the browser rebuilds them with the same formulas — and man match-ups
+        # are filled in against whatever offense is on the field.
+        "coverage_calls": _coverage_calls(),
         "motions": list(_MOTION_PRESETS),
         "default_formation": DEFAULT_FORMATION,
     }
+
+
+def _coverage_calls() -> dict:
+    """
+    {defense name: {coverage: {label: assignment}}} with paths stripped.
+
+    Zone landmarks and man match-ups are the parts the browser cannot work out
+    for itself; rush and blitz paths are pure formulas, so they are rebuilt on
+    the other side rather than shipped eleven times per look.
+    """
+    from ..templates import coverages as CV, defense as D
+
+    out: dict[str, dict] = {}
+    for name, build in _uppercase_builders(D).items():
+        look = build()
+        calls: dict[str, dict] = {}
+        for coverage_name, coverage in {**CV.COVERAGES, **CV.FRONTS}.items():
+            assigned = coverage(look)
+            calls[coverage_name] = {
+                p.label: {
+                    k: v for k, v in p.assignment.model_dump(mode="json").items()
+                    # Stunt loops are hand-shaped; everything else is a formula.
+                    if k != "path" or p.assignment.role.value == "stunt"
+                }
+                for p in assigned.players if p.assignment
+            }
+            calls[coverage_name]["__meta__"] = {
+                "coverage": assigned.coverage, "pressure": assigned.pressure,
+            }
+        out[look.name] = calls
+    return out
 
 
 def _block_sample(fn, direction: int):

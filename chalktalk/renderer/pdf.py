@@ -38,6 +38,11 @@ _C_LABEL       = colors.white
 _C_ROUTE       = colors.white
 _C_AMBER       = colors.HexColor("#f59e0b")
 _C_BLOCK       = colors.HexColor("#e5e7eb")
+_C_DEF_ASSIGN  = colors.HexColor("#f87171")
+_C_DEF_DL      = colors.HexColor("#374151")
+_C_DEF_LB      = colors.HexColor("#4b5563")
+_C_DEF_DB      = colors.HexColor("#6b7280")
+_C_DEF_STROKE  = colors.HexColor("#d1d5db")
 _C_PAGE_BG     = colors.HexColor("#0f172a")
 _C_PAGE_TEXT   = colors.HexColor("#e2e8f0")
 _C_MUTED       = colors.HexColor("#94a3b8")
@@ -215,6 +220,7 @@ class PDFExporter:
         self._draw_field(c, diag_x, diag_y, scale)
         self._draw_blocks(c, play, diag_x, diag_y, scale)
         self._draw_routes(c, play, diag_x, diag_y, scale)
+        self._draw_defense(c, play, diag_x, diag_y, scale)
         self._draw_players(c, play, diag_x, diag_y, scale)
 
         # Route table below diagram
@@ -274,6 +280,7 @@ class PDFExporter:
             self._draw_field(c, dx, dy, scale)
             self._draw_blocks(c, play, dx, dy, scale)
             self._draw_routes(c, play, dx, dy, scale)
+            self._draw_defense(c, play, dx, dy, scale)
             self._draw_players(c, play, dx, dy, scale)
 
             # Route table compact
@@ -329,6 +336,7 @@ class PDFExporter:
             self._draw_field(c, dx, dy, scale, y_range=y_range)
             self._draw_blocks(c, play, dx, dy, scale, y_range=y_range)
             self._draw_routes(c, play, dx, dy, scale, y_range=y_range)
+            self._draw_defense(c, play, dx, dy, scale, y_range=y_range)
             self._draw_players(c, play, dx, dy, scale, y_range=y_range)
 
             self._draw_route_table(c, play, dx, dy - 20, cell_w, compact=True)
@@ -558,6 +566,104 @@ class PDFExporter:
             c.setFillColor(_C_LABEL)
             c.setFont("Helvetica-Bold", fs)
             c.drawCentredString(sx, sy - fs * 0.35, p.label)
+
+    # ── Defense ───────────────────────────────────────────────────────────────
+
+    def _draw_defense(
+        self,
+        c: rl_canvas.Canvas,
+        play: "Play",
+        ox: float,
+        oy: float,
+        scale: float,
+        y_range: tuple[float, float] | None = None,
+    ) -> None:
+        """Defensive alignment and, when the look has a call, what each man does."""
+        from ..models.defense import DL_POSITIONS, LB_POSITIONS, DefensiveRole
+        from ..models.defense import zone_size
+
+        if not play.defense:
+            return
+        yr = y_range or self._Y_RANGE
+        xr = self._X_RANGE
+        to_rl = lambda fx, fy: (ox + (fx - xr[0]) * scale,   # noqa: E731
+                                oy + (fy - yr[0]) * scale)
+        offense = {a.player.label: a.player for a in play.assignments}
+        ball_x = 0.0
+        if play.situation is not None and play.situation.hash_mark:
+            ball_x = self.field.hash_x(play.situation.hash_mark)
+
+        # Assignments first, so the defenders sit on top of their own ink.
+        c.setStrokeColor(_C_DEF_ASSIGN)
+        c.setLineWidth(1.6)
+        c.setLineCap(1)
+        for d in play.defense.players:
+            call = d.assignment
+            if call is None:
+                continue
+            if call.zone is not None:
+                spot = call.landmark(self.field, ball_x)
+                half_w, half_h = zone_size(call.zone)
+                cx, cy = to_rl(*spot)
+                c.saveState()
+                c.setFillColor(colors.Color(0.97, 0.44, 0.44, alpha=0.08))
+                c.setDash(3, 4)
+                c.ellipse(cx - half_w * scale * 0.7, cy - half_h * scale * 0.7,
+                          cx + half_w * scale * 0.7, cy + half_h * scale * 0.7,
+                          fill=1, stroke=1)
+                c.restoreState()
+                self._def_line(c, to_rl(d.x, d.y), (cx, cy), scale,
+                               max_yards=6.0)
+            elif call.role is DefensiveRole.MAN and call.covers in offense:
+                target = offense[call.covers]
+                self._def_line(c, to_rl(d.x, d.y), to_rl(target.x, target.y),
+                               scale, min_yards=2.2)
+            elif call.path:
+                pts = [to_rl(fx, fy)
+                       for fx, fy in call.absolute_path(d.x, d.y)]
+                path = c.beginPath()
+                _path_catmull_rom(path, _trim_start(pts, scale * 0.5))
+                c.drawPath(path, stroke=1, fill=0)
+                ex, ey = pts[-1]
+                _draw_arrowhead(c, ex, ey, ex - pts[-2][0], ey - pts[-2][1],
+                                max(4.0, scale * 0.4), _C_DEF_ASSIGN)
+
+        # Defenders: squares, so they read differently from the offense.
+        for d in play.defense.players:
+            sx, sy = to_rl(d.x, d.y)
+            r = max(3.5, scale * 0.6)
+            fill = (_C_DEF_DL if d.position in DL_POSITIONS
+                    else _C_DEF_LB if d.position in LB_POSITIONS else _C_DEF_DB)
+            c.setFillColor(fill)
+            c.setStrokeColor(_C_DEF_STROKE)
+            c.setLineWidth(1.2)
+            c.roundRect(sx - r, sy - r, r * 2, r * 2, 1.5, fill=1, stroke=1)
+            fs = max(4, min(9, int(r * 0.85)))
+            c.setFillColor(_C_LABEL)
+            c.setFont("Helvetica-Bold", fs)
+            c.drawCentredString(sx, sy - fs * 0.35, d.label)
+
+    def _def_line(self, c, start, end, scale: float,
+                  max_yards: float | None = None,
+                  min_yards: float = 0.0) -> None:
+        sx, sy = start
+        ex, ey = end
+        dx, dy = ex - sx, ey - sy
+        dist = (dx * dx + dy * dy) ** 0.5
+        if dist < 1e-6:
+            dx, dy, dist = 0.0, -scale, scale
+        ux, uy = dx / dist, dy / dist
+        if max_yards is not None:
+            dist = min(dist, max_yards * scale)
+        trim = scale * 0.5
+        visible = max(dist - 2 * trim, min_yards * scale)
+        sx += ux * trim
+        sy += uy * trim
+        ex, ey = sx + ux * visible, sy + uy * visible
+        c.setStrokeColor(_C_DEF_ASSIGN)
+        c.setLineWidth(1.6)
+        c.line(sx, sy, ex, ey)
+        _draw_arrowhead(c, ex, ey, ux, uy, max(3.5, scale * 0.38), _C_DEF_ASSIGN)
 
     # ── Route table ───────────────────────────────────────────────────────────
 

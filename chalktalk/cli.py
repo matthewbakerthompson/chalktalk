@@ -18,8 +18,8 @@ from typing import Callable, Optional
 
 from . import __version__
 from .catalog import passing, running, redzone, series as series_catalog
-from .templates import (blocking as BL, defense as D, formations as F,
-                        routes as R, schemes as SC)
+from .templates import (blocking as BL, coverages as CV, defense as D,
+                        formations as F, routes as R, schemes as SC)
 from .models.play import Play, Playbook
 
 
@@ -103,6 +103,16 @@ def cmd_list(args: argparse.Namespace) -> int:
         for name in sorted(_uppercase(BL)):
             print(f"  {name}")
         print(f"{chr(10)}{len(_uppercase(BL))} block types")
+    elif what in ("coverages", "coverage"):
+        for name, fn in {**CV.COVERAGES, **CV.FRONTS}.items():
+            look = fn(D.NICKEL_425(), F.SHOTGUN_TRIPS_RIGHT())
+            kind = ("front" if name in CV.FRONTS
+                    else "pressure" if name in CV.PRESSURES else "coverage")
+            calls = " ".join(f"{p.label}:{p.assignment.describe()}"
+                             for p in look.players
+                             if p.assignment and not p.is_dl)
+            print(f"  {name:<12} {kind:<9} {calls}")
+        print(f"{chr(10)}{len(CV.COVERAGES)} coverages, {len(CV.FRONTS)} fronts")
     elif what in ("series",):
         for key, fn in series_catalog.ALL_SERIES.items():
             s = fn()
@@ -110,12 +120,12 @@ def cmd_list(args: argparse.Namespace) -> int:
         print(f"\n{len(series_catalog.ALL_SERIES)} series")
     else:
         raise SystemExit("list what? plays | formations | defenses | routes | "
-                         "series | schemes | blocks")
+                         "series | schemes | blocks | coverages")
     return 0
 
 
 def _build_play(name: str, formation: Optional[str], defense: Optional[str],
-                flip: bool) -> Play:
+                flip: bool, coverage: Optional[str] = None) -> Play:
     fn = _resolve(play_registry(), name, "play")
     kwargs = {}
     if formation:
@@ -123,6 +133,12 @@ def _build_play(name: str, formation: Optional[str], defense: Optional[str],
     play = fn(**kwargs)
     if defense:
         play = play.vs(_resolve(defense_registry(), defense, "defense")())
+        if coverage:
+            calls = {**CV.COVERAGES, **CV.FRONTS}
+            if coverage not in calls:
+                raise SystemExit(f"unknown coverage '{coverage}'. "
+                                 f"Try: chalk list coverages")
+            play = play.with_coverage(calls[coverage])
     if flip:
         from . import adjustments as A
         play = play.adjust(A.FLIP())
@@ -130,7 +146,8 @@ def _build_play(name: str, formation: Optional[str], defense: Optional[str],
 
 
 def cmd_render(args: argparse.Namespace) -> int:
-    play = _build_play(args.play, args.formation, args.defense, args.flip)
+    play = _build_play(args.play, args.formation, args.defense, args.flip,
+                       getattr(args, "coverage", None))
     out = args.out or f"{args.play}.svg"
     if out.endswith(".pdf"):
         Playbook(name=play.name, plays=[play]).save_pdf(out, level=args.level)
@@ -149,8 +166,12 @@ def cmd_render(args: argparse.Namespace) -> int:
 
 
 def cmd_show(args: argparse.Namespace) -> int:
-    play = _build_play(args.play, args.formation, args.defense, args.flip)
+    play = _build_play(args.play, args.formation, args.defense, args.flip,
+                       getattr(args, "coverage", None))
     print(play.describe())
+    if play.defense is not None and play.defense.has_assignments:
+        print()
+        print(play.defense.describe())
     return 0
 
 
@@ -226,7 +247,8 @@ def cmd_design(args: argparse.Namespace) -> int:
             with open(args.play, encoding="utf-8") as fh:
                 play = Play.from_json(fh.read())
         else:
-            play = _build_play(args.play, args.formation, args.defense, args.flip)
+            play = _build_play(args.play, args.formation, args.defense, args.flip,
+                               getattr(args, "coverage", None))
 
     out = args.out or os.path.join("output", "designer.html")
     path = write(out, play=play, level=args.level)
@@ -291,7 +313,7 @@ def build_parser() -> argparse.ArgumentParser:
     lst = sub.add_parser("list", help="list catalog contents")
     lst.add_argument("what",
                      help="plays | formations | defenses | routes | series | "
-                          "schemes | blocks")
+                          "schemes | blocks | coverages")
     lst.set_defaults(func=cmd_list)
 
     ren = sub.add_parser("render", help="render one play to SVG/PDF/JSON")
@@ -300,6 +322,7 @@ def build_parser() -> argparse.ArgumentParser:
     ren.add_argument("-f", "--formation", help="override the formation")
     ren.add_argument("-d", "--defense", help="draw a defensive look")
     ren.add_argument("--flip", action="store_true", help="mirror the play")
+    ren.add_argument("--coverage", help="a coverage call, e.g. cover_3")
     ren.add_argument("--scale", type=float, default=18.0)
     ren.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"],
                      help="hash marks: nfl | ncaa | hs")
@@ -311,6 +334,7 @@ def build_parser() -> argparse.ArgumentParser:
     sho.add_argument("-f", "--formation")
     sho.add_argument("-d", "--defense")
     sho.add_argument("--flip", action="store_true")
+    sho.add_argument("--coverage", help="a coverage call, e.g. cover_3")
     sho.set_defaults(func=cmd_show)
 
     ser = sub.add_parser("series", help="describe / export a scripted series")
@@ -342,6 +366,7 @@ def build_parser() -> argparse.ArgumentParser:
     des.add_argument("-f", "--formation", help="override the formation")
     des.add_argument("-d", "--defense", help="draw a defensive look")
     des.add_argument("--flip", action="store_true")
+    des.add_argument("--coverage", help="a coverage call, e.g. cover_3")
     des.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
     des.add_argument("--no-open", action="store_true",
                      help="write the file without launching a browser")

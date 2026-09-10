@@ -158,6 +158,9 @@ textarea{min-height:220px;font-family:ui-monospace,Consolas,monospace;font-size:
 
     <h2>Defense</h2>
     <div class="field"><select id="defenseSel"></select></div>
+    <div class="field"><select id="coverageSel"></select></div>
+    <div class="note">Zone drops come from the call; man match-ups are worked
+      out against the receivers actually on the field.</div>
 
     <h2>Load a concept</h2>
     <div class="field"><select id="catalogSel"></select></div>
@@ -221,6 +224,7 @@ const LABEL_COLOR="#ffffff", TITLE_COLOR="#f1f5f9";
 const MOTION_COLOR="#7dd3fc";
 const DEF_DL="#374151", DEF_LB="#4b5563", DEF_DB="#6b7280", DEF_STROKE="#d1d5db";
 const BLOCK_COLOR="#e5e7eb", BLOCK_WIDTH=2.2;
+const DEF_ASSIGN="#f87171", ZONE_FILL="rgba(248,113,113,0.07)", ZONE_SCALE=0.7;
 const OL = new Set(["C","LG","RG","LT","RT"]);
 const DL = new Set(["DE","DT","NT"]);
 const LB = new Set(["W","M","S","OLB","ILB","LB"]);
@@ -235,6 +239,7 @@ let sel = null;          // selected player label
 let selWp = -1;          // selected waypoint index
 let drag = null;         // {kind:'player'|'waypoint'|'motion', ...}
 let blockDir = 1;        // which way the next block or scheme points
+let selDef = null;       // selected defender label
 const undoStack = [];
 
 const $ = id => document.getElementById(id);
@@ -344,6 +349,80 @@ function applyMotion(lbl, kind){
   a.player.x = snapPos[0]; a.player.y = snapPos[1];
   a.motion_from = origin; a.motion_type = kind;
   syncFormation(); renderAll();
+}
+
+function eligibleReceivers(){
+  return assignments()
+    .map(a => a.player)
+    .filter(p => !OL.has(p.position) && p.position !== "QB")
+    .sort((a, b) => Math.abs(b.x) - Math.abs(a.x));
+}
+
+function matchMan(defenders){
+  const receivers = eligibleReceivers();
+  const out = {}, taken = new Set();
+  if (!receivers.length) return out;
+  for (const side of [1, -1]){
+    const ds = defenders.filter(d => (d.x >= 0 ? 1 : -1) === side)
+                        .sort((a,b) => Math.abs(b.x) - Math.abs(a.x));
+    const rs = receivers.filter(r => (r.x >= 0 ? 1 : -1) === side)
+                        .sort((a,b) => Math.abs(b.x) - Math.abs(a.x));
+    ds.forEach((d, i) => { if (rs[i]){ out[d.label] = rs[i].label; taken.add(rs[i].label); } });
+  }
+  for (const d of [...defenders].sort((a,b) => Math.abs(a.x) - Math.abs(b.x))){
+    if (out[d.label]) continue;
+    const options = receivers.filter(r => !taken.has(r.label));
+    if (!options.length){ out[d.label] = null; continue; }
+    const best = options.reduce((a, b) =>
+      Math.abs(a.x - d.x) <= Math.abs(b.x - d.x) ? a : b);
+    taken.add(best.label);
+    out[d.label] = best.label;
+  }
+  return out;
+}
+
+function applyCoverage(name){
+  if (!play.defense) return toast("Pick a defensive look first");
+  const byLook = CATALOG.coverage_calls[play.defense.name];
+  const call = byLook && byLook[name];
+  if (!call) return toast("No call for this look");
+  pushUndo();
+  const meta = call.__meta__ || {};
+  const manDefenders = [];
+  for (const d of play.defense.players){
+    const assigned = call[d.label];
+    d.assignment = assigned ? clone(assigned) : null;
+    if (d.assignment && d.assignment.role === "man") manDefenders.push(d);
+  }
+  // Python picks the rat before it matches anybody, so do the same or the two
+  // sides hand back different (both legal) versions of the same call.
+  const spare = manDefenders.length - eligibleReceivers().length;
+  if (spare > 0 && !meta.pressure){
+    const inside = manDefenders.filter(d => LB.has(d.position));
+    if (inside.length){
+      const rat = inside.reduce((a, b) => Math.abs(a.x) <= Math.abs(b.x) ? a : b);
+      rat.assignment = {role:"robot", zone:"hole", side:0, covers:null,
+                        gap:null, path:[], note:null};
+      manDefenders.splice(manDefenders.indexOf(rat), 1);
+    }
+  }
+
+  const matchups = matchMan(manDefenders);
+  for (const d of manDefenders){
+    const target = matchups[d.label] || null;
+    d.assignment.covers = target;
+    if (!target){
+      // More coverage players than receivers. Python turns the odd man into a
+      // rat in the hole, or a rusher when the call is already a pressure.
+      d.assignment = meta.pressure
+        ? {role:"blitz", zone:null, side:1, covers:null, gap:"A", path:[], note:null}
+        : {role:"robot", zone:"hole", side:0, covers:null, gap:null, path:[], note:null};
+    }
+  }
+  play.defense.coverage = meta.coverage || null;
+  play.defense.pressure = meta.pressure || null;
+  renderAll();
+  toast(meta.coverage || name.replace(/_/g, " "));
 }
 
 function applyScheme(name, direction){
@@ -551,6 +630,87 @@ function drawRoutes(g){
   }
 }
 
+// Rush and blitz paths are formulas, mirrored from templates/coverages.py.
+function defPath(call, d){
+  if (call.path && call.path.length) return call.path.map(p => [p.x, p.y]);
+  switch (call.role){
+    case "rush":    { const l = -0.18*d.x; return [[0,0],[l*0.4,-1.6],[l,-3.6]]; }
+    case "contain": { const s = d.x >= 0 ? 1 : -1;
+                      return [[0,0],[s*1.4,-1.2],[s*1.9,-3.6]]; }
+    case "blitz":   { const l = -0.3*d.x;
+                      return [[0,0],[l*0.35,-d.y*0.5],[l,-d.y-3.0]]; }
+    case "spy":     return [[0,0],[0,-2.0]];
+    default:        return [];
+  }
+}
+
+function ballX(){
+  const hm = play.situation && play.situation.hash_mark;
+  if (!hm || hm === "M") return 0;
+  const hx = CATALOG.fields[level].hash_from_center;
+  return hm === "L" ? -hx : hx;
+}
+
+function zoneLandmark(call){
+  const z = CATALOG.zones[call.zone];
+  if (!z) return null;
+  const limit = CATALOG.fields[level].width / 2 - 1;
+  const x = Math.max(-limit, Math.min(limit, ballX() + call.side * z.base_x));
+  return [x, z.depth];
+}
+
+function defArrow(g, from, to, dashed, maxYards, minYards){
+  let [sx, sy] = [sx0(from), sy0(from)];
+  let ex = sx0(to), ey = sy0(to);
+  let dx = ex - sx, dy = ey - sy;
+  let dist = Math.hypot(dx, dy);
+  if (dist < 1e-6){ dx = 0; dy = -SCALE; dist = SCALE; }
+  const ux = dx/dist, uy = dy/dist;
+  if (maxYards) dist = Math.min(dist, maxYards*SCALE);
+  const trim = SCALE*0.5;
+  const visible = Math.max(dist - 2*trim, (minYards||0)*SCALE);
+  sx += ux*trim; sy += uy*trim;
+  ex = sx + ux*visible; ey = sy + uy*visible;
+  g.appendChild(el("line", {x1:sx, y1:sy, x2:ex, y2:ey, stroke:DEF_ASSIGN,
+    "stroke-width":2, "stroke-dasharray": dashed ? "7,5" : null,
+    "marker-end":"url(#arr-def)", opacity:0.85}));
+}
+const sx0 = p => sx(p[0]);
+const sy0 = p => sy(p[1]);
+
+function drawDefenseAssignments(g){
+  if (!play.defense) return;
+  const offense = {};
+  assignments().forEach(a => offense[a.player.label] = a.player);
+
+  for (const d of play.defense.players){
+    const call = d.assignment;
+    if (!call) continue;
+
+    if (call.zone){
+      const spot = zoneLandmark(call);
+      if (!spot) continue;
+      const z = CATALOG.zones[call.zone];
+      g.appendChild(el("ellipse", {cx:sx(spot[0]), cy:sy(spot[1]),
+        rx:z.half_w*SCALE*ZONE_SCALE, ry:z.half_h*SCALE*ZONE_SCALE,
+        fill:ZONE_FILL, stroke:DEF_ASSIGN, "stroke-width":1,
+        "stroke-dasharray":"5,6", opacity:0.45}));
+      defArrow(g, [d.x, d.y], spot, true, 6.0, 0);
+    } else if (call.role === "man" && offense[call.covers]){
+      const t = offense[call.covers];
+      defArrow(g, [d.x, d.y], [t.x, t.y], false, null, 2.2);
+    } else {
+      const rel = defPath(call, d);
+      if (rel.length < 2) continue;
+      const pts = trimStart(rel.map(p => [sx(d.x + p[0]), sy(d.y + p[1])]),
+                            SCALE*0.5);
+      g.appendChild(el("path", {d:smoothPath(pts), fill:"none",
+        stroke:DEF_ASSIGN, "stroke-width":2.2, "stroke-linecap":"round",
+        "marker-end":"url(#arr-def)", opacity:0.9}));
+    }
+  }
+}
+
 function drawDefense(g){
   if (!play.defense) return;
   for (const d of play.defense.players){
@@ -601,11 +761,23 @@ function defs(){
   d.appendChild(arrow("arr-amber", "#f59e0b"));
   d.appendChild(arrow("arr-gray", "#9ca3af"));
   d.appendChild(arrow("arr-motion", MOTION_COLOR));
+  d.appendChild(arrow("arr-def", DEF_ASSIGN));
   return d;
 }
 
 /* interactive overlay — never exported */
 function drawUI(g){
+  if (play.defense){
+    for (const d of play.defense.players){
+      const px = sx(d.x), py = sy(d.y);
+      if (d.label === selDef)
+        g.appendChild(el("rect", {x:px-14, y:py-14, width:28, height:28, rx:3,
+          fill:"none", stroke:"#fde047", "stroke-width":2,
+          "stroke-dasharray":"4,3"}));
+      g.appendChild(el("rect", {x:px-13, y:py-13, width:26, height:26,
+        fill:"transparent", class:"grabbable", "data-defender":d.label}));
+    }
+  }
   for (const a of assignments()){
     const p = a.player;
     const px = sx(p.x), py = sy(p.y), r = OL.has(p.position) ? 9 : 11;
@@ -638,7 +810,7 @@ function renderSvg(){
   svg.appendChild(defs());
   const art = el("g", {id:"art"});
   drawField(art); drawMotions(art); drawBlocks(art); drawRoutes(art);
-  drawDefense(art); drawPlayers(art); drawTitle(art);
+  drawDefenseAssignments(art); drawDefense(art); drawPlayers(art); drawTitle(art);
   svg.appendChild(art);
   const ui = el("g", {id:"ui"});
   drawUI(ui);
@@ -657,7 +829,7 @@ function bindStage(svg){
     const t = evt.target;
     const [fx, fy] = stagePoint(evt, svg);
     if (t.dataset && t.dataset.player !== undefined){
-      sel = t.dataset.player; selWp = -1;
+      sel = t.dataset.player; selDef = null; selWp = -1;
       pushUndo();
       drag = {kind:"player", label:sel};
       svg.setPointerCapture(evt.pointerId);
@@ -666,6 +838,13 @@ function bindStage(svg){
     if (t.dataset && t.dataset.motion !== undefined){
       sel = t.dataset.motion; pushUndo();
       drag = {kind:"motion", label:sel};
+      svg.setPointerCapture(evt.pointerId);
+      renderAll(); return;
+    }
+    if (t.dataset && t.dataset.defender !== undefined){
+      selDef = t.dataset.defender; sel = null; selWp = -1;
+      pushUndo();
+      drag = {kind:"defender", label:selDef};
       svg.setPointerCapture(evt.pointerId);
       renderAll(); return;
     }
@@ -697,6 +876,11 @@ function bindStage(svg){
     const [fx, fy] = stagePoint(evt, svg);
     const a = findA(drag.kind === "waypoint" ? sel : drag.label);
     if (!a) return;
+    if (drag.kind === "defender"){
+      const d = play.defense && play.defense.players.find(p => p.label === drag.label);
+      if (d){ d.x = snap(fx); d.y = snap(fy); }
+      renderStage(); renderInspector(); return;
+    }
     if (drag.kind === "player"){
       a.player.x = snap(fx); a.player.y = snap(fy);
       syncFormation();
@@ -715,6 +899,13 @@ function bindStage(svg){
 
   svg.addEventListener("dblclick", evt => {
     const t = evt.target;
+    if (t.dataset && t.dataset.defender !== undefined){
+      selDef = t.dataset.defender; sel = null; selWp = -1;
+      pushUndo();
+      drag = {kind:"defender", label:selDef};
+      svg.setPointerCapture(evt.pointerId);
+      renderAll(); return;
+    }
     if (t.dataset && t.dataset.wp !== undefined){
       const a = selA(); if (!a || !a.route) return;
       pushUndo();
@@ -752,8 +943,69 @@ function renderPlayerList(){
   }
 }
 
+function renderDefenderInspector(box, d){
+  const call = d.assignment || {};
+  box.innerHTML = `
+    <h2>${d.label} &middot; ${d.position} <span class="note">(defense)</span></h2>
+    <div class="grid2">
+      <div><label>X (yd)</label><input id="dX" type="number" step="0.5" value="${d.x}"></div>
+      <div><label>Y (yd)</label><input id="dY" type="number" step="0.5" value="${d.y}"></div>
+    </div>
+    <div class="field" style="margin-top:8px">
+      <label>Role</label><select id="defRole"></select>
+    </div>
+    <div class="field"><label>Zone</label><select id="defZone"></select></div>
+    <div class="row" style="margin-bottom:8px">
+      <div style="flex:2"><label>Covers</label><select id="defCovers"></select></div>
+      <div style="flex:1"><label>Side</label>
+        <input id="defSide" type="number" step="0.1" value="${call.side ?? 1}"></div>
+    </div>
+    <div class="field"><label>Gap</label><input id="defGap" value="${call.gap ?? ""}"
+      placeholder="A, B, C, D"></div>
+    <div class="row"><button id="defClear" class="danger">Clear assignment</button></div>`;
+
+  const ensure = () => (d.assignment = d.assignment ||
+    {role:"zone", zone:null, side:1, covers:null, gap:null, path:[], note:null});
+
+  fillSelect($("defRole"), CATALOG.def_roles.map(r => [r, r.replace(/_/g, " ")]),
+    call.role, "— none —");
+  $("defRole").onchange = e => {
+    pushUndo();
+    if (!e.target.value){ d.assignment = null; }
+    else { ensure().role = e.target.value; }
+    renderAll();
+  };
+
+  fillSelect($("defZone"),
+    Object.entries(CATALOG.zones).map(([k, z]) => [k, z.name]),
+    call.zone, "— no zone —");
+  $("defZone").onchange = e => {
+    pushUndo(); ensure().zone = e.target.value || null;
+    if (e.target.value) d.assignment.role = "zone";
+    renderAll();
+  };
+
+  fillSelect($("defCovers"),
+    eligibleReceivers().map(p => [p.label, p.label]), call.covers, "— nobody —");
+  $("defCovers").onchange = e => {
+    pushUndo(); ensure().covers = e.target.value || null;
+    if (e.target.value){ d.assignment.role = "man"; d.assignment.zone = null; }
+    renderAll();
+  };
+
+  $("dX").onchange = e => { pushUndo(); d.x = +e.target.value; renderAll(); };
+  $("dY").onchange = e => { pushUndo(); d.y = +e.target.value; renderAll(); };
+  $("defSide").onchange = e => { ensure().side = +e.target.value; renderAll(); };
+  $("defGap").onchange = e => { ensure().gap = e.target.value || null; renderAll(); };
+  $("defClear").onclick = () => { pushUndo(); d.assignment = null; renderAll(); };
+}
+
 function renderInspector(){
   const box = $("inspector");
+  if (selDef && play.defense){
+    const d = play.defense.players.find(p => p.label === selDef);
+    if (d) return renderDefenderInspector(box, d);
+  }
   const a = selA();
   if (!a){
     box.innerHTML = `<h2>Player</h2><div class="note">Select a player to edit the
@@ -1033,6 +1285,8 @@ function boot(){
       play.defense = clone(CATALOG.defenses[e.target.value]);
       play.defense._key = e.target.value;
     }
+    selDef = null;
+    $("coverageSel").value = "";
     renderAll();
   };
 
@@ -1050,6 +1304,11 @@ function boot(){
   };
   $("schemeLeft").onclick = () => setDir(-1);
   $("schemeRight").onclick = () => setDir(1);
+
+  fillSelect($("coverageSel"),
+    CATALOG.coverages.map(k => [k, k.replace(/_/g, " ")]),
+    null, "— apply a coverage —");
+  $("coverageSel").onchange = e => { if (e.target.value) applyCoverage(e.target.value); };
 
   fillSelect($("catalogSel"),
     Object.entries(CATALOG.plays).map(([k,v]) => [k, v.name]),
@@ -1117,7 +1376,7 @@ function boot(){
     if (e.target.matches("input,textarea,select")) return;
     if ((e.ctrlKey||e.metaKey) && e.key === "z"){ e.preventDefault(); undo(); }
     else if (e.key === "f"){ flipPlay(); }
-    else if (e.key === "Escape"){ sel = null; selWp = -1; renderAll(); }
+    else if (e.key === "Escape"){ sel = null; selDef = null; selWp = -1; renderAll(); }
     else if (e.key === "Backspace" && sel){
       const a = selA();
       if (a && a.route && a.route.waypoints.length > 2){

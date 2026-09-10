@@ -177,9 +177,26 @@ class Play(BaseModel):
             updates["defense"] = self.defense.mirror()
         return self.model_copy(update=updates)
 
-    def vs(self, defense: "DefensiveFormation") -> "Play":
-        """Return a copy of this play with a defensive formation attached."""
-        return self.model_copy(update={"defense": defense})
+    def vs(self, defense: "DefensiveFormation", coverage=None,
+           strength: int = 1) -> "Play":
+        """
+        Attach a defensive look, optionally with a coverage call:
+
+            play.vs(D.NICKEL_425(), C.cover_3)
+        """
+        play = self.model_copy(update={"defense": defense})
+        return play.with_coverage(coverage, strength) if coverage else play
+
+    def with_coverage(self, coverage, strength: int = 1) -> "Play":
+        """
+        Apply a coverage to the attached defense. The offensive formation goes
+        along for the ride so man coverage can match defenders to receivers.
+        """
+        if self.defense is None:
+            raise ValueError("attach a defense with .vs(...) before a coverage")
+        return self.model_copy(update={
+            "defense": coverage(self.defense, self.formation, strength)
+        })
 
     def tag(self, *tags: str) -> "Play":
         """Return a copy with additional tags appended."""
