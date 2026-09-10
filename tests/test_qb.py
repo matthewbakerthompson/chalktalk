@@ -10,11 +10,8 @@ from chalktalk.models import Play, Playbook
 from chalktalk.models.qb import QBAction, QBPlan
 from chalktalk.templates import formations as F, qb as Q, routes as R
 
-ALL_PLAYS = []
-for _mod in (passing, running, redzone):
-    for _name, _fn in inspect.getmembers(_mod, inspect.isfunction):
-        if not _name.startswith("_") and _fn.__module__ == _mod.__name__:
-            ALL_PLAYS.append((_name, _fn))
+from chalktalk import catalog as _catalog          # noqa: E402
+ALL_PLAYS = sorted(_catalog.play_builders().items())
 
 UNDER_CENTER = ("I_FORM_PRO_RIGHT", "I_FORM_STRONG_RIGHT", "PRO_SET",
                 "SINGLE_BACK_ACE", "SINGLE_BACK_PRO_RIGHT", "WISHBONE",
@@ -179,10 +176,18 @@ def test_the_back_he_meshes_with_is_on_the_field(name, fn):
 
 
 def test_pass_concepts_have_a_progression():
+    """
+    Every pass needs somebody to throw to, and a dropback concept needs more
+    than one — a screen is the exception, because the whole point is that the
+    ball goes to one man immediately.
+    """
+    from chalktalk.models.play import PlayType
     for name, fn in ALL_PLAYS:
         play = fn()
-        if play.qb.is_pass:
-            assert play.qb.reads, f"{name} is a pass with nobody to throw to"
+        if not play.qb.is_pass:
+            continue
+        assert play.qb.reads, f"{name} is a pass with nobody to throw to"
+        if play.play_type is not PlayType.SCREEN:
             assert len(play.qb.reads) >= 2, f"{name} has a one-man progression"
 
 
@@ -195,7 +200,8 @@ def test_run_plays_hand_it_to_the_ball_carrier():
 
 def test_the_zone_read_reads_somebody():
     assert running.veer_read().qb.key
-    assert passing.rpo_bubble().qb.key
+    from chalktalk.catalog import rpo
+    assert rpo.bubble().qb.key
 
 
 def test_the_sneak_keeps_it():

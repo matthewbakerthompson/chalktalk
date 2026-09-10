@@ -200,7 +200,8 @@ def test_pass_plays_protect():
 
 
 def test_the_rpo_blocks_the_run():
-    assert set(_kinds(passing.rpo_bubble()).values()) & {"combo", "scoop"}
+    from chalktalk.catalog import rpo
+    assert set(_kinds(rpo.bubble()).values()) & {"combo", "scoop"}
 
 
 def test_goal_line_power_still_kicks_with_the_fullback():

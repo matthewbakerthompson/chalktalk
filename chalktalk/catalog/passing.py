@@ -363,25 +363,3 @@ def snag(formation: Optional[Formation] = None) -> Play:
     )
 
 
-def rpo_bubble(formation: Optional[Formation] = None) -> Play:
-    """RPO Bubble — run-pass option with outside bubble screen as backside read."""
-    f = formation or F.SHOTGUN_TRIPS_RIGHT()
-    return (
-        _b(f).scheme(SC.inside_zone(1), protection="Run action")
-        .routes(
-            X=R.BUBBLE(),
-            Y=R.BLOCK(),
-            Z=R.BLOCK(),
-            H=R.BUBBLE(),
-            RB=R.RUN(dx=1, dy=5),
-        )
-        .bc("RB")
-        .qb(Q.MESH(1, back="RB", key="the overhang", reads=["H"],
-               rule="Overhang in the box, throw it; out, give it"))
-        .name("RPO Bubble")
-        .play_type(PlayType.RPO)
-        .tag("rpo", "bubble", "zone-read")
-        .describe("Zone run with pre-snap bubble screen read. QB hands off or "
-                  "pulls and throws bubble based on unblocked edge defender.")
-        .build()
-    )

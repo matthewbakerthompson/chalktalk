@@ -607,3 +607,51 @@ def BUNCH_STACK_RIGHT() -> Formation:
             _p("RB", Position.RB, -3.5, -7),
         ],
     )
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# LEFT-HANDED VERSIONS
+#
+# Built by mirroring rather than by retyping coordinates, so the two sides can
+# never drift apart. Any play can also be flipped whole with `play.mirror()`
+# or the FLIP adjustment.
+# ════════════════════════════════════════════════════════════════════════════
+
+def I_FORM_PRO_LEFT() -> Formation:
+    """I-Formation pro left — TE and flanker to the left."""
+    return I_FORM_PRO_RIGHT().mirror()
+
+
+def I_FORM_STRONG_LEFT() -> Formation:
+    """I-Formation strong left — FB offset left, TE left."""
+    return I_FORM_STRONG_RIGHT().mirror()
+
+
+def GUN_OFFSET_BACK_LEFT() -> Formation:
+    """Shotgun with the back offset to the left."""
+    return GUN_OFFSET_BACK_RIGHT().mirror()
+
+
+def GUN_TREY_LEFT() -> Formation:
+    """Trey left — TE and two receivers to the left."""
+    return GUN_TREY_RIGHT().mirror()
+
+
+def PISTOL_TRIPS_LEFT() -> Formation:
+    """Pistol with trips to the left."""
+    return PISTOL_TRIPS_RIGHT().mirror()
+
+
+def RED_ZONE_TRIPS_LEFT() -> Formation:
+    """Compressed trips left for tight-field work."""
+    return RED_ZONE_TRIPS_RIGHT().mirror()
+
+
+def SINGLE_BACK_PRO_LEFT() -> Formation:
+    """Single back pro left under center."""
+    return SINGLE_BACK_PRO_RIGHT().mirror()
+
+
+def GUN_TRIPS_TE_LEFT() -> Formation:
+    """Trips left with the tight end attached."""
+    return GUN_TRIPS_TE_RIGHT().mirror()

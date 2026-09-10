@@ -15,7 +15,7 @@ from ..series import series, Series
 from ..models import situation as S
 from .. import adjustments as A
 from ..templates import routes as R, formations as F
-from . import passing, running, redzone
+from . import passing, running, redzone, rpo
 
 
 def inside_zone_series() -> Series:
@@ -43,7 +43,7 @@ def inside_zone_series() -> Series:
         .shot(passing.four_verticals().adjust(A.PLAY_ACTION("RB")),
               tell="Single-high with the FS cheating into the box",
               situation=S.Situation(down=1, distance=10))
-        .answer(passing.rpo_bubble(),
+        .answer(rpo.bubble(),
                 tell="Overhang defender playing inside the box, no leverage",
                 situation=S.FIRST_TEN)
         .tag("run", "zone", "install-week-1")

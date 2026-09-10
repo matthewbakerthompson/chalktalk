@@ -247,17 +247,8 @@ class Adjustment(BaseModel):
 
 def _flip_name(name: str) -> str:
     """Swap right/left words in a play or formation name."""
-    swaps = [
-        ("Right", "Left"), ("right", "left"),
-        ("Rt", "Lt"), ("RT", "LT"),
-        (" Rip", " Liz"),
-    ]
-    for a, b in swaps:
-        if a in name:
-            return name.replace(a, b)
-        if b in name:
-            return name.replace(b, a)
-    return name
+    from .models.core import flip_side_name
+    return flip_side_name(name) or name
 
 
 # ── Factory helpers ───────────────────────────────────────────────────────────

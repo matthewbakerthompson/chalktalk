@@ -69,10 +69,13 @@ The designer has none — it is one HTML file with no network calls.
 
 | | |
 |---|---|
-| **32 formations** | Shotgun, pistol, I-form, empty, bunch, trips, quads, wildcat, jumbo, goal line |
+| **40 formations** | Shotgun, pistol, I-form, empty, bunch, trips, quads, wildcat, jumbo, goal line |
 | **23 defensive looks** | 4-3, 3-4, nickel, dime, quarter, bear, 46, fire zone, cover-2 Tampa, goal line |
 | **30 named routes** | Full route tree plus red-zone specialties (fade, back-shoulder, sail, bubble) |
-| **37 stock plays** | Mesh, smash, flood, levels, snag, four verts, inside/outside zone, power, counter, RPOs |
+| **54 stock plays** | Mesh, smash, flood, levels, snag, four verts, inside/outside zone, power, counter |
+| **Play action & movement** | Boot, waggle, naked, keeper, dagger, and max-protect shot plays |
+| **Screen game** | RB slip, tunnel, bubble, jailbreak, middle, TE leak |
+| **RPO family** | Bubble, glance, slant, pop, and a gap-scheme arrow — each reading a different defender |
 | **6 scripted series** | Inside zone, power/counter, mesh, sprint-out, red zone, two-minute |
 | **12 quarterback actions** | Drops, play action, boot, sprint, mesh, handoff, draw, pitch, option, keep, sneak — with read progressions |
 | **10 coverages + fronts** | Cover 0-6, Tampa 2, fire zone, zero blitz, line games — with zone drops, man match-ups and blitz paths |
@@ -89,13 +92,20 @@ The designer has none — it is one HTML file with no network calls.
 ### 1. Formations and plays
 
 ```python
-from chalktalk.catalog import passing, running, redzone
+from chalktalk.catalog import passing, running, redzone, playaction, screens, rpo
 from chalktalk.templates import formations as F
 
 iz = running.inside_zone()                              # stock play
 iz_gun = running.inside_zone(formation=F.GUN_DOUBLES()) # same concept, new look
 smash_left = passing.smash().mirror()
+
+boot = playaction.pa_boot()      # zone action right, quarterback out the left
+slip = screens.rb_slip()         # let the rush come, throw behind it
+glance = rpo.glance()            # read the safety who fills
 ```
+
+`catalog.all_plays()` hands you every concept at once, keyed by name — that is
+what the CLI and the designer read, so anything in the catalog is everywhere.
 
 Or build your own with the fluent builder:
 

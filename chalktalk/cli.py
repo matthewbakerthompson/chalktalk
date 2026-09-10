@@ -17,7 +17,8 @@ import sys
 from typing import Callable, Optional
 
 from . import __version__
-from .catalog import passing, running, redzone, series as series_catalog
+from . import catalog as _catalog
+from .catalog import series as series_catalog
 from .templates import (blocking as BL, coverages as CV, defense as D,
                         formations as F, qb as QB, routes as R, schemes as SC)
 from .models.play import Play, Playbook
@@ -37,10 +38,7 @@ def _public_callables(module) -> dict[str, Callable]:
 
 
 def play_registry() -> dict[str, Callable[[], Play]]:
-    reg: dict[str, Callable[[], Play]] = {}
-    for mod in (passing, running, redzone):
-        reg.update(_public_callables(mod))
-    return reg
+    return _catalog.play_builders()
 
 
 def formation_registry() -> dict[str, Callable]:

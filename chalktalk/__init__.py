@@ -7,7 +7,8 @@ JSON, and render to SVG, PDF, and printable call sheets.
 Quick-start
 -----------
 from chalktalk import adjustments as A
-from chalktalk.catalog import passing, running, redzone
+from chalktalk.catalog import (passing, running, redzone,
+                               playaction, screens, rpo)
 from chalktalk.templates import routes as R, defense as D
 
 mesh = passing.mesh_concept()
@@ -59,4 +60,4 @@ __all__ = [
     "templates", "catalog",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
