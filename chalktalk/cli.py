@@ -19,7 +19,7 @@ from typing import Callable, Optional
 from . import __version__
 from .catalog import passing, running, redzone, series as series_catalog
 from .templates import (blocking as BL, coverages as CV, defense as D,
-                        formations as F, routes as R, schemes as SC)
+                        formations as F, qb as QB, routes as R, schemes as SC)
 from .models.play import Play, Playbook
 
 
@@ -113,6 +113,12 @@ def cmd_list(args: argparse.Namespace) -> int:
                              if p.assignment and not p.is_dl)
             print(f"  {name:<12} {kind:<9} {calls}")
         print(f"{chr(10)}{len(CV.COVERAGES)} coverages, {len(CV.FRONTS)} fronts")
+    elif what in ("qb", "quarterback"):
+        for name, fn in QB.ACTIONS.items():
+            plan = fn()
+            mesh = "mesh" if plan.mesh_point else "    "
+            print(f"  {name:<12} {mesh}  {plan.rule or ''}")
+        print(f"{chr(10)}{len(QB.ACTIONS)} quarterback actions")
     elif what in ("series",):
         for key, fn in series_catalog.ALL_SERIES.items():
             s = fn()
@@ -120,7 +126,7 @@ def cmd_list(args: argparse.Namespace) -> int:
         print(f"\n{len(series_catalog.ALL_SERIES)} series")
     else:
         raise SystemExit("list what? plays | formations | defenses | routes | "
-                         "series | schemes | blocks | coverages")
+                         "series | schemes | blocks | coverages | qb")
     return 0
 
 
@@ -313,7 +319,7 @@ def build_parser() -> argparse.ArgumentParser:
     lst = sub.add_parser("list", help="list catalog contents")
     lst.add_argument("what",
                      help="plays | formations | defenses | routes | series | "
-                          "schemes | blocks | coverages")
+                          "schemes | blocks | coverages | qb")
     lst.set_defaults(func=cmd_list)
 
     ren = sub.add_parser("render", help="render one play to SVG/PDF/JSON")

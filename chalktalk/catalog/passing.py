@@ -10,7 +10,7 @@ from typing import Optional
 from ..models.formation import Formation
 from ..models.play import Play, PlayType
 from ..builder import play as _b
-from ..templates import routes as R, formations as F, schemes as SC
+from ..templates import routes as R, formations as F, schemes as SC, qb as Q
 
 
 def mesh_concept(formation: Optional[Formation] = None) -> Play:
@@ -19,6 +19,8 @@ def mesh_concept(formation: Optional[Formation] = None) -> Play:
     return (
         _b(f).pass_pro()
         .routes(X=R.FLY(), Y=R.FLAT(), Z=R.MESH(5, 22), H=R.MESH(6, 22), RB=R.SWING())
+        .qb(Q.GUN(3, reads=["Y", "H", "Z", "RB"],
+                rule="High-low the flat defender, then work the mesh"))
         .name("Mesh Concept")
         .play_type(PlayType.PASS)
         .tag("mesh", "crossing", "11-personnel")
@@ -34,6 +36,8 @@ def curl_flat(formation: Optional[Formation] = None) -> Play:
     return (
         _b(f).pass_pro()
         .routes(X=R.CURL(), Y=R.FLAT(), Z=R.OUT(), H=R.CURL(depth=10), RB=R.FLAT())
+        .qb(Q.GUN(3, reads=["H", "Y", "X", "RB"],
+                rule="Curl-flat: high-low the flat defender"))
         .name("Curl / Flat")
         .play_type(PlayType.PASS)
         .tag("curl-flat", "hi-lo", "11-personnel")
@@ -49,6 +53,8 @@ def four_verticals(formation: Optional[Formation] = None) -> Play:
     return (
         _b(f).pass_pro()
         .routes(X=R.FLY(), Y=R.SEAM(), H=R.SEAM(depth=20), Z=R.FLY(), RB=R.FLAT())
+        .qb(Q.GUN(5, reads=["H", "Y", "Z", "RB"],
+                rule="Read the middle of the field; take the open seam"))
         .name("Four Verticals")
         .play_type(PlayType.PASS)
         .tag("verts", "four-verticals", "shot-play")
@@ -70,6 +76,8 @@ def smash(formation: Optional[Formation] = None) -> Play:
             Y=R.FLAT(),
             RB=R.ANGLE(),
         )
+        .qb(Q.GUN(3, reads=["Z", "Y", "X", "RB"],
+                rule="Corner-flat high-low on the corner"))
         .name("Smash")
         .play_type(PlayType.PASS)
         .tag("smash", "hi-lo", "cover-2-beater")
@@ -91,6 +99,8 @@ def levels(formation: Optional[Formation] = None) -> Play:
             Y=R.FLAT(),
             RB=R.ANGLE(),
         )
+        .qb(Q.GUN(3, reads=["H", "Z", "Y", "RB"],
+                rule="Low to high off the hook defender"))
         .name("Levels")
         .play_type(PlayType.PASS)
         .tag("levels", "crossing", "cover-3-beater")
@@ -112,6 +122,8 @@ def flood(formation: Optional[Formation] = None) -> Play:
             Y=R.FLAT(),
             RB=R.SWING(),
         )
+        .qb(Q.SPRINT(1, reads=["Z", "H", "Y"],
+                   rule="Three levels to the sprint side, high to low"))
         .name("Flood")
         .play_type(PlayType.PASS)
         .tag("flood", "three-level", "overload")
@@ -133,6 +145,8 @@ def drive_concept(formation: Optional[Formation] = None) -> Play:
             Z=R.CORNER(),
             RB=R.FLAT(),
         )
+        .qb(Q.GUN(3, reads=["X", "Z", "Y", "RB"],
+                rule="Shallow first, dig behind it"))
         .name("Drive Concept")
         .play_type(PlayType.PASS)
         .tag("drive", "crossing", "cover-4-beater")
@@ -154,6 +168,8 @@ def y_cross(formation: Optional[Formation] = None) -> Play:
             RB=R.FLAT(),
             TE=R.SEAM(),
         )
+        .qb(Q.GUN(5, reads=["Y", "TE", "Z", "RB"],
+                rule="Cross behind the seam; checkdown late"))
         .name("Y-Cross")
         .play_type(PlayType.PASS)
         .tag("y-cross", "dig", "12-personnel")
@@ -175,6 +191,8 @@ def spacing(formation: Optional[Formation] = None) -> Play:
             H=R.ANGLE(),
             RB=R.ANGLE(),
         )
+        .qb(Q.GUN(1, reads=["H", "Z", "X", "RB"],
+                rule="Find the open window and throw on rhythm"))
         .name("Spacing")
         .play_type(PlayType.PASS)
         .tag("spacing", "quick-game", "5-route")
@@ -196,6 +214,8 @@ def scissors(formation: Optional[Formation] = None) -> Play:
             Y=R.SEAM(),
             RB=R.FLAT(),
         )
+        .qb(Q.GUN(5, reads=["Z", "X", "H", "RB"],
+                rule="Corner over the post; take what the safety leaves"))
         .name("Scissors")
         .play_type(PlayType.PASS)
         .tag("scissors", "post-corner", "shot-play")
@@ -217,6 +237,8 @@ def stick(formation: Optional[Formation] = None) -> Play:
             H=R.FLAT(),
             RB=R.ANGLE(),
         )
+        .qb(Q.GUN(3, reads=["Y", "H", "Z", "RB"],
+                rule="Stick-flat: read the flat defender"))
         .name("Stick")
         .play_type(PlayType.PASS)
         .tag("stick", "quick-game", "triangle")
@@ -238,6 +260,8 @@ def deep_cross(formation: Optional[Formation] = None) -> Play:
             H=R.DRAG(depth=5, cross=15),
             RB=R.FLAT(),
         )
+        .qb(Q.GUN(5, reads=["Z", "H", "X", "RB"],
+                rule="Post first, then the crosser behind it"))
         .name("Deep Cross")
         .play_type(PlayType.PASS)
         .tag("deep-cross", "over", "shot-play")
@@ -259,6 +283,8 @@ def double_slant(formation: Optional[Formation] = None) -> Play:
             Y=R.FLAT(),
             RB=R.FLAT(),
         )
+        .qb(Q.GUN(1, reads=["H", "Z", "X", "RB"],
+                rule="Ball out on the third step"))
         .name("Double Slant")
         .play_type(PlayType.PASS)
         .tag("slant", "quick-game", "two-high-beater")
@@ -280,6 +306,8 @@ def hitch_seam(formation: Optional[Formation] = None) -> Play:
             H=R.SEAM(depth=18),
             RB=R.SWING(),
         )
+        .qb(Q.GUN(1, reads=["Z", "H", "X"],
+                rule="Off coverage takes the hitch, soft takes the seam"))
         .name("Hitch / Seam")
         .play_type(PlayType.PASS)
         .tag("hitch-seam", "cover-2-beater")
@@ -301,6 +329,8 @@ def sail_concept(formation: Optional[Formation] = None) -> Play:
             Y=R.FLAT(),
             RB=R.ANGLE(),
         )
+        .qb(Q.GUN(5, reads=["Z", "H", "Y", "RB"],
+                rule="Corner, sail, flat — off the flat defender"))
         .name("Sail Concept")
         .play_type(PlayType.PASS)
         .tag("sail", "flood", "three-level")
@@ -322,6 +352,8 @@ def snag(formation: Optional[Formation] = None) -> Play:
             H=R.FLAT(),
             RB=R.SWING(),
         )
+        .qb(Q.GUN(3, reads=["X", "Y", "H", "RB"],
+                rule="Triangle: corner, snag, flat"))
         .name("Snag")
         .play_type(PlayType.PASS)
         .tag("snag", "triangle", "quick-game")
@@ -344,6 +376,8 @@ def rpo_bubble(formation: Optional[Formation] = None) -> Play:
             RB=R.RUN(dx=1, dy=5),
         )
         .bc("RB")
+        .qb(Q.MESH(1, back="RB", key="the overhang", reads=["H"],
+               rule="Overhang in the box, throw it; out, give it"))
         .name("RPO Bubble")
         .play_type(PlayType.RPO)
         .tag("rpo", "bubble", "zone-read")

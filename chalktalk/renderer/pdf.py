@@ -38,6 +38,9 @@ _C_LABEL       = colors.white
 _C_ROUTE       = colors.white
 _C_AMBER       = colors.HexColor("#f59e0b")
 _C_BLOCK       = colors.HexColor("#e5e7eb")
+_C_QB          = colors.HexColor("#fbbf24")
+_C_READ_FILL   = colors.HexColor("#0f172a")
+_C_READ_TEXT   = colors.HexColor("#fde68a")
 _C_DEF_ASSIGN  = colors.HexColor("#f87171")
 _C_DEF_DL      = colors.HexColor("#374151")
 _C_DEF_LB      = colors.HexColor("#4b5563")
@@ -219,7 +222,9 @@ class PDFExporter:
 
         self._draw_field(c, diag_x, diag_y, scale)
         self._draw_blocks(c, play, diag_x, diag_y, scale)
+        self._draw_qb(c, play, diag_x, diag_y, scale)
         self._draw_routes(c, play, diag_x, diag_y, scale)
+        self._draw_reads(c, play, diag_x, diag_y, scale)
         self._draw_defense(c, play, diag_x, diag_y, scale)
         self._draw_players(c, play, diag_x, diag_y, scale)
 
@@ -279,7 +284,9 @@ class PDFExporter:
 
             self._draw_field(c, dx, dy, scale)
             self._draw_blocks(c, play, dx, dy, scale)
+            self._draw_qb(c, play, dx, dy, scale)
             self._draw_routes(c, play, dx, dy, scale)
+            self._draw_reads(c, play, dx, dy, scale)
             self._draw_defense(c, play, dx, dy, scale)
             self._draw_players(c, play, dx, dy, scale)
 
@@ -335,7 +342,9 @@ class PDFExporter:
 
             self._draw_field(c, dx, dy, scale, y_range=y_range)
             self._draw_blocks(c, play, dx, dy, scale, y_range=y_range)
+            self._draw_qb(c, play, dx, dy, scale, y_range=y_range)
             self._draw_routes(c, play, dx, dy, scale, y_range=y_range)
+            self._draw_reads(c, play, dx, dy, scale, y_range=y_range)
             self._draw_defense(c, play, dx, dy, scale, y_range=y_range)
             self._draw_players(c, play, dx, dy, scale, y_range=y_range)
 
@@ -566,6 +575,80 @@ class PDFExporter:
             c.setFillColor(_C_LABEL)
             c.setFont("Helvetica-Bold", fs)
             c.drawCentredString(sx, sy - fs * 0.35, p.label)
+
+    # ── Quarterback ───────────────────────────────────────────────────────────
+
+    def _draw_qb(
+        self,
+        c: rl_canvas.Canvas,
+        play: "Play",
+        ox: float,
+        oy: float,
+        scale: float,
+        y_range: tuple[float, float] | None = None,
+    ) -> None:
+        yr = y_range or self._Y_RANGE
+        xr = self._X_RANGE
+        for a in play.assignments:
+            plan = a.qb
+            if plan is None or len(plan.path) < 2:
+                continue
+            pts = [(ox + (fx - xr[0]) * scale, oy + (fy - yr[0]) * scale)
+                   for fx, fy in plan.absolute_path(a.player.x, a.player.y)]
+            pts = _trim_start(pts, scale * 0.5)
+            c.setStrokeColor(_C_QB)
+            c.setLineWidth(1.8)
+            c.setLineCap(1)
+            path = c.beginPath()
+            _path_catmull_rom(path, pts)
+            c.drawPath(path, stroke=1, fill=0)
+            ex, ey = pts[-1]
+            _draw_arrowhead(c, ex, ey, ex - pts[-2][0], ey - pts[-2][1],
+                            max(3.5, scale * 0.4), _C_QB)
+            mesh = plan.mesh_point
+            if mesh is not None:
+                mx = ox + (a.player.x + mesh.x - xr[0]) * scale
+                my = oy + (a.player.y + mesh.y - yr[0]) * scale
+                c.setLineWidth(1.4)
+                c.circle(mx, my, max(2.0, scale * 0.28), fill=0, stroke=1)
+
+    def _draw_reads(
+        self,
+        c: rl_canvas.Canvas,
+        play: "Play",
+        ox: float,
+        oy: float,
+        scale: float,
+        y_range: tuple[float, float] | None = None,
+    ) -> None:
+        plan = play.qb
+        if plan is None or not plan.reads:
+            return
+        yr = y_range or self._Y_RANGE
+        xr = self._X_RANGE
+        for a in play.assignments:
+            order = plan.read_order(a.player.label)
+            if order is None:
+                continue
+            pts = a.absolute_waypoints()
+            if len(pts) < 2:
+                continue
+            (px, py), (ex, ey) = pts[-2], pts[-1]
+            dx, dy = ex - px, ey - py
+            length = (dx * dx + dy * dy) ** 0.5 or 1.0
+            fx = ex - dy / length * 1.3
+            fy = ey + dx / length * 1.3
+            cx = ox + (fx - xr[0]) * scale
+            cy = oy + (fy - yr[0]) * scale
+            r = max(4.0, scale * 0.36)
+            c.setFillColor(_C_READ_FILL)
+            c.setStrokeColor(_C_QB)
+            c.setLineWidth(1.1)
+            c.circle(cx, cy, r, fill=1, stroke=1)
+            fs = max(4, min(9, int(r * 1.05)))
+            c.setFillColor(_C_READ_TEXT)
+            c.setFont("Helvetica-Bold", fs)
+            c.drawCentredString(cx, cy - fs * 0.35, str(order))
 
     # ── Defense ───────────────────────────────────────────────────────────────
 

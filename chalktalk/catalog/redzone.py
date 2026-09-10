@@ -7,7 +7,7 @@ from typing import Optional
 from ..models.formation import Formation
 from ..models.play import Play, PlayType
 from ..builder import play as _b
-from ..templates import routes as R, formations as F, schemes as SC
+from ..templates import routes as R, formations as F, schemes as SC, qb as Q
 
 
 def fade_corner(formation: Optional[Formation] = None) -> Play:
@@ -22,6 +22,8 @@ def fade_corner(formation: Optional[Formation] = None) -> Play:
             H=R.FLAT(),
             RB=R.ANGLE(),
         )
+        .qb(Q.GUN(3, reads=["Z", "X", "H", "RB"],
+                rule="Corner first, fade backside if he is single"))
         .name("Fade / Corner")
         .play_type(PlayType.PASS)
         .tag("red-zone", "fade", "end-zone")
@@ -43,6 +45,8 @@ def back_shoulder(formation: Optional[Formation] = None) -> Play:
             H=R.SLANT(),
             RB=R.ANGLE(),
         )
+        .qb(Q.GUN(3, reads=["X", "Z", "H", "RB"],
+                rule="Throw it where only he can get it"))
         .name("Back Shoulder")
         .play_type(PlayType.PASS)
         .tag("red-zone", "back-shoulder", "end-zone")
@@ -64,6 +68,8 @@ def bunch_rubs_endzone(formation: Optional[Formation] = None) -> Play:
             H=R.DRAG(depth=4, cross=10),
             RB=R.FLAT(),
         )
+        .qb(Q.GUN(3, reads=["X", "H", "Y", "RB"],
+                rule="Let the rub work, throw off the pick"))
         .name("Bunch Rub Routes")
         .play_type(PlayType.PASS)
         .tag("red-zone", "bunch", "rub", "end-zone")
@@ -85,6 +91,8 @@ def end_zone_corner(formation: Optional[Formation] = None) -> Play:
             Z=R.FLAT(),
             RB=R.ANGLE(),
         )
+        .qb(Q.GUN(3, reads=["Y", "X", "H", "Z"],
+                rule="Corner away from the safety"))
         .name("End Zone Corner")
         .play_type(PlayType.PASS)
         .tag("red-zone", "corner", "end-zone")
@@ -101,6 +109,7 @@ def goal_line_power(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.power(1, kicker="FB")).block("Y", "TE", "TE2")
         .routes(RB=R.RUN(dx=3, dy=6))
         .bc("RB")
+        .qb(Q.HANDOFF(1, back="RB"))
         .name("Goal Line Power")
         .play_type(PlayType.RUN)
         .tag("goal-line", "power", "run")
@@ -117,6 +126,7 @@ def qb_sneak(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.gap_down(1)).block("Y", "TE", "X")
         .routes(QB=R.RUN(dx=0, dy=2), RB=R.RUN(dx=0, dy=1))
         .bc("QB")
+        .qb(Q.SNEAK())
         .name("QB Sneak")
         .play_type(PlayType.RUN)
         .tag("goal-line", "sneak", "short-yardage")
@@ -133,6 +143,7 @@ def jumbo_iso(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.iso(1, lead="TE2")).block("Y", "TE", "X")
         .routes(RB=R.RUN(dx=1, dy=7))
         .bc("RB")
+        .qb(Q.HANDOFF(1, back="RB"))
         .name("Jumbo Iso")
         .play_type(PlayType.RUN)
         .tag("goal-line", "iso", "13-personnel")
@@ -154,6 +165,8 @@ def fade_slant(formation: Optional[Formation] = None) -> Play:
             Y=R.FLAT(),
             RB=R.SWING(),
         )
+        .qb(Q.GUN(1, reads=["X", "Z", "H", "RB"],
+                rule="Press takes the fade, off takes the slant"))
         .name("Fade / Slant")
         .play_type(PlayType.PASS)
         .tag("red-zone", "fade", "slant", "quick-game")

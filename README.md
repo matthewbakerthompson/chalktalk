@@ -74,6 +74,7 @@ The designer has none — it is one HTML file with no network calls.
 | **30 named routes** | Full route tree plus red-zone specialties (fade, back-shoulder, sail, bubble) |
 | **37 stock plays** | Mesh, smash, flood, levels, snag, four verts, inside/outside zone, power, counter, RPOs |
 | **6 scripted series** | Inside zone, power/counter, mesh, sprint-out, red zone, two-minute |
+| **12 quarterback actions** | Drops, play action, boot, sprint, mesh, handoff, draw, pitch, option, keep, sneak — with read progressions |
 | **10 coverages + fronts** | Cover 0-6, Tampa 2, fire zone, zero blitz, line games — with zone drops, man match-ups and blitz paths |
 | **14 blocking schemes** | Inside/outside zone, power, counter, trap, iso, plus slide, half-slide, big-on-big, sprint and boot protections |
 | **12 adjustment types** | Motion, shift, tag, flip, formation, protection, tempo, alert, max protect, release, play action, personnel |
@@ -234,6 +235,41 @@ flips blocks explicitly through `Block.mirrored()`.
 
 ---
 
+## The quarterback
+
+Everyone else had an assignment; he had a dot. Now the play says what he does —
+the drop that sets the timing, the mesh point where it gets decided, and the
+order he works the progression.
+
+```python
+from chalktalk.templates import qb as Q
+
+play.with_qb(Q.GUN(3, reads=["Y", "H", "Z", "RB"],
+                   rule="High-low the flat defender, then work the mesh"))
+play.with_qb(Q.PLAY_ACTION(+1, back="RB", steps=5))
+play.with_qb(Q.MESH(+1, back="RB", key="the backside end"))
+play.progression("Z", "Y", "RB")          # reorder without touching the rest
+```
+
+```bash
+chalk list qb
+chalk show mesh_concept
+```
+
+Reads are drawn as numbered discs at each route's catch point, so a diagram
+shows *1, 2, 3* instead of five routes and no instructions. `play.read_order("Z")`
+gives you the same thing as data.
+
+Run actions mark the **mesh point** — the exchange — with a ring, which is what
+makes a zone read or an RPO legible: the ride, the ring, and the defender being
+read.
+
+Fixed along the way: every under-center formation had the quarterback at
+shotgun depth with the backs stacked ten yards deep. He is under center now,
+and the backfield sits where it belongs.
+
+---
+
 ## Defense
 
 A defensive look used to be eleven dots. Now every defender has a job: a gap to
@@ -296,6 +332,8 @@ no CDN, no build step — and opens it. Inside:
 - pick a **defensive look and a coverage**, then click any defender to change his
   role, zone, match-up or gap — man assignments are recomputed against whoever
   is actually on the field
+- give the **quarterback** an action and build the progression by clicking
+  receivers in the order he works them
 - drop in any of the 23 defensive looks
 - **Flip** the whole play, **Undo** with <kbd>Ctrl</kbd>+<kbd>Z</kbd>
 - fill in protection, tempo, alerts, tags and the situation it is called in
@@ -339,7 +377,7 @@ chalk design --level ncaa
 
 ```bash
 chalk design                         # visual play designer
-chalk list plays                     # or formations | defenses | routes | series | schemes | blocks | coverages
+chalk list plays                     # or formations | defenses | routes | series | schemes | blocks | coverages | qb
 chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs
 chalk show mesh_concept              # assignments as text
 chalk series mesh --out out/mesh_series
@@ -395,7 +433,10 @@ a clean SVG render, and every adjustment for immutability and JSON round-trippin
 
 ## Roadmap
 
-- Quarterback mechanics: dropback depth, mesh point, boot and sprint paths
+- Playbook mode in the designer: open a whole book, reorder it, export it
+- Self-scout: tendency reports by down, distance, hash, personnel and formation
+- A concept taxonomy for the pass game, so a call sheet can be checked for the
+  answers it is missing
 - Coverage *checks* against trips and bunch, the way modern two-high defenses
   actually adjust, rather than one call for every formation
 - Playbook-level editing in the designer (multiple plays, drag to reorder)

@@ -3,6 +3,7 @@ from .core import Point
 from .player import Player, Position, OL_POSITIONS, SKILL_POSITIONS
 from .route import Route, RouteType
 from .block import Block, BlockKind
+from .qb import QBPlan, QBAction
 from .assignment import Assignment
 from .formation import Formation
 from .defense import (DefensePlayer, DefensePosition, DefensiveFormation,
@@ -17,6 +18,7 @@ __all__ = [
     "Player", "Position", "OL_POSITIONS", "SKILL_POSITIONS",
     "Route", "RouteType",
     "Block", "BlockKind",
+    "QBPlan", "QBAction",
     "Assignment",
     "Formation",
     "DefensePlayer", "DefensePosition", "DefensiveFormation",

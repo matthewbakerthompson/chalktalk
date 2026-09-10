@@ -59,6 +59,17 @@ to flip a block, the scheme is wrong.
 Both members of a double team carry a `COMBO` block naming each other, and
 exactly one of them gets `climb=True`. A test enforces both.
 
+## Adding a quarterback action
+
+`chalktalk/templates/qb.py`. An action takes a `direction` where it matters and
+returns a `QBPlan` whose path already points the right way — the renderer never
+flips it. Set `mesh_at` when the play has an exchange; that is what draws the
+ring, and `mesh_point` reads from it rather than guessing at the path.
+
+Reads are receiver labels in order. A test checks that every read in the catalog
+names somebody who is on the field *and* running a route, so a progression can
+never point at a blocker.
+
 ## Adding a coverage
 
 `chalktalk/templates/coverages.py`. A coverage takes a `DefensiveFormation`,
@@ -102,9 +113,10 @@ Two rules keep it honest:
    to the player and mirrored for left-side players. Python applies that in
    `Assignment.absolute_waypoints()`; the JS mirrors it in `wpAbs`/`wpRel`. The
    same duplication exists for motion (`_motion_geometry` ↔ `motionGeometry`),
-   blocks (`blockAbs`), rush paths (`defPath`) and man match-ups (`match_man` ↔
-   `matchMan`, including the order the rat is picked in). If you change one,
-   change the other — the designer tests will catch you.
+   blocks (`blockAbs`), the quarterback (`drawQB`/`drawReads`), rush paths
+   (`defPath`) and man match-ups (`match_man` ↔ `matchMan`, including the order
+   the rat is picked in). If you change one, change the other — the designer
+   tests will catch you.
 2. **Commit `docs/index.html` when the app changes.** CI rebuilds it and fails if
    it drifts from the source.
 

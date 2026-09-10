@@ -48,6 +48,11 @@ _MOTION_COLOR   = "#7dd3fc"   # light cyan — clearly not a route
 _BLOCK_COLOR    = "#e5e7eb"
 _BLOCK_WIDTH    = 2.2
 
+# Quarterback
+_QB_COLOR       = "#fbbf24"   # amber — he has the ball on every snap
+_READ_FILL      = "#0f172a"
+_READ_TEXT      = "#fde68a"
+
 # Defensive assignments
 _DEF_ASSIGN     = "#f87171"   # red — the defense's side of the ink
 _ZONE_FILL      = "rgba(248,113,113,0.07)"
@@ -85,7 +90,9 @@ class SVGRenderer:
             self._field(),
             self._motions(),
             self._blocks(),
+            self._qb(),
             self._routes(),
+            self._reads(),
             self._defense_assignments(),
             self._defense_players(),
             self._players(),
@@ -143,6 +150,7 @@ class SVGRenderer:
             + "  " + arrowhead("arr-gray",   "#9ca3af") + "\n"
             + "  " + arrowhead("arr-motion", _MOTION_COLOR) + "\n"
             + "  " + arrowhead("arr-def",    _DEF_ASSIGN) + "\n"
+            + "  " + arrowhead("arr-qb",     _QB_COLOR) + "\n"
             + "</defs>"
         )
 
@@ -327,6 +335,67 @@ class SVGRenderer:
             f'fill="none" stroke="{_BLOCK_COLOR}" stroke-width="1.4" '
             f'stroke-dasharray="4,3" opacity="0.65"/>'
         )
+
+    # ── Quarterback ───────────────────────────────────────────────────────────
+
+    def _qb(self) -> str:
+        """His footwork, and the mesh point where the play gets decided."""
+        els: list[str] = []
+        for a in self.play.assignments:
+            plan = a.qb
+            if plan is None or len(plan.path) < 2:
+                continue
+            pts = [self._s(x, y)
+                   for x, y in plan.absolute_path(a.player.x, a.player.y)]
+            pts = _trim_start(pts, self.scale * 0.5)
+            els.append(
+                f'<path d="{_smooth_path(pts)}" fill="none" stroke="{_QB_COLOR}" '
+                f'stroke-width="2.2" stroke-linecap="round" '
+                f'stroke-linejoin="round" marker-end="url(#arr-qb)" '
+                f'opacity="0.95"/>'
+            )
+            mesh = plan.mesh_point
+            if mesh is not None:
+                mx, my = self._s(a.player.x + mesh.x, a.player.y + mesh.y)
+                r = self.scale * 0.28
+                els.append(
+                    f'<circle cx="{mx:.1f}" cy="{my:.1f}" r="{r:.1f}" '
+                    f'fill="none" stroke="{_QB_COLOR}" stroke-width="1.8" '
+                    f'opacity="0.95"/>'
+                )
+        return "\n".join(els)
+
+    def _reads(self) -> str:
+        """Number the progression so the play says what he works, in order."""
+        plan = self.play.qb
+        if plan is None or not plan.reads:
+            return ""
+        els: list[str] = []
+        for a in self.play.assignments:
+            order = plan.read_order(a.player.label)
+            if order is None:
+                continue
+            pts = a.absolute_waypoints()
+            if len(pts) < 2:
+                continue
+            (px, py), (ex, ey) = pts[-2], pts[-1]
+            dx, dy = ex - px, ey - py
+            length = (dx * dx + dy * dy) ** 0.5 or 1.0
+            # sit the marker just off the end of the route, on the outside
+            ox, oy = -dy / length * 1.3, dx / length * 1.3
+            cx, cy = self._s(ex + ox, ey + oy)
+            r = max(6.0, self.scale * 0.36)
+            els.append(
+                f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" '
+                f'fill="{_READ_FILL}" stroke="{_QB_COLOR}" stroke-width="1.4" '
+                f'opacity="0.92"/>'
+            )
+            els.append(
+                f'<text x="{cx:.1f}" y="{cy + r * 0.36:.1f}" text-anchor="middle" '
+                f'fill="{_READ_TEXT}" font-family="Arial,sans-serif" '
+                f'font-size="{r * 1.05:.0f}" font-weight="bold">{order}</text>'
+            )
+        return "\n".join(els)
 
     # ── Routes ────────────────────────────────────────────────────────────────
 

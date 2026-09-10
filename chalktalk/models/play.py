@@ -4,6 +4,7 @@ from typing import Optional, TYPE_CHECKING  # TYPE_CHECKING used for SVGRenderer
 from pydantic import BaseModel
 from .block import Block
 from .formation import Formation
+from .qb import QBPlan
 from .assignment import Assignment
 from .route import Route
 from .defense import DefensiveFormation
@@ -74,6 +75,8 @@ class Play(BaseModel):
                 lines.append(f"  {a.player.label:>4s}: {a.route.route_type.value}{bc}{mo}")
             elif a.block:
                 lines.append(f"  {a.player.label:>4s}: {a.block.describe()}{mo}")
+            elif a.qb:
+                lines.append(f"  {a.player.label:>4s}: {a.qb.describe()}")
         for al in self.alerts:
             lines.append(f"  ! {al}")
         if self.situation:
@@ -97,6 +100,21 @@ class Play(BaseModel):
             for a in self.assignments
         ]
         return self.model_copy(update={"assignments": new_assignments})
+
+    def with_qb(self, plan: "QBPlan", label: str = "QB") -> "Play":
+        """Return a copy with the quarterback's plan replaced."""
+        return self.model_copy(update={
+            "assignments": [a.model_copy(update={"qb": plan})
+                            if a.player.label == label else a
+                            for a in self.assignments]
+        })
+
+    def progression(self, *labels: str, qb: str = "QB") -> "Play":
+        """Set the quarterback's read order without touching the rest."""
+        a = self.assignment(qb)
+        if a is None or a.qb is None:
+            raise ValueError("give the quarterback a plan before a progression")
+        return self.with_qb(a.qb.progression(*labels), qb)
 
     def with_block(self, label: str, block: "Block") -> "Play":
         """Return a copy with one player's blocking assignment replaced."""
@@ -158,6 +176,7 @@ class Play(BaseModel):
                 "motion_from": (None if a.motion_from is None
                                 else (-a.motion_from[0], a.motion_from[1])),
                 "block": None if a.block is None else a.block.mirrored(),
+                "qb": None if a.qb is None else a.qb.mirrored(),
             })
             for a in self.assignments
         ]
@@ -253,6 +272,18 @@ class Play(BaseModel):
     @property
     def base_concept(self) -> str:
         return self.concept or self.name
+
+    @property
+    def qb(self) -> Optional["QBPlan"]:
+        """The quarterback's plan, if the play has one."""
+        a = next((a for a in self.assignments
+                  if a.player.position.value == "QB"), None)
+        return a.qb if a else None
+
+    def read_order(self, label: str) -> Optional[int]:
+        """Where a receiver sits in the progression, 1-based."""
+        plan = self.qb
+        return plan.read_order(label) if plan else None
 
     @property
     def ball_carrier(self) -> Optional[Assignment]:

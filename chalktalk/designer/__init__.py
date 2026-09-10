@@ -41,7 +41,8 @@ def catalog() -> dict:
     from ..catalog import passing, redzone, running
     from ..models.field import FIELDS
     from ..templates import (blocking as BL, coverages as CV, defense as D,
-                             formations as F, routes as R, schemes as SC)
+                             formations as F, qb as QB, routes as R,
+                             schemes as SC)
     from ..models.defense import DefensiveRole, Zone, _ZONE_GEOMETRY
     from ..adjustments import _MOTION_PRESETS
 
@@ -104,6 +105,11 @@ def catalog() -> dict:
         # are filled in against whatever offense is on the field.
         "coverage_calls": _coverage_calls(),
         "motions": list(_MOTION_PRESETS),
+        "qb_actions": {
+            name: {str(d): _qb_sample(fn, d).model_dump(mode="json")
+                   for d in (1, -1)}
+            for name, fn in QB.ACTIONS.items()
+        },
         "default_formation": DEFAULT_FORMATION,
     }
 
@@ -139,6 +145,15 @@ def _coverage_calls() -> dict:
     return out
 
 
+def _qb_sample(fn, direction: int):
+    """One quarterback plan per action for the picker."""
+    params = inspect.signature(fn).parameters
+    kwargs = {}
+    if "direction" in params:
+        kwargs["direction"] = direction
+    return fn(**kwargs)
+
+
 def _block_sample(fn, direction: int):
     """
     Build one block for the picker. Most constructors take `direction` first,
@@ -161,9 +176,27 @@ def _scheme_for(fn, direction: int) -> dict:
         return fn()
 
 
+def _compact(obj):
+    """
+    Drop nulls and round the float noise out of the inlined catalog.
+
+    Pydantic fills the defaults back in on the way home, and the browser reads
+    everything through optional access, so nothing is lost but bytes — and the
+    catalog is most of the file.
+    """
+    if isinstance(obj, dict):
+        return {k: _compact(v) for k, v in obj.items() if v is not None}
+    if isinstance(obj, list):
+        return [_compact(v) for v in obj]
+    if isinstance(obj, float):
+        rounded = round(obj, 2)
+        return int(rounded) if rounded == int(rounded) else rounded
+    return obj
+
+
 def _json_for_script(obj) -> str:
     """JSON safe to inline inside a <script> block."""
-    return (json.dumps(obj, separators=(",", ":"))
+    return (json.dumps(_compact(obj), separators=(",", ":"))
             .replace("<", "\\u003c").replace(">", "\\u003e")
             .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
 

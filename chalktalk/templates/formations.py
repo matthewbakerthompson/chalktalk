@@ -93,9 +93,9 @@ def I_FORM_PRO_RIGHT() -> Formation:
             _p("Y",  Position.Y,   6.0,  0),
             _p("X",  Position.X, -22.0,  0),
             _p("Z",  Position.Z,  18.0, -1),
-            _p("QB", Position.QB,  0.0, -5),
-            _p("FB", Position.FB,  0.0, -7),
-            _p("RB", Position.RB,  0.0, -10),
+            _p("QB", Position.QB,  0.0, -1.5),
+            _p("FB", Position.FB,  0.0, -4.5),
+            _p("RB", Position.RB,  0.0, -7.0),
         ],
     )
 
@@ -110,9 +110,9 @@ def I_FORM_STRONG_RIGHT() -> Formation:
             _p("Y",  Position.Y,   6.0,  0),
             _p("X",  Position.X, -22.0,  0),
             _p("Z",  Position.Z,  18.0, -1),
-            _p("QB", Position.QB,  0.0, -5),
-            _p("FB", Position.FB,  5.0, -6),    # offset right
-            _p("RB", Position.RB,  0.0, -9),
+            _p("QB", Position.QB,  0.0, -1.5),
+            _p("FB", Position.FB,  5.0, -4.5),    # offset right
+            _p("RB", Position.RB,  0.0, -7.0),
         ],
     )
 
@@ -148,9 +148,9 @@ def GOAL_LINE() -> Formation:
             _p("Y",  Position.Y,   6.0,  0),
             _p("TE", Position.TE, -6.0,  0),
             _p("X",  Position.X, -18.0,  0),
-            _p("QB", Position.QB,  0.0, -5),
-            _p("FB", Position.FB,  0.0, -7),
-            _p("RB", Position.RB,  0.0, -10),
+            _p("QB", Position.QB,  0.0, -1.5),
+            _p("FB", Position.FB,  0.0, -4.0),
+            _p("RB", Position.RB,  0.0, -7.0),
         ],
     )
 
@@ -292,9 +292,9 @@ def GOAL_LINE_HEAVY() -> Formation:
             _p("Y",   Position.Y,    6.0,  0),
             _p("TE",  Position.TE,  -6.0,  0),
             _p("TE2", Position.TE,   8.0, -1),  # wing TE right
-            _p("QB",  Position.QB,   0.0, -5),
-            _p("FB",  Position.FB,   0.0, -7),
-            _p("RB",  Position.RB,   0.0, -10),
+            _p("QB",  Position.QB,   0.0, -1.5),
+            _p("FB",  Position.FB,   0.0, -4.0),
+            _p("RB",  Position.RB,   0.0, -7.0),
         ],
     )
 
@@ -313,9 +313,9 @@ def PRO_SET() -> Formation:
             _p("Y",  Position.Y,   6.0,  0),
             _p("X",  Position.X, -22.0,  0),
             _p("Z",  Position.Z,  18.0, -1),
-            _p("QB", Position.QB,  0.0, -5),
-            _p("HB", Position.RB,  4.0, -7),   # split back right
-            _p("FB", Position.FB, -4.0, -7),   # split back left
+            _p("QB", Position.QB,  0.0, -1.5),
+            _p("HB", Position.RB,  4.0, -5.5),   # split back right
+            _p("FB", Position.FB, -4.0, -5.5),   # split back left
         ],
     )
 
@@ -331,8 +331,8 @@ def SINGLE_BACK_ACE() -> Formation:
             _p("TE", Position.TE, -6.0,  0),
             _p("X",  Position.X, -20.0,  0),
             _p("Z",  Position.Z,  18.0, -1),
-            _p("QB", Position.QB,  0.0, -5),
-            _p("RB", Position.RB,  0.0, -8),
+            _p("QB", Position.QB,  0.0, -1.5),
+            _p("RB", Position.RB,  0.0, -6.5),
         ],
     )
 
@@ -348,8 +348,8 @@ def SINGLE_BACK_PRO_RIGHT() -> Formation:
             _p("X",  Position.X, -22.0,  0),
             _p("H",  Position.H, -12.0, -1),
             _p("Z",  Position.Z,  19.0, -1),
-            _p("QB", Position.QB,  0.0, -5),
-            _p("RB", Position.RB,  2.5, -8),
+            _p("QB", Position.QB,  0.0, -1.5),
+            _p("RB", Position.RB,  2.5, -6.5),
         ],
     )
 
@@ -363,10 +363,10 @@ def WISHBONE() -> Formation:
             *_ol_standard(),
             _p("X",  Position.X, -18.0,  0),
             _p("Z",  Position.Z,  18.0,  0),
-            _p("QB", Position.QB,  0.0, -5),
-            _p("FB", Position.FB,  0.0, -7),
-            _p("LH", Position.RB, -5.0, -9),   # left halfback
-            _p("RH", Position.RB,  5.0, -9),   # right halfback
+            _p("QB", Position.QB,  0.0, -1.5),
+            _p("FB", Position.FB,  0.0, -4.0),
+            _p("LH", Position.RB, -5.0, -6.5),   # left halfback
+            _p("RH", Position.RB,  5.0, -6.5),   # right halfback
         ],
     )
 
@@ -586,8 +586,8 @@ def JUMBO_TIGHT() -> Formation:
             _p("TE",  Position.TE,   8.5,  0),   # wing TE
             _p("TE2", Position.TE,  -2.5, -3.5),   # H-back / lead blocker
             _p("X",   Position.X,  -17.0,  0),
-            _p("QB",  Position.QB,   0.0, -5),
-            _p("RB",  Position.RB,   0.0, -8),
+            _p("QB",  Position.QB,   0.0, -1.5),
+            _p("RB",  Position.RB,   0.0, -6.0),
         ],
     )
 

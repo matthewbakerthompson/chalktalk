@@ -173,6 +173,20 @@ textarea{min-height:220px;font-family:ui-monospace,Consolas,monospace;font-size:
   <aside class="right">
     <div id="inspector"></div>
 
+    <h2>Quarterback</h2>
+    <div class="field"><select id="qbAction"></select></div>
+    <div class="grid2">
+      <div><label>Steps</label><input id="qbSteps" type="number" min="0" max="7"></div>
+      <div><label>Dir</label><select id="qbDir">
+        <option value="1">Right</option><option value="-1">Left</option></select></div>
+    </div>
+    <div class="field" style="margin-top:8px">
+      <label>Progression (click to order)</label>
+      <div class="plist" id="readList"></div>
+    </div>
+    <div class="field"><label>Rule</label><input id="qbRule"
+      placeholder="High-low the flat defender"></div>
+
     <h2>Call sheet</h2>
     <div class="field"><label>Protection</label><input id="protection" placeholder="Slide Rt"></div>
     <div class="field"><label>Tempo</label><select id="tempo"></select></div>
@@ -225,6 +239,7 @@ const MOTION_COLOR="#7dd3fc";
 const DEF_DL="#374151", DEF_LB="#4b5563", DEF_DB="#6b7280", DEF_STROKE="#d1d5db";
 const BLOCK_COLOR="#e5e7eb", BLOCK_WIDTH=2.2;
 const DEF_ASSIGN="#f87171", ZONE_FILL="rgba(248,113,113,0.07)", ZONE_SCALE=0.7;
+const QB_COLOR="#fbbf24", READ_FILL="#0f172a", READ_TEXT="#fde68a";
 const OL = new Set(["C","LG","RG","LT","RT"]);
 const DL = new Set(["DE","DT","NT"]);
 const LB = new Set(["W","M","S","OLB","ILB","LB"]);
@@ -240,6 +255,7 @@ let selWp = -1;          // selected waypoint index
 let drag = null;         // {kind:'player'|'waypoint'|'motion', ...}
 let blockDir = 1;        // which way the next block or scheme points
 let selDef = null;       // selected defender label
+let qbDir = 1;           // which way the quarterback's action points
 const undoStack = [];
 
 const $ = id => document.getElementById(id);
@@ -611,6 +627,47 @@ function drawBlocks(g){
   }
 }
 
+function qbAssignment(){
+  return assignments().find(a => a.qb);
+}
+
+function drawQB(g){
+  for (const a of assignments()){
+    const plan = a.qb;
+    if (!plan || !plan.path || plan.path.length < 2) continue;
+    const pts = trimStart(plan.path.map(p => [sx(a.player.x + p.x), sy(a.player.y + p.y)]),
+                          SCALE*0.5);
+    g.appendChild(el("path", {d:smoothPath(pts), fill:"none", stroke:QB_COLOR,
+      "stroke-width":2.2, "stroke-linecap":"round", "stroke-linejoin":"round",
+      "marker-end":"url(#arr-qb)", opacity:0.95}));
+    if (plan.mesh_at){
+      g.appendChild(el("circle", {cx:sx(a.player.x + plan.mesh_at.x),
+        cy:sy(a.player.y + plan.mesh_at.y), r:SCALE*0.28, fill:"none",
+        stroke:QB_COLOR, "stroke-width":1.8, opacity:0.95}));
+    }
+  }
+}
+
+function drawReads(g){
+  const plan = (qbAssignment() || {}).qb;
+  if (!plan || !plan.reads || !plan.reads.length) return;
+  for (const a of assignments()){
+    const order = plan.reads.indexOf(a.player.label);
+    if (order < 0 || !a.route) continue;
+    const pts = a.route.waypoints.map(w => wpAbs(a.player, w));
+    if (pts.length < 2) continue;
+    const [px, py] = pts[pts.length-2], [ex, ey] = pts[pts.length-1];
+    const dx = ex-px, dy = ey-py, len = Math.hypot(dx, dy) || 1;
+    const cx = sx(ex - dy/len*1.3), cy = sy(ey + dx/len*1.3);
+    const r = Math.max(6, SCALE*0.36);
+    g.appendChild(el("circle", {cx, cy, r, fill:READ_FILL, stroke:QB_COLOR,
+      "stroke-width":1.4, opacity:0.92}));
+    g.appendChild(el("text", {x:cx, y:cy + r*0.36, "text-anchor":"middle",
+      fill:READ_TEXT, "font-family":"Arial,sans-serif",
+      "font-size":Math.round(r*1.05), "font-weight":"bold"}, String(order+1)));
+  }
+}
+
 function drawRoutes(g){
   for (const a of assignments()){
     if (!a.route) continue;
@@ -762,6 +819,7 @@ function defs(){
   d.appendChild(arrow("arr-gray", "#9ca3af"));
   d.appendChild(arrow("arr-motion", MOTION_COLOR));
   d.appendChild(arrow("arr-def", DEF_ASSIGN));
+  d.appendChild(arrow("arr-qb", QB_COLOR));
   return d;
 }
 
@@ -809,7 +867,8 @@ function renderSvg(){
     width:W(), height:H(), viewBox:`0 0 ${W()} ${H()}`});
   svg.appendChild(defs());
   const art = el("g", {id:"art"});
-  drawField(art); drawMotions(art); drawBlocks(art); drawRoutes(art);
+  drawField(art); drawMotions(art); drawBlocks(art); drawQB(art);
+  drawRoutes(art); drawReads(art);
   drawDefenseAssignments(art); drawDefense(art); drawPlayers(art); drawTitle(art);
   svg.appendChild(art);
   const ui = el("g", {id:"ui"});
@@ -1135,6 +1194,34 @@ function renderInspector(){
   }
 }
 
+function renderReads(){
+  const box = $("readList");
+  if (!box) return;
+  box.innerHTML = "";
+  const a = qbAssignment();
+  const plan = a && a.qb;
+  if (!plan){
+    box.innerHTML = '<span class="note">Give him a plan first.</span>';
+    return;
+  }
+  for (const p of eligibleReceivers()){
+    const order = plan.reads.indexOf(p.label);
+    const b = document.createElement("button");
+    b.className = "chip" + (order >= 0 ? " sel" : "");
+    b.innerHTML = order >= 0
+      ? `<span class="rt">${order + 1}</span> ${p.label}`
+      : p.label;
+    b.onclick = () => {
+      pushUndo();
+      plan.reads = order >= 0
+        ? plan.reads.filter(l => l !== p.label)   // click again to drop him
+        : [...plan.reads, p.label];
+      renderAll();
+    };
+    box.appendChild(b);
+  }
+}
+
 function renderMeta(){
   $("playName").value = play.name || "";
   $("formationName").value = play.formation.name || "";
@@ -1152,6 +1239,17 @@ function renderMeta(){
   $("sitHash").value = s.hash_mark ?? "";
   $("sitOut").textContent = describeSituation(play.situation);
   $("defenseSel").value = play.defense ? (play.defense._key || "") : "";
+  const plan = (qbAssignment() || {}).qb;
+  if (plan){
+    const key = Object.keys(CATALOG.qb_actions).find(
+      k => CATALOG.qb_actions[k]["1"].action === plan.action);
+    $("qbAction").value = key || "";
+    $("qbSteps").value = plan.steps ?? "";
+    $("qbRule").value = plan.rule || "";
+    $("qbDir").value = String(plan.direction || 1);
+  } else {
+    $("qbAction").value = ""; $("qbSteps").value = ""; $("qbRule").value = "";
+  }
 }
 
 function describeSituation(s){
@@ -1199,6 +1297,7 @@ function renderStage(){
 function renderAll(){
   syncFormation();
   renderStage(); renderPlayerList(); renderInspector(); renderMeta();
+  renderReads();
   save();
 }
 
@@ -1346,6 +1445,42 @@ function boot(){
   $("description").oninput = e => { play.description = e.target.value || null; save(); };
   for (const id of ["sitDown","sitDist","sitYard","sitHash"])
     $(id).onchange = () => { readSituation(); save(); };
+
+  fillSelect($("qbAction"),
+    Object.keys(CATALOG.qb_actions).map(k => [k, k.replace(/_/g, " ")]),
+    null, "— no quarterback plan —");
+  $("qbAction").onchange = e => {
+    const a = qbAssignment() || findA("QB");
+    if (!a) return toast("No quarterback on the field");
+    pushUndo();
+    if (!e.target.value){ a.qb = null; }
+    else {
+      const previous = a.qb || {};
+      a.qb = clone(CATALOG.qb_actions[e.target.value][String(qbDir)]);
+      a.qb.reads = previous.reads || [];
+    }
+    renderAll();
+  };
+  $("qbDir").onchange = e => {
+    qbDir = +e.target.value;
+    const a = qbAssignment();
+    const chosen = $("qbAction").value;
+    if (a && a.qb && chosen){
+      pushUndo();
+      const reads = a.qb.reads, rule = a.qb.rule;
+      a.qb = clone(CATALOG.qb_actions[chosen][String(qbDir)]);
+      a.qb.reads = reads; a.qb.rule = rule;
+    }
+    renderAll();
+  };
+  $("qbSteps").onchange = e => {
+    const a = qbAssignment();
+    if (a && a.qb){ a.qb.steps = e.target.value ? +e.target.value : null; save(); renderStage(); }
+  };
+  $("qbRule").onchange = e => {
+    const a = qbAssignment();
+    if (a && a.qb){ a.qb.rule = e.target.value || null; save(); }
+  };
 
   $("btnFlip").onclick = flipPlay;
   $("btnUndo").onclick = undo;

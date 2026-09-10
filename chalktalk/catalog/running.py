@@ -7,7 +7,7 @@ from typing import Optional
 from ..models.formation import Formation
 from ..models.play import Play, PlayType
 from ..builder import play as _b
-from ..templates import routes as R, formations as F, schemes as SC
+from ..templates import routes as R, formations as F, schemes as SC, qb as Q
 
 
 def inside_zone(formation: Optional[Formation] = None) -> Play:
@@ -17,6 +17,7 @@ def inside_zone(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.inside_zone(1)).block("Y", "X", "Z", "FB")
         .routes(RB=R.RUN(dx=1.5, dy=7))
         .bc("RB")
+        .qb(Q.HANDOFF(1, back="RB"))
         .name("Inside Zone")
         .play_type(PlayType.RUN)
         .tag("inside-zone", "zone", "run")
@@ -33,6 +34,7 @@ def outside_zone(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.outside_zone(1)).block("Y", "X", "Z", "FB")
         .routes(RB=R.RUN(dx=7, dy=5))
         .bc("RB")
+        .qb(Q.HANDOFF(1, back="RB"))
         .name("Outside Zone")
         .play_type(PlayType.RUN)
         .tag("outside-zone", "zone", "run", "stretch")
@@ -49,6 +51,7 @@ def power_right(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.power(1, kicker="FB")).block("Y", "X", "Z")
         .routes(RB=R.RUN(dx=4, dy=7))
         .bc("RB")
+        .qb(Q.HANDOFF(1, back="RB"))
         .name("Power Right")
         .play_type(PlayType.RUN)
         .tag("power", "gap", "run")
@@ -65,6 +68,7 @@ def power_left(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.power(-1, kicker=None)).block("Y", "X", "Z")
         .routes(FB=R.RUN(dx=-4, dy=4), RB=R.RUN(dx=-4, dy=7))
         .bc("RB")
+        .qb(Q.HANDOFF(-1, back="RB"))
         .name("Power Left")
         .play_type(PlayType.RUN)
         .tag("power", "gap", "run")
@@ -80,6 +84,7 @@ def counter_trey(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.counter(1)).block("Y", "X", "Z")
         .routes(RB=R.RUN(dx=-3, dy=6))
         .bc("RB")
+        .qb(Q.HANDOFF(1, back="RB"))
         .name("Counter Trey")
         .play_type(PlayType.RUN)
         .tag("counter", "gap", "misdirection", "run")
@@ -96,6 +101,7 @@ def trap(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.trap(1)).block("Y", "X", "Z", "FB")
         .routes(RB=R.RUN(dx=1, dy=6))
         .bc("RB")
+        .qb(Q.HANDOFF(1, back="RB"))
         .name("Trap")
         .play_type(PlayType.RUN)
         .tag("trap", "gap", "run")
@@ -118,6 +124,7 @@ def draw(formation: Optional[Formation] = None) -> Play:
             RB=R.RUN(dx=0, dy=8),
         )
         .bc("RB")
+        .qb(Q.DRAW(1, back="RB"))
         .name("Draw")
         .play_type(PlayType.RUN)
         .tag("draw", "delayed", "run", "pass-action")
@@ -140,6 +147,7 @@ def speed_sweep(formation: Optional[Formation] = None) -> Play:
             RB=R.BLOCK(),
         )
         .bc("H")
+        .qb(Q.HANDOFF(1, back="H", rule="Hand the jet on the move"))
         .name("Speed Sweep")
         .play_type(PlayType.RUN)
         .tag("sweep", "jet", "perimeter", "run")
@@ -156,6 +164,7 @@ def toss_sweep(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.outside_zone(1)).block("Y", "X", "Z")
         .routes(FB=R.RUN(dx=6, dy=2), RB=R.RUN(dx=8, dy=4))
         .bc("RB")
+        .qb(Q.PITCH(1, back="RB"))
         .name("Toss Sweep")
         .play_type(PlayType.RUN)
         .tag("toss", "sweep", "perimeter", "run")
@@ -172,6 +181,7 @@ def lead_iso(formation: Optional[Formation] = None) -> Play:
         _b(f).scheme(SC.iso(1, lead="FB")).block("Y", "X", "Z")
         .routes(RB=R.RUN(dx=0, dy=8))
         .bc("RB")
+        .qb(Q.HANDOFF(1, back="RB"))
         .name("Lead Iso")
         .play_type(PlayType.RUN)
         .tag("iso", "lead", "run")
@@ -193,6 +203,7 @@ def veer_read(formation: Optional[Formation] = None) -> Play:
             RB=R.RUN(dx=-2, dy=6),  # mesh read
         )
         .bc("RB")
+        .qb(Q.MESH(1, back="RB", key="the backside end"))
         .name("Zone Read")
         .play_type(PlayType.RPO)
         .tag("zone-read", "option", "rpo", "run")
@@ -212,6 +223,7 @@ def qb_keeper(formation: Optional[Formation] = None) -> Play:
             RB=R.BLOCK(),
         )
         .bc("QB")
+        .qb(Q.KEEP(1, depth=7.0, rule="Read the edge, then get vertical"))
         .name("QB Keeper")
         .play_type(PlayType.RUN)
         .tag("keeper", "qb-run", "run")

@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import BaseModel
 from .block import Block
 from .player import Player
+from .qb import QBPlan
 from .route import Route
 
 
@@ -10,12 +11,18 @@ class Assignment(BaseModel):
     player: Player
     route: Optional[Route] = None
     block: Optional[Block] = None
+    qb: Optional[QBPlan] = None
     is_ball_carrier: bool = False
     # Pre-snap motion: player starts at this (x, y) before moving to player.x/y
     motion_from: Optional[tuple[float, float]] = None
     motion_type: Optional[str] = None   # "jet", "orbit", "shift", ... (display only)
     # Free-text coaching point shown in the play's assignment table.
     note: Optional[str] = None
+
+    @property
+    def has_assignment(self) -> bool:
+        return (self.route is not None or self.block is not None
+                or self.qb is not None)
 
     @property
     def is_blocking(self) -> bool:

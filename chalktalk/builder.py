@@ -24,6 +24,7 @@ from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
 
 from .models.block import Block
+from .models.qb import QBPlan
 from .models.formation import Formation
 from .models.route import Route
 from .models.assignment import Assignment
@@ -38,6 +39,8 @@ class PlayBuilder:
         self._formation  = formation
         self._routes: dict[str, Route]         = {}
         self._blocks: dict[str, Block]         = {}
+        self._qb: Optional[QBPlan]             = None
+        self._qb_label: str                    = "QB"
         self._ball_carriers: set[str]          = set()
         self._motion: dict[str, tuple[float, float]] = {}
         self._defense: Optional["DefensiveFormation"] = None
@@ -107,6 +110,12 @@ class PlayBuilder:
         return self.scheme(blocks if blocks is not None else big_on_big(),
                            protection)
 
+    def qb(self, plan: QBPlan, label: str = "QB") -> "PlayBuilder":
+        """Give the quarterback his action and progression."""
+        self._qb = plan
+        self._qb_label = label
+        return self
+
     def bc(self, label: str) -> "PlayBuilder":
         """Designate a player as ball carrier."""
         self._ball_carriers.add(label)
@@ -154,6 +163,7 @@ class PlayBuilder:
                     player=p,
                     route=self._routes.get(p.label),
                     block=self._blocks.get(p.label),
+                    qb=self._qb if p.label == self._qb_label else None,
                     is_ball_carrier=p.label in self._ball_carriers,
                     motion_from=self._motion.get(p.label),
                 )
