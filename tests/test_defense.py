@@ -230,6 +230,38 @@ def test_cover_2_man_keeps_two_deep():
     assert len(_deep(look)) == 2
 
 
+@pytest.mark.parametrize("name", sorted(C.COVERAGES))
+@pytest.mark.parametrize("fn", ALL_DEFENSES, ids=lambda f: f.__name__)
+def test_zone_defenders_never_share_a_landmark(fn, name):
+    """Two defenders dropping to the same spot is a bust, not a coverage."""
+    look = C.COVERAGES[name](fn(), F.SHOTGUN_TRIPS_RIGHT())
+    spots: dict[tuple, str] = {}
+    for p in look.players:
+        a = p.assignment
+        if not (a and a.zone):
+            continue
+        key = (a.zone, zone_landmark(a.zone, a.side))
+        assert key not in spots, \
+            f"{name}: {p.label} and {spots[key]} both drop to {a.zone.display}"
+        spots[key] = p.label
+
+
+def test_cover_3_has_a_curl_flat_player_on_each_side():
+    look = C.cover_3(D.FOUR_THREE_OVER())
+    sides = sorted(p.assignment.side for p in look.players
+                   if p.assignment and p.assignment.zone is Zone.CURL_FLAT)
+    assert sides == [-1.0, 1.0]
+
+
+@pytest.mark.parametrize("fn", ALL_DEFENSES, ids=lambda f: f.__name__)
+def test_two_deep_safeties_split_the_field(fn):
+    look = C.cover_2(fn())
+    halves = sorted(p.assignment.side for p in look.players
+                    if p.assignment and p.assignment.zone is Zone.DEEP_HALF)
+    if len(look.safeties) >= 2:
+        assert halves == [-1.0, 1.0]
+
+
 # ── Attaching to a play ───────────────────────────────────────────────────────
 
 def test_vs_accepts_a_coverage():
