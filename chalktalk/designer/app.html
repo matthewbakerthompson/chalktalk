@@ -5,225 +5,518 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chalktalk Designer</title>
 <style>
+/* ─── tokens ────────────────────────────────────────────────────────────
+   Graphite tinted a hair toward the field, chalk-white ink, and one accent:
+   the yellow the diagram already uses for selection, the ball and the QB. */
 :root{
-  --bg:#0b1220; --panel:#111b2e; --panel-2:#16233b; --line:#26364f;
-  --ink:#e8eef8; --muted:#8ba0bf; --accent:#3b82f6; --accent-2:#7dd3fc;
-  --amber:#f59e0b; --danger:#ef4444; --ok:#22c55e;
-  --radius:8px;
+  color-scheme:dark;
+  --bg:      oklch(0.165 0.006 160);
+  --panel:   oklch(0.205 0.006 160);
+  --panel-2: oklch(0.250 0.007 160);
+  --well:    oklch(0.150 0.006 160);
+  --hair:    oklch(1 0 0 / 0.08);
+  --hair-2:  oklch(1 0 0 / 0.15);
+  --ink:     oklch(0.955 0.006 95);
+  --ink-2:   oklch(0.840 0.008 120);
+  --muted:   oklch(0.690 0.012 150);
+  --faint:   oklch(0.520 0.012 150);
+  --accent:      oklch(0.870 0.160 92);
+  --accent-hi:   oklch(0.905 0.160 92);
+  --accent-ink:  oklch(0.230 0.050 92);
+  --accent-soft: oklch(0.870 0.160 92 / 0.14);
+  --accent-line: oklch(0.870 0.160 92 / 0.55);
+  --danger:  oklch(0.740 0.160 25);
+  --motion:  oklch(0.850 0.090 220);
+  --offense: oklch(0.560 0.190 262);
+  --offense-ring: oklch(0.800 0.090 262);
+  --defense: oklch(0.520 0.010 260);
+  --defense-ring: oklch(0.850 0.010 260);
+  --float: 0 1px 0 oklch(1 0 0 / .04) inset, 0 0 0 1px oklch(0 0 0 / .35), 0 14px 34px -14px oklch(0 0 0 / .85);
+  --r-1:6px; --r-2:8px; --r-3:12px;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  --t:150ms var(--ease);
+  --z-hud:2; --z-dock:3; --z-pop:20; --z-sheet:25; --z-toast:30;
+  --sans:"Inter",ui-sans-serif,system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Code","SF Mono",Consolas,monospace;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{
   margin:0;background:var(--bg);color:var(--ink);
-  font:13px/1.45 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  overflow:hidden;
+  font:13px/1.45 var(--sans);overflow:hidden;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
 }
+::selection{background:var(--accent-soft)}
 button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
+h1,h2,h3,p{margin:0}
+code{font-family:var(--mono);font-size:.92em;color:var(--ink-2)}
+
+/* ─── controls ──────────────────────────────────────────────────────── */
 button{
-  background:var(--panel-2);border:1px solid var(--line);border-radius:6px;
-  padding:5px 9px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:28px;padding:0 10px;border:1px solid var(--hair-2);border-radius:var(--r-1);
+  background:transparent;color:var(--ink-2);font-size:12.5px;font-weight:500;
+  cursor:pointer;white-space:nowrap;
+  transition:background var(--t),border-color var(--t),color var(--t);
 }
-button:hover{border-color:var(--accent);background:#1c2c49}
-button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-button.primary:hover{background:#2563eb}
-button.danger:hover{border-color:var(--danger);color:#fca5a5}
-button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+button:hover{background:oklch(1 0 0 / .06);border-color:oklch(1 0 0 / .22);color:var(--ink)}
+button:active{background:oklch(1 0 0 / .1)}
+button:disabled{opacity:.45;cursor:default}
+button svg{width:14px;height:14px;flex:none}
+button.primary{background:var(--accent);border-color:transparent;color:var(--accent-ink);font-weight:600}
+button.primary:hover{background:var(--accent-hi);color:var(--accent-ink)}
+button.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+button.on:hover{background:oklch(0.870 0.160 92 / .2);color:var(--accent)}
+button.danger:hover{color:var(--danger);border-color:oklch(0.740 0.160 25 / .5);background:oklch(0.740 0.160 25 / .08)}
+button.ghost{border-color:transparent;color:var(--muted)}
+button.ghost:hover{color:var(--ink)}
+button.icon{width:28px;padding:0}
+button.wide{width:100%;margin-top:10px}
+
 input,select,textarea{
-  background:#0d1728;border:1px solid var(--line);border-radius:6px;padding:4px 7px;
-  width:100%;
+  width:100%;height:28px;padding:0 8px;
+  background:var(--well);border:1px solid var(--hair);border-radius:var(--r-1);
+  transition:border-color var(--t),box-shadow var(--t);
 }
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
-label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;
-  color:var(--muted);margin:0 0 3px}
-.row{display:flex;gap:6px}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:1}
+input:hover,select:hover,textarea:hover{border-color:var(--hair-2)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+input[type=number]{font-variant-numeric:tabular-nums}
+select{
+  appearance:none;-webkit-appearance:none;padding-right:24px;cursor:pointer;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23a3ada8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat:no-repeat;background-position:right 8px center;
+  text-overflow:ellipsis;
+}
+textarea{height:auto;min-height:64px;padding:6px 8px;resize:vertical;line-height:1.45}
+textarea.code{font-family:var(--mono);font-size:11.5px;line-height:1.5;min-height:320px}
+label{display:block;font-size:11.5px;font-weight:500;color:var(--muted);margin:0 0 4px}
+label .sub{font-weight:400;color:var(--muted);margin-left:4px}
+kbd{
+  display:inline-block;min-width:16px;padding:0 4px;border-radius:4px;
+  background:oklch(1 0 0 / .07);border:1px solid var(--hair-2);
+  font-family:inherit;font-size:10.5px;line-height:16px;text-align:center;color:var(--ink-2);
+}
+.row{display:flex;gap:8px}
 .row>*{flex:1;min-width:0}
-.field{margin-bottom:8px}
-
-#app{display:grid;grid-template-columns:250px 1fr 260px;grid-template-rows:auto 1fr;
-  height:100vh}
-header{
-  grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px 12px;
-  background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;
+.field{margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.note{color:var(--muted);font-size:12px;line-height:1.45;margin-top:10px}
+.sep{width:1px;height:20px;background:var(--hair-2);margin:0 4px;flex:none}
+h2{font-size:12px;font-weight:600;color:var(--ink-2);margin:0 0 10px;display:flex;align-items:baseline;gap:6px}
+h2 .sub{font-weight:400;color:var(--muted);font-size:11.5px}
+h3{
+  font-size:12px;font-weight:600;color:var(--ink-2);
+  margin:14px 0 8px;padding-top:12px;border-top:1px solid var(--hair);
 }
-header h1{font-size:14px;margin:0;letter-spacing:-.01em;white-space:nowrap}
-header h1 span{color:var(--accent-2)}
-header .sep{width:1px;height:22px;background:var(--line)}
-header .spacer{flex:1}
-header .hint{color:var(--muted);font-size:11px}
+h3.first{margin-top:0;padding-top:0;border-top:0}
 
-aside{background:var(--panel);overflow-y:auto;padding:10px}
-aside.left{border-right:1px solid var(--line)}
-aside.right{border-left:1px solid var(--line)}
-h2{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);
-  margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line)}
-h2:first-child{margin-top:0}
+/* segmented control — one raised segment, no accent on the idle ones */
+.seg{display:inline-flex;gap:2px;padding:2px;background:var(--well);border:1px solid var(--hair);border-radius:var(--r-1)}
+.seg button{height:22px;padding:0 9px;border:0;border-radius:4px;background:transparent;color:var(--muted);font-size:12px}
+.seg button:hover{background:oklch(1 0 0 / .05);color:var(--ink)}
+.seg button.on{background:var(--panel-2);color:var(--ink);box-shadow:0 1px 0 oklch(0 0 0 / .35),inset 0 0 0 1px var(--hair-2)}
+.seg.full{display:flex}
+.seg.full button{flex:1}
+.seg.sm{padding:1px;gap:1px}
+.seg.sm button{height:20px;padding:0 7px;font-size:11.5px}
 
-main{position:relative;overflow:auto;display:flex;align-items:flex-start;
-  justify-content:center;padding:14px}
-#stage{background:#0e1a12;border-radius:var(--radius);box-shadow:0 10px 30px #0006}
-svg{display:block;border-radius:var(--radius)}
+.card{background:var(--panel);border:1px solid var(--hair-2);border-radius:10px;box-shadow:var(--float)}
+
+/* ─── shell: the field is the window; chrome floats over it ─────────── */
+#app{display:flex;height:100vh;overflow:hidden;position:relative}
+.work{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+.canvas{
+  flex:1;min-height:0;position:relative;
+  background-image:radial-gradient(oklch(1 0 0 / .05) 1px,transparent 1px);
+  background-size:22px 22px;background-position:center;
+}
+.stage-box{
+  position:absolute;top:86px;right:16px;bottom:12px;left:86px;
+  display:flex;align-items:center;justify-content:center;overflow:auto;
+  scrollbar-width:thin;scrollbar-color:oklch(1 0 0 / .15) transparent;
+}
+#stage{
+  flex:none;border-radius:8px;background:#0e1a12;
+  border:1px solid oklch(1 0 0 / .12);
+  box-shadow:0 0 0 1px oklch(0 0 0 / .5),0 30px 60px -30px oklch(0 0 0 / .9);
+}
+svg{display:block;border-radius:7px}
 svg *{-webkit-user-select:none;user-select:none}
 .grabbable{cursor:grab}
 .grabbing{cursor:grabbing}
 
-.plist{display:flex;flex-wrap:wrap;gap:4px}
-.chip{
-  background:var(--panel-2);border:1px solid var(--line);border-radius:5px;
-  padding:3px 7px;cursor:pointer;font-size:11px;font-variant-numeric:tabular-nums;
+/* top HUD */
+.hud{position:absolute;top:12px;left:12px;right:12px;display:flex;align-items:flex-start;gap:10px;pointer-events:none;z-index:var(--z-hud)}
+.hud>*{pointer-events:auto}
+.title-block{display:flex;align-items:center;gap:10px;padding:5px 10px;min-width:0;max-width:calc(100% - 560px)}
+.brand{
+  display:flex;align-items:center;gap:7px;height:44px;padding-right:10px;border-right:1px solid var(--hair);
+  font-size:14px;font-weight:650;letter-spacing:-.02em;white-space:nowrap;user-select:none;
 }
-.chip:hover{border-color:var(--accent)}
-.chip.sel{background:var(--accent);border-color:var(--accent);color:#fff}
-.chip.ol{opacity:.62}
-.chip .rt{color:var(--muted);font-size:9px;margin-left:4px}
-.chip.sel .rt{color:#dbeafe}
+.brand b{font-weight:650;color:var(--muted)}
+.brand svg{width:15px;height:15px;color:var(--accent)}
+.title-col{display:flex;flex-direction:column;min-width:0}
+.title{
+  width:clamp(160px,28vw,360px);height:28px;padding:0 6px;
+  background:transparent;border:1px solid transparent;
+  font-size:15px;font-weight:600;letter-spacing:-.01em;
+}
+.title:hover{border-color:var(--hair)}
+.title:focus{background:var(--well);border-color:var(--accent);box-shadow:none}
+.title-meta{display:flex;align-items:center;gap:6px;padding:0 4px;color:var(--muted);font-size:12px;min-width:0}
+.title-meta .dot{color:var(--faint)}
+.inline{height:22px;padding:0 4px;background:transparent;border:1px solid transparent;font-size:12px;color:var(--ink-2);width:auto;min-width:0}
+.inline:hover{border-color:var(--hair)}
+.inline:focus{background:var(--well);border-color:var(--accent);box-shadow:none;color:var(--ink)}
+.inline.fm{width:17ch}
+.inline.pers{width:4ch;text-align:center;font-variant-numeric:tabular-nums}
+.actions{display:flex;align-items:center;gap:6px;padding:6px;flex:none}
+.actions .sep{margin:0 2px}
+.menu-wrap{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 6px);min-width:180px;padding:4px;display:flex;flex-direction:column;gap:1px;z-index:var(--z-pop)}
+.menu button{justify-content:flex-start;border:0;height:30px;padding:0 10px;color:var(--ink-2);width:100%}
+.menu button:hover{background:oklch(1 0 0 / .06)}
+.chev{width:10px!important;height:10px!important;opacity:.7}
 
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
-.stack{display:flex;flex-direction:column;gap:5px}
-.note{color:var(--muted);font-size:11px;line-height:1.4}
-.tag{display:inline-flex;align-items:center;gap:4px;background:var(--panel-2);
-  border:1px solid var(--line);border-radius:99px;padding:2px 8px;font-size:10px;
-  color:var(--muted)}
-.tag b{color:var(--ink);font-weight:600}
-kbd{background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;
-  border-radius:4px;padding:0 4px;font-size:10px;font-family:inherit}
-#toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
-  background:var(--panel-2);border:1px solid var(--accent);border-radius:99px;
-  padding:7px 16px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s}
-#toast.show{opacity:1}
-.wpline{display:flex;align-items:center;gap:6px;font-size:11px;
-  font-variant-numeric:tabular-nums;color:var(--muted)}
-.wpline b{color:var(--ink);font-weight:600;min-width:14px}
-.wpline button{padding:1px 6px;font-size:10px}
-@media (max-width:1150px){
-  html,body{overflow:auto;height:auto}
-  #app{grid-template-columns:1fr;grid-template-rows:none;height:auto;min-height:100vh}
-  header{order:-2;position:sticky;top:0;z-index:5}
-  main{order:-1;padding:10px;overflow:visible}
-  aside{max-height:none;overflow:visible}
-  aside.left{border-right:none;border-bottom:1px solid var(--line)}
-  aside.right{border-left:none;border-top:1px solid var(--line)}
+/* tool rail + popovers */
+.rail{position:absolute;left:12px;top:86px;display:flex;flex-direction:column;gap:2px;padding:4px;z-index:var(--z-hud)}
+.rail button{position:relative;flex-direction:column;gap:4px;width:56px;height:54px;border:0;padding:0;font-size:10.5px;font-weight:500;color:var(--muted);border-radius:8px}
+.rail button svg{width:18px;height:18px}
+.rail button:hover{color:var(--ink)}
+.rail button.on{background:var(--accent-soft);color:var(--accent)}
+.rail button.dim::after{content:"";position:absolute;top:7px;right:9px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.layer{display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:var(--r-1);cursor:pointer;font-size:12.5px;color:var(--ink-2);margin:0}
+.layer:hover{background:oklch(1 0 0 / .05)}
+.layer.off{opacity:.45;cursor:default}
+.layer input{width:14px;height:14px;margin:0;accent-color:var(--accent);flex:none}
+.layer .nm{font-weight:500;min-width:88px}
+.layer .meta{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pop{
+  position:absolute;left:84px;top:86px;width:344px;max-height:calc(100% - 98px);
+  display:flex;flex-direction:column;overflow:hidden;z-index:var(--z-pop);
+  animation:pop-in 160ms var(--ease);
 }
-dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);
-  border-radius:var(--radius);max-width:min(680px,92vw);width:100%;padding:16px}
-dialog::backdrop{background:#000a}
-textarea{min-height:220px;font-family:ui-monospace,Consolas,monospace;font-size:11px}
+@keyframes pop-in{from{opacity:0;transform:translateX(-4px)}}
+.pop-head{display:flex;align-items:baseline;gap:8px;padding:12px 14px 8px;flex:none}
+.pop-head h2{margin:0}
+.pop-body{overflow-y:auto;padding:0 14px 14px;scrollbar-width:thin;scrollbar-color:oklch(1 0 0 / .15) transparent}
+.pop-body>input{margin-bottom:8px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.card-pick{
+  display:flex;flex-direction:column;align-items:stretch;gap:1px;height:auto;padding:7px 8px;
+  border-color:var(--hair);color:var(--ink-2);text-align:left;
+}
+.card-pick:hover{border-color:var(--hair-2);background:oklch(1 0 0 / .04)}
+.card-pick.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--ink)}
+.card-pick .nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-pick .pers{font-size:11px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-pick.on .pers{color:var(--accent)}
+.card-pick.none{justify-content:center;align-items:center;min-height:70px}
+.thumb{width:100%;height:auto;display:block;color:var(--ink-2);margin-bottom:5px;border-radius:4px;background:oklch(1 0 0 / .045)}
+.card-pick.on .thumb{color:var(--accent)}
+.thumb .los{stroke:currentColor;stroke-opacity:.35;stroke-width:1;stroke-dasharray:3 2}
+.thumb circle,.thumb rect{fill:currentColor}
+.list{display:flex;flex-direction:column;gap:2px}
+.list.two{display:grid;grid-template-columns:1fr 1fr}
+.row-pick{justify-content:space-between;height:30px;padding:0 10px;border-color:transparent;color:var(--ink-2);text-align:left;gap:8px}
+.row-pick .nm{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-pick .meta,.row-pick .tag{font-size:11px;color:var(--muted);font-weight:400;white-space:nowrap}
+.row-pick:hover{background:oklch(1 0 0 / .06)}
+.row-pick.on{background:var(--accent-soft);color:var(--accent)}
+.row-pick.on .meta,.row-pick.on .tag{color:var(--accent)}
+.row-pick:disabled{opacity:.4}
+
+/* ─── dock: inspector strip + bench ─────────────────────────────────── */
+.dock{flex:none;display:flex;flex-direction:column;background:var(--panel);border-top:1px solid var(--hair);z-index:var(--z-dock)}
+.inspector{min-height:100px;display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:8px 16px;border-bottom:1px solid var(--hair)}
+.insp-in{animation:insp-in 180ms var(--ease)}
+@keyframes insp-in{from{opacity:0;transform:translateY(3px)}}
+.ihead{display:flex;flex-direction:column;gap:3px;min-width:170px;margin-right:4px}
+.ihead .top{display:flex;align-items:baseline;gap:8px}
+.ihead .tip{font-size:11px;color:var(--muted);white-space:nowrap}
+.ihead .glyph{align-self:center;width:12px;height:12px;flex:none;border-radius:50%;background:var(--offense);border:1.5px solid var(--offense-ring)}
+.ihead .glyph.def{background:var(--defense);border-color:var(--defense-ring);border-radius:2px}
+.ihead .who{font-size:18px;font-weight:650;letter-spacing:-.01em;line-height:1}
+.ihead .what{color:var(--muted);font-size:12px}
+.ifield{display:flex;flex-direction:column;gap:3px}
+.ifield label{margin:0;font-size:10.5px}
+.ifield input,.ifield select{height:26px}
+.ifield.grow{flex:1;min-width:150px}
+.isep{width:1px;height:36px;background:var(--hair-2);align-self:center}
+.btns{display:flex;gap:6px}
+.btns button{height:26px}
+.w56{width:60px}.w72{width:78px}.w104{width:110px}.w130{width:136px}.w140{width:154px}
+.wps{display:flex;align-items:center;gap:4px;height:26px}
+.wp{height:24px;min-width:24px;padding:0 7px;border-radius:99px;font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.wp.sel{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+.wpxy{font-family:var(--mono);font-size:11px;color:var(--muted);margin:0 2px;white-space:nowrap}
+.wpdel{height:24px;width:24px;padding:0;border-color:transparent;color:var(--muted);font-size:15px;line-height:1}
+.wpdel:hover{color:var(--danger);background:oklch(0.740 0.160 25 / .1)}
+.empty{color:var(--muted);font-size:12.5px;line-height:1.6;display:flex;flex-direction:column;gap:2px}
+.empty .lead{color:var(--ink-2);font-weight:600;margin-right:4px}
+.empty .legend{font-size:12px}
+.empty .legend b{color:var(--ink-2);font-weight:600}
+.empty kbd{margin:0 1px}
+
+.bench{display:flex;align-items:center;gap:12px;padding:6px 12px 6px}
+.tokens{display:flex;align-items:flex-start;flex:1;min-width:0;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin;scrollbar-color:oklch(1 0 0 / .15) transparent}
+.tok{display:flex;flex-direction:column;align-items:center;gap:4px;width:50px;flex:none;padding:5px 0 4px;border:0;border-radius:8px;background:transparent;height:auto}
+.tok:hover{background:oklch(1 0 0 / .05)}
+.tok .c{
+  position:relative;width:26px;height:26px;border-radius:50%;
+  background:var(--offense);border:1.5px solid var(--offense-ring);
+  color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;
+}
+.tok.ol .c{width:22px;height:22px;font-size:9px;opacity:.6;margin-top:2px}
+.tok.def .c{border-radius:4px;background:var(--defense);border-color:var(--defense-ring)}
+.tok .c.bc::after{content:"";position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--panel)}
+.tok .c.mo::before{content:"";position:absolute;top:-4px;left:-4px;width:9px;height:9px;border-radius:50%;background:var(--motion);border:2px solid var(--panel)}
+.tok .a{font-size:10.5px;color:var(--muted);max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tok.sel{background:var(--accent-soft)}
+.tok.sel .c{border-color:#fde047;box-shadow:0 0 0 2px oklch(0.870 0.160 92 / .35)}
+.tok.sel .a{color:var(--ink)}
+.tok-sep{width:1px;height:34px;background:var(--hair-2);margin:6px 8px 0;flex:none}
+.bench-right{display:flex;align-items:center;gap:10px;flex:none;color:var(--muted);font-size:11.5px}
+.fieldinfo{white-space:nowrap;font-variant-numeric:tabular-nums}
+.fieldinfo b{color:var(--ink-2);font-weight:500}
+
+/* ─── play sheet drawer ─────────────────────────────────────────────── */
+.sheet{display:none;flex:none;width:320px;flex-direction:column;background:var(--panel);border-left:1px solid var(--hair);min-height:0}
+#app.sheet-open .sheet{display:flex}
+.sheet-head{display:flex;align-items:center;gap:8px;padding:10px 10px 10px 16px;border-bottom:1px solid var(--hair);flex:none}
+.sheet-head h2{margin:0;flex:1;font-size:13px}
+.sheet-body{flex:1;overflow-y:auto;padding:0 16px 16px;scrollbar-width:thin;scrollbar-color:oklch(1 0 0 / .15) transparent}
+.sheet-body h3.first{padding-top:14px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{height:24px;padding:0 9px;border-radius:99px;font-size:12px;font-weight:500;color:var(--ink-2)}
+.chip .n{
+  display:inline-grid;place-items:center;width:15px;height:15px;margin-left:-4px;
+  border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:10px;font-weight:700;
+}
+.chip.sel{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
+
+/* ─── toast, dialogs, palette ───────────────────────────────────────── */
+#toast{
+  position:absolute;left:50%;bottom:16px;z-index:var(--z-toast);
+  display:flex;align-items:center;gap:8px;padding:6px 14px 6px 10px;
+  background:var(--panel-2);border:1px solid var(--hair-2);border-radius:99px;
+  box-shadow:0 12px 32px oklch(0 0 0 / .55);
+  font-size:12.5px;font-weight:500;color:var(--ink);
+  opacity:0;transform:translate(-50%,8px);pointer-events:none;
+  transition:opacity var(--t),transform var(--t);
+}
+#toast::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+dialog{
+  width:100%;max-width:min(720px,92vw);padding:0;
+  background:var(--panel);color:var(--ink);
+  border:1px solid var(--hair-2);border-radius:var(--r-3);
+  box-shadow:0 40px 80px -20px oklch(0 0 0 / .8);
+}
+dialog::backdrop{background:oklch(0 0 0 / .6)}
+.dlg-head{display:flex;align-items:center;gap:8px;padding:12px 12px 12px 16px;border-bottom:1px solid var(--hair)}
+.dlg-head h2{margin:0;font-size:13px;flex:1}
+.dlg-body{padding:14px 16px}
+.dlg-foot{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--hair)}
+.dlg-foot .note{margin:0 auto 0 0}
+dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
+.pal-input{height:46px;border:0;border-bottom:1px solid var(--hair);border-radius:0;background:transparent;font-size:14px;padding:0 16px}
+.pal-input:focus{box-shadow:none;border-color:var(--hair)}
+.pal-list{max-height:min(440px,60vh);overflow-y:auto;padding:6px;scrollbar-width:thin;scrollbar-color:oklch(1 0 0 / .15) transparent}
+.pal-item{display:flex;align-items:center;gap:10px;width:100%;height:32px;border:0;padding:0 10px;justify-content:flex-start;color:var(--ink-2);border-radius:var(--r-1)}
+.pal-item .grp{font-size:11px;color:var(--muted);min-width:72px;text-align:left}
+.pal-item .nm{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pal-item.on{background:var(--accent-soft);color:var(--ink)}
+.pal-item.on .grp{color:var(--accent)}
+.pal-empty{padding:14px;color:var(--muted);font-size:12.5px}
+
+/* ─── responsive ────────────────────────────────────────────────────── */
+@media (max-width:1100px){
+  .hud{flex-wrap:wrap}
+  .title-block{max-width:100%}
+  .stage-box{top:132px}
+  .rail{top:132px}
+  .pop{top:132px;width:min(344px,calc(100vw - 100px));max-height:calc(100% - 144px)}
+  .sheet{position:absolute;right:0;top:0;bottom:0;z-index:var(--z-sheet);box-shadow:-20px 0 40px -20px oklch(0 0 0 / .8)}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}
 </style>
 </head>
 <body>
 <div id="app">
-  <header>
-    <h1>chalk<span>talk</span></h1>
-    <div class="sep"></div>
-    <input id="playName" style="width:190px;flex:none" placeholder="Play name">
-    <select id="playType" style="width:110px;flex:none"></select>
-    <select id="levelSel" style="width:158px;flex:none" title="Hash marks differ by level"></select>
-    <div class="sep"></div>
-    <button id="btnFlip" title="Mirror the play (F)">Flip</button>
-    <button id="btnBlockOl" title="Assign BLOCK to every lineman">Block OL</button>
-    <button id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
-    <span class="tag" id="fieldInfo"></span>
-    <div class="spacer"></div>
-    <span class="hint" id="hint">Click a player, then click the field to draw route points</span>
-    <div class="sep"></div>
-    <button id="btnImport">Import</button>
-    <button id="btnJson">JSON</button>
-    <button id="btnSvg">SVG</button>
-    <button class="primary" id="btnSave">Save .json</button>
-  </header>
+  <div class="work">
+    <div class="canvas" id="canvas">
+      <div class="stage-box" id="stageBox"><div id="stage"></div></div>
 
-  <aside class="left">
-    <h2>Formation</h2>
-    <div class="field">
-      <select id="formationSel"></select>
+      <div class="hud">
+        <div class="card title-block">
+          <div class="brand" title="chalktalk">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="3.2"
+              stroke-linecap="round" aria-hidden="true"><path d="M3.5 12.5 12.5 3.5"/></svg>
+            <span>chalk<b>talk</b></span>
+          </div>
+          <div class="title-col">
+            <input id="playName" class="title" placeholder="Untitled play" spellcheck="false"
+              aria-label="Play name" autocomplete="off">
+            <div class="title-meta">
+              <input id="formationName" class="inline fm" placeholder="Formation" aria-label="Formation name"
+                spellcheck="false" autocomplete="off">
+              <span class="dot">&middot;</span>
+              <input id="personnel" class="inline pers" placeholder="11" aria-label="Personnel" autocomplete="off">
+              <span class="dot">&middot;</span>
+              <div class="seg sm" id="playTypeSeg" role="group" aria-label="Play type"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card actions">
+          <button id="btnUndo" title="Undo (Ctrl+Z)">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3.5 6.5h6a3 3 0 0 1 0 6H6"/><path d="M6 3.5 3 6.5l3 3"/></svg>Undo</button>
+          <button id="btnFlip" title="Mirror the play (F)">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 2v12"/><path d="M5 5 2 8l3 3"/><path d="m11 5 3 3-3 3"/></svg>Flip</button>
+          <div class="sep"></div>
+          <button id="btnSheet" title="Quarterback, call sheet, situation and notes">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg>Play sheet</button>
+          <div class="sep"></div>
+          <button id="btnImport" title="Paste a play JSON">Import</button>
+          <div class="menu-wrap">
+            <button id="btnExport" title="Export the play" aria-haspopup="menu">Export
+              <svg class="chev" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
+            <div class="card menu" id="exportMenu" role="menu" hidden>
+              <button id="btnSvg" role="menuitem">Download SVG</button>
+              <button id="btnJson" role="menuitem">View JSON</button>
+            </div>
+          </div>
+          <button class="primary" id="btnSave" title="Download this play as .json">Save</button>
+        </div>
+      </div>
+
+      <div class="card rail" id="rail" role="toolbar" aria-label="Build">
+        <button data-pop="formation" title="Formation">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" aria-hidden="true">
+            <path d="M2 5.5h12" stroke-dasharray="2 1.5" stroke-opacity=".6"/>
+            <circle cx="3" cy="8.5" r="1.3"/><circle cx="6.5" cy="8.5" r="1.3"/><circle cx="9.5" cy="8.5" r="1.3"/>
+            <circle cx="13" cy="8.5" r="1.3"/><circle cx="8" cy="12.5" r="1.3"/></svg>Formation</button>
+        <button data-pop="line" title="Line scheme">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 13V8M8 13V8M13 13V8"/><path d="M3 8l2-3M8 8l2-3M13 8l2-3"/><path d="M2 5h2M7 5h2M12 5h2"/></svg>Line</button>
+        <button data-pop="defense" title="Defense">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 2.5 13 4.5v3.4c0 3-2.1 5-5 6-2.9-1-5-3-5-6V4.5z"/></svg>Defense</button>
+        <button data-pop="library" title="Concept library">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 3.5h4a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 0 7 11.5H3z"/>
+            <path d="M13 3.5H9A1.5 1.5 0 0 0 7.5 5v8A1.5 1.5 0 0 1 9 11.5h4z"/></svg>Library</button>
+        <button data-pop="layers" title="Show or hide parts of the diagram">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m8 2.5 6 3-6 3-6-3z"/><path d="m2 8.5 6 3 6-3"/><path d="m2 11 6 3 6-3"/></svg>Layers</button>
+      </div>
+      <div class="card pop" id="pop" hidden></div>
+      <div id="toast" role="status" aria-live="polite"></div>
     </div>
-    <div class="field">
-      <div class="row">
-        <div><label>Name</label><input id="formationName"></div>
-        <div style="max-width:70px"><label>Pers</label><input id="personnel"></div>
+
+    <div class="dock" id="dock">
+      <div class="inspector" id="inspector"></div>
+      <div class="bench">
+        <div class="tokens" id="playerList"></div>
+        <div class="bench-right">
+          <div class="seg" id="levelSeg" role="group" aria-label="Field level"></div>
+        </div>
       </div>
     </div>
+  </div>
 
-    <h2>Players</h2>
-    <div class="plist" id="playerList"></div>
-
-    <h2>Blocking scheme</h2>
-    <div class="field"><select id="schemeSel"></select></div>
-    <div class="row" style="margin-bottom:6px">
-      <button id="schemeLeft" title="Run it to the left">&#9664; Left</button>
-      <button id="schemeRight" class="on" title="Run it to the right">Right &#9654;</button>
+  <aside class="sheet" id="sheet" aria-label="Play sheet">
+    <div class="sheet-head">
+      <h2>Play sheet</h2>
+      <button class="ghost icon" id="btnSheetClose" aria-label="Close the play sheet">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
     </div>
-    <div class="note">Applies to the whole line at once. Individual blocks stay
-      editable below.</div>
+    <div class="sheet-body">
+      <h3 class="first">Quarterback</h3>
+      <div class="field"><select id="qbAction" aria-label="Quarterback action"></select></div>
+      <div class="grid2">
+        <div><label for="qbSteps">Steps</label><input id="qbSteps" type="number" min="0" max="7"></div>
+        <div><label for="qbDir">Direction</label><select id="qbDir">
+          <option value="1">Right</option><option value="-1">Left</option></select></div>
+      </div>
+      <div class="field">
+        <label>Progression <span class="sub">click receivers in order</span></label>
+        <div class="chips" id="readList"></div>
+      </div>
+      <div class="field"><label for="qbRule">Rule</label><input id="qbRule"
+        placeholder="High-low the flat defender" autocomplete="off"></div>
 
-    <h2>Defense</h2>
-    <div class="field"><select id="defenseSel"></select></div>
-    <div class="field"><select id="coverageSel"></select></div>
-    <div class="note">Zone drops come from the call; man match-ups are worked
-      out against the receivers actually on the field.</div>
+      <h3>Call sheet</h3>
+      <div class="grid2">
+        <div><label for="protection">Protection</label><input id="protection" placeholder="Slide Rt" autocomplete="off"></div>
+        <div><label for="tempo">Tempo</label><select id="tempo"></select></div>
+      </div>
+      <div class="field"><label for="alerts">Alerts <span class="sub">one per line</span></label>
+        <textarea id="alerts" style="min-height:52px"></textarea></div>
+      <div class="field"><label for="tags">Tags <span class="sub">comma separated</span></label>
+        <input id="tags" autocomplete="off"></div>
 
-    <h2>Load a concept</h2>
-    <div class="field"><select id="catalogSel"></select></div>
-    <div class="note">Loading a concept replaces the current play. Everything
-      stays editable.</div>
-  </aside>
+      <h3>Situation</h3>
+      <div class="grid3">
+        <div><label for="sitDown">Down</label><input id="sitDown" type="number" min="1" max="4"></div>
+        <div><label for="sitDist">Distance</label><input id="sitDist" type="number" min="0"></div>
+        <div><label for="sitHash">Hash</label><select id="sitHash"></select></div>
+      </div>
+      <div class="field">
+        <label for="sitYard">Ball on <span class="sub">yards to opponent goal</span></label>
+        <input id="sitYard" type="number" min="1" max="99" placeholder="32 = Opp 32">
+      </div>
+      <p class="note" id="sitOut"></p>
 
-  <main><div id="stage"></div></main>
-
-  <aside class="right">
-    <div id="inspector"></div>
-
-    <h2>Quarterback</h2>
-    <div class="field"><select id="qbAction"></select></div>
-    <div class="grid2">
-      <div><label>Steps</label><input id="qbSteps" type="number" min="0" max="7"></div>
-      <div><label>Dir</label><select id="qbDir">
-        <option value="1">Right</option><option value="-1">Left</option></select></div>
+      <h3>Notes</h3>
+      <textarea id="description" style="min-height:90px"
+        placeholder="Coaching points, reads, when to call it"></textarea>
     </div>
-    <div class="field" style="margin-top:8px">
-      <label>Progression (click to order)</label>
-      <div class="plist" id="readList"></div>
-    </div>
-    <div class="field"><label>Rule</label><input id="qbRule"
-      placeholder="High-low the flat defender"></div>
-
-    <h2>Call sheet</h2>
-    <div class="field"><label>Protection</label><input id="protection" placeholder="Slide Rt"></div>
-    <div class="field"><label>Tempo</label><select id="tempo"></select></div>
-    <div class="field"><label>Alerts (one per line)</label><textarea id="alerts" style="min-height:52px"></textarea></div>
-    <div class="field"><label>Tags (comma separated)</label><input id="tags"></div>
-
-    <h2>Situation</h2>
-    <div class="grid3">
-      <div><label>Down</label><input id="sitDown" type="number" min="1" max="4"></div>
-      <div><label>Dist</label><input id="sitDist" type="number" min="0"></div>
-      <div><label>Hash</label><select id="sitHash"></select></div>
-    </div>
-    <div class="field" style="margin-top:6px">
-      <label>Ball on (yards to opponent goal)</label>
-      <input id="sitYard" type="number" min="1" max="99" placeholder="e.g. 32 = Opp 32">
-    </div>
-    <div class="note" id="sitOut"></div>
-
-    <h2>Notes</h2>
-    <div class="field"><textarea id="description" style="min-height:70px"
-      placeholder="Coaching points, reads, when to call it"></textarea></div>
   </aside>
 </div>
 
 <dialog id="ioDialog">
-  <h2 style="margin-top:0" id="ioTitle">JSON</h2>
-  <textarea id="ioText" spellcheck="false"></textarea>
-  <div class="row" style="margin-top:10px">
+  <div class="dlg-head">
+    <h2 id="ioTitle">JSON</h2>
+    <button class="ghost icon" id="ioClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="dlg-body"><textarea id="ioText" class="code" spellcheck="false"></textarea></div>
+  <div class="dlg-foot">
+    <span class="note">The exact schema the Python package reads:
+      <code>Play.from_json(...)</code></span>
     <button id="ioCopy">Copy</button>
     <button id="ioLoad" class="primary">Load into designer</button>
-    <button id="ioClose">Close</button>
   </div>
-  <div class="note" style="margin-top:8px">This is the exact schema the Python
-    package reads: <code>Play.from_json(...)</code>.</div>
 </dialog>
 
-<div id="toast"></div>
+<dialog id="palette" class="palette" aria-label="Commands">
+  <input id="palInput" class="pal-input" placeholder="Type a command, a concept, a formation, a coverage"
+    autocomplete="off" spellcheck="false">
+  <div class="pal-list" id="palList"></div>
+</dialog>
 
 <script>
 const CATALOG = /*__CATALOG__*/{};
@@ -256,6 +549,8 @@ let drag = null;         // {kind:'player'|'waypoint'|'motion', ...}
 let blockDir = 1;        // which way the next block or scheme points
 let selDef = null;       // selected defender label
 let qbDir = 1;           // which way the quarterback's action points
+const LAYER_KEYS = ["routes","blocks","motion","qb","reads","defense","coverage","zones","title"];
+const layers = Object.fromEntries(LAYER_KEYS.map(k => [k, true]));  // what the diagram shows; exports follow it
 const undoStack = [];
 
 const $ = id => document.getElementById(id);
@@ -748,15 +1043,16 @@ function drawDefenseAssignments(g){
       const spot = zoneLandmark(call);
       if (!spot) continue;
       const z = CATALOG.zones[call.zone];
-      g.appendChild(el("ellipse", {cx:sx(spot[0]), cy:sy(spot[1]),
+      if (layers.zones) g.appendChild(el("ellipse", {cx:sx(spot[0]), cy:sy(spot[1]),
         rx:z.half_w*SCALE*ZONE_SCALE, ry:z.half_h*SCALE*ZONE_SCALE,
         fill:ZONE_FILL, stroke:DEF_ASSIGN, "stroke-width":1,
         "stroke-dasharray":"5,6", opacity:0.45}));
-      defArrow(g, [d.x, d.y], spot, true, 6.0, 0);
+      if (layers.coverage) defArrow(g, [d.x, d.y], spot, true, 6.0, 0);
     } else if (call.role === "man" && offense[call.covers]){
       const t = offense[call.covers];
-      defArrow(g, [d.x, d.y], [t.x, t.y], false, null, 2.2);
+      if (layers.coverage) defArrow(g, [d.x, d.y], [t.x, t.y], false, null, 2.2);
     } else {
+      if (!layers.coverage) continue;
       const rel = defPath(call, d);
       if (rel.length < 2) continue;
       const pts = trimStart(rel.map(p => [sx(d.x + p[0]), sy(d.y + p[1])]),
@@ -825,13 +1121,15 @@ function defs(){
 
 /* interactive overlay — never exported */
 function drawUI(g){
-  if (play.defense){
+  if (play.defense && layers.defense){
     for (const d of play.defense.players){
       const px = sx(d.x), py = sy(d.y);
-      if (d.label === selDef)
-        g.appendChild(el("rect", {x:px-14, y:py-14, width:28, height:28, rx:3,
-          fill:"none", stroke:"#fde047", "stroke-width":2,
-          "stroke-dasharray":"4,3"}));
+      if (d.label === selDef){
+        g.appendChild(el("rect", {x:px-17, y:py-17, width:34, height:34, rx:5,
+          fill:"none", stroke:"#fde047", "stroke-width":6, opacity:0.18}));
+        g.appendChild(el("rect", {x:px-14, y:py-14, width:28, height:28, rx:4,
+          fill:"none", stroke:"#fde047", "stroke-width":2}));
+      }
       g.appendChild(el("rect", {x:px-13, y:py-13, width:26, height:26,
         fill:"transparent", class:"grabbable", "data-defender":d.label}));
     }
@@ -841,9 +1139,12 @@ function drawUI(g){
     const px = sx(p.x), py = sy(p.y), r = OL.has(p.position) ? 9 : 11;
     const hit = el("circle", {cx:px, cy:py, r:r+5, fill:"transparent",
       class:"grabbable", "data-player":p.label});
-    if (p.label === sel)
+    if (p.label === sel){
+      g.appendChild(el("circle", {cx:px, cy:py, r:r+7, fill:"none",
+        stroke:"#fde047", "stroke-width":6, opacity:0.18}));
       g.appendChild(el("circle", {cx:px, cy:py, r:r+4, fill:"none",
-        stroke:"#fde047", "stroke-width":2, "stroke-dasharray":"4,3"}));
+        stroke:"#fde047", "stroke-width":2}));
+    }
     g.appendChild(hit);
     if (a.motion_from){
       g.appendChild(el("circle", {cx:sx(a.motion_from[0]), cy:sy(a.motion_from[1]),
@@ -851,11 +1152,11 @@ function drawUI(g){
     }
   }
   const a = selA();
-  if (a && a.route && a.route.route_type !== "block"){
+  if (a && layers.routes && a.route && a.route.route_type !== "block"){
     a.route.waypoints.forEach((w, i) => {
       const [ax, ay] = wpAbs(a.player, w);
       g.appendChild(el("circle", {cx:sx(ax), cy:sy(ay), r:5.5,
-        fill: i === selWp ? "#fde047" : "#0b1220",
+        fill: i === selWp ? "#fde047" : "#14201a",
         stroke:"#fde047", "stroke-width":2, class:"grabbable",
         "data-wp":i}));
     });
@@ -867,9 +1168,15 @@ function renderSvg(){
     width:W(), height:H(), viewBox:`0 0 ${W()} ${H()}`});
   svg.appendChild(defs());
   const art = el("g", {id:"art"});
-  drawField(art); drawMotions(art); drawBlocks(art); drawQB(art);
-  drawRoutes(art); drawReads(art);
-  drawDefenseAssignments(art); drawDefense(art); drawPlayers(art); drawTitle(art);
+  drawField(art);
+  if (layers.motion) drawMotions(art);
+  if (layers.blocks) drawBlocks(art);
+  if (layers.qb) drawQB(art);
+  if (layers.routes) drawRoutes(art);
+  if (layers.reads) drawReads(art);
+  if (layers.defense){ drawDefenseAssignments(art); drawDefense(art); }
+  drawPlayers(art);
+  if (layers.title) drawTitle(art);
   svg.appendChild(art);
   const ui = el("g", {id:"ui"});
   drawUI(ui);
@@ -989,69 +1296,326 @@ function fillSelect(node, entries, current, placeholder){
     node.appendChild(option(value, label, value === current));
 }
 
-function renderPlayerList(){
-  const box = $("playerList"); box.innerHTML = "";
-  for (const a of assignments()){
+// A segmented control: [[value, label, title?], ...]. One raised segment.
+function segment(node, entries, current, onPick){
+  node.innerHTML = "";
+  for (const [value, label, title] of entries){
     const b = document.createElement("button");
-    b.className = "chip" + (a.player.label === sel ? " sel" : "")
-                + (OL.has(a.player.position) ? " ol" : "");
-    const rt = a.route ? a.route.route_type : "—";
-    b.innerHTML = `${a.player.label}<span class="rt">${rt}</span>`;
-    b.onclick = () => { sel = a.player.label; selWp = -1; renderAll(); };
-    box.appendChild(b);
+    b.type = "button"; b.textContent = label; b.dataset.value = value;
+    if (title) b.title = title;
+    b.classList.toggle("on", value === current);
+    b.onclick = () => onPick(value);
+    node.appendChild(b);
+  }
+}
+function setSeg(node, current){
+  for (const b of node.children) b.classList.toggle("on", b.dataset.value === String(current));
+}
+function pick(cls, html, onclick, title){
+  const b = document.createElement("button");
+  b.type = "button"; b.className = cls; b.innerHTML = html; b.onclick = onclick;
+  if (title) b.title = title;
+  return b;
+}
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const words = s => String(s ?? "").replace(/_/g, " ");
+
+function playerKind(p){
+  if (OL.has(p.position)) return "lineman";
+  if (p.position === "QB") return "quarterback";
+  if (["RB","HB","FB","TB","H"].includes(p.position)) return "back";
+  return "receiver";
+}
+
+function assignmentSummary(a){
+  if (a.qb && a.qb.action) return words(a.qb.action);
+  if (a.route && a.route.route_type !== "block") return words(a.route.route_type);
+  if (a.block) return (a.block.kind && a.block.kind !== "base" ? words(a.block.kind) : "block")
+                    + (a.block.target ? " " + a.block.target : "");
+  if (a.route && a.route.route_type === "block") return "block";
+  return "—";
+}
+
+function defenderSummary(d){
+  const c = d.assignment;
+  if (!c) return "—";
+  if (c.zone) return (CATALOG.zones[c.zone] || {}).name || words(c.zone);
+  if (c.role === "man") return "man " + (c.covers || "");
+  return words(c.role) + (c.gap ? " " + c.gap : "");
+}
+
+function blockOl(){
+  pushUndo();
+  assignments().forEach(a => {
+    if (OL.has(a.player.position) && !a.route && !a.block)
+      a.block = clone(CATALOG.blocks.BASE["1"]);
+  });
+  renderAll(); toast("Line blocked");
+}
+
+function setDefense(key){
+  pushUndo();
+  if (!key) play.defense = null;
+  else { play.defense = clone(CATALOG.defenses[key]); play.defense._key = key; }
+  selDef = null; renderAll();
+  toast(key ? CATALOG.defenses[key].name : "Defense removed");
+}
+function defenseKey(){
+  if (!play.defense) return null;
+  return play.defense._key || Object.keys(CATALOG.defenses).find(
+    k => CATALOG.defenses[k].name === play.defense.name) || null;
+}
+function coverageKey(){
+  const calls = play.defense && CATALOG.coverage_calls[play.defense.name];
+  if (!calls) return null;
+  return Object.keys(calls).find(k => {
+    const m = calls[k].__meta__ || {};
+    return (m.coverage || null) === (play.defense.coverage || null)
+        && (m.pressure || null) === (play.defense.pressure || null);
+  }) || null;
+}
+
+// A tiny dot-diagram of a formation or a look, drawn in the current colour.
+function thumbSvg(points, kind){
+  const W = 96, H = 40, off = kind === "off";
+  const px = x => (x + 29) / 58 * W;
+  const py = off ? y => H - 6 - ((y + 8) / 9.5) * (H - 12)
+                 : y => H - 6 - (y / 14) * (H - 12);
+  const los = py(0).toFixed(1);
+  const shapes = points.map(p => off
+    ? `<circle cx="${px(p.x).toFixed(1)}" cy="${py(p.y).toFixed(1)}" r="2.2"/>`
+    : `<rect x="${(px(p.x) - 2).toFixed(1)}" y="${(py(p.y) - 2).toFixed(1)}" width="4" height="4" rx="0.8"/>`
+  ).join("");
+  return `<svg class="thumb" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
+       + `<line class="los" x1="0" y1="${los}" x2="${W}" y2="${los}"/>${shapes}</svg>`;
+}
+
+/* ─── tool popovers ─────────────────────────────────────────────────────── */
+let pop = null, popFresh = false, lastScheme = null, libQuery = "";
+
+function openPop(kind){ popFresh = pop !== kind; pop = pop === kind ? null : kind; renderPop(); }
+function closePop(){ if (pop){ pop = null; renderPop(); } }
+
+function renderPop(){
+  const box = $("pop");
+  for (const b of $("rail").querySelectorAll("button")){
+    b.classList.toggle("on", b.dataset.pop === pop);
+    if (b.dataset.pop === "layers")
+      b.classList.toggle("dim", LAYER_KEYS.some(k => !layers[k]));
+  }
+  if (!pop){ box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  ({formation: popFormation, line: popLine, defense: popDefense,
+    library: popLibrary, layers: popLayers})[pop](box);
+  popFresh = false;
+}
+
+function popFormation(box){
+  const keys = Object.keys(CATALOG.formations);
+  const cur = keys.find(k => CATALOG.formations[k].name === play.formation.name);
+  box.innerHTML = `<div class="pop-head"><h2>Formation <span class="sub">${keys.length}</span></h2></div>
+    <div class="pop-body"><div class="cards" id="fmCards"></div></div>`;
+  const grid = $("fmCards");
+  for (const k of keys){
+    const f = CATALOG.formations[k];
+    grid.appendChild(pick("card-pick" + (k === cur ? " on" : ""),
+      thumbSvg(f.players, "off")
+        + `<span class="nm">${esc(f.name)}</span><span class="pers">${esc(f.personnel)} personnel</span>`,
+      () => { setFormation(k); closePop(); toast(f.name); }, f.description || f.name));
   }
 }
 
+function popLine(box){
+  box.innerHTML = `<div class="pop-head"><h2>Line scheme</h2></div><div class="pop-body">
+    <div class="seg full" id="schemeDir" role="group" aria-label="Scheme direction"></div>
+    <div class="list" id="schemeList" style="margin-top:8px"></div>
+    <button id="btnBlockOl" class="wide" title="Give every unassigned lineman a base block">Base block the whole line</button>
+    <p class="note">A scheme sets the whole line at once. Pick a lineman on the bench
+      to change one block.</p></div>`;
+  segment($("schemeDir"), [["-1","← Left"],["1","Right →"]], String(blockDir), v => {
+    blockDir = +v; setSeg($("schemeDir"), v);
+    if (lastScheme) applyScheme(lastScheme, blockDir);
+  });
+  const list = $("schemeList");
+  for (const k of Object.keys(CATALOG.schemes)){
+    const prot = CATALOG.protections.includes(k);
+    list.appendChild(pick("row-pick" + (k === lastScheme ? " on" : ""),
+      `<span class="nm">${esc(words(k))}</span><span class="tag">${prot ? "protection" : "run"}</span>`,
+      () => { lastScheme = k; applyScheme(k, blockDir); }));
+  }
+  $("btnBlockOl").onclick = blockOl;
+}
+
+function popDefense(box){
+  const cur = defenseKey(), cov = coverageKey();
+  box.innerHTML = `<div class="pop-head"><h2>Defense</h2></div><div class="pop-body">
+    <h3 class="first">Look</h3><div class="cards" id="dfCards"></div>
+    <h3>Coverage</h3><div class="list two" id="cvList"></div>
+    <p class="note">${play.defense
+      ? "Zone drops come from the call. Man match-ups are worked out against the receivers on the field."
+      : "Pick a look first, then a coverage."}</p></div>`;
+  const grid = $("dfCards");
+  grid.appendChild(pick("card-pick none" + (!play.defense ? " on" : ""),
+    `<span class="nm">No defense</span>`, () => setDefense(null)));
+  for (const [k, d] of Object.entries(CATALOG.defenses)){
+    grid.appendChild(pick("card-pick" + (k === cur ? " on" : ""),
+      thumbSvg(d.players, "def")
+        + `<span class="nm">${esc(d.name)}</span><span class="pers">${esc(d.coverage || d.front || "")}</span>`,
+      () => setDefense(k), d.description || d.name));
+  }
+  const list = $("cvList");
+  for (const k of CATALOG.coverages){
+    const b = pick("row-pick" + (k === cov ? " on" : ""),
+      `<span class="nm">${esc(words(k))}</span>`, () => applyCoverage(k));
+    b.disabled = !play.defense;
+    list.appendChild(b);
+  }
+}
+
+function popLibrary(box){
+  const n = Object.keys(CATALOG.plays).length;
+  box.innerHTML = `<div class="pop-head"><h2>Library <span class="sub">${n} concepts</span></h2></div>
+    <div class="pop-body">
+    <input id="libSearch" placeholder="Search concepts" autocomplete="off" spellcheck="false" aria-label="Search concepts">
+    <div class="list" id="libList"></div>
+    <p class="note">Loading a concept replaces the current play. Undo brings the old one back.</p></div>`;
+  const list = $("libList"), input = $("libSearch");
+  const draw = () => {
+    list.innerHTML = "";
+    const q = libQuery.toLowerCase();
+    let shown = 0;
+    for (const v of Object.values(CATALOG.plays)){
+      const hay = `${v.name} ${v.formation.name} ${v.play_type} ${(v.tags || []).join(" ")}`.toLowerCase();
+      if (q && !hay.includes(q)) continue;
+      shown++;
+      list.appendChild(pick("row-pick" + (v.name === play.name ? " on" : ""),
+        `<span class="nm">${esc(v.name)}</span><span class="meta">${esc(v.formation.name)} · ${esc(v.play_type)}</span>`,
+        () => { loadPlay(clone(v)); closePop(); }, v.description || v.name));
+    }
+    if (!shown) list.innerHTML = `<p class="note" style="margin:4px 0 0">Nothing matches.</p>`;
+  };
+  input.value = libQuery;
+  input.oninput = e => { libQuery = e.target.value.trim(); draw(); };
+  draw();
+  if (popFresh) input.focus();
+}
+
+const LAYER_DEFS = [
+  ["routes",   "Routes",       "Pass routes and runs"],
+  ["blocks",   "Blocks",       "Blocking assignments and combos"],
+  ["motion",   "Motion",       "Pre-snap motion trails"],
+  ["qb",       "Quarterback",  "Drop, action and mesh point"],
+  ["reads",    "Reads",        "Progression numbers on the routes"],
+  ["defense",  "Defense",      "The defenders"],
+  ["coverage", "Assignments",  "Drops, rushes and match-ups"],
+  ["zones",    "Zones",        "Landmark areas for zone drops"],
+  ["title",    "Title",        "Play name and formation on the diagram"],
+];
+function popLayers(box){
+  box.innerHTML = `<div class="pop-head"><h2>Layers</h2></div><div class="pop-body">
+    <div class="list" id="layerList"></div>
+    <p class="note">Hide what you are not working on. Exports follow these toggles.</p>
+    <button id="layersAll" class="wide">Show everything</button></div>`;
+  const list = $("layerList");
+  for (const [key, name, tip] of LAYER_DEFS){
+    const off = (key === "coverage" || key === "zones") && !layers.defense;
+    const row = document.createElement("label");
+    row.className = "layer" + (off ? " off" : "");
+    row.innerHTML = `<input type="checkbox"${layers[key] ? " checked" : ""}${off ? " disabled" : ""}>`
+                  + `<span class="nm">${name}</span><span class="meta">${tip}</span>`;
+    row.querySelector("input").onchange = e => {
+      layers[key] = e.target.checked; saveLayers(); renderAll();
+    };
+    list.appendChild(row);
+  }
+  $("layersAll").onclick = () => { for (const k of LAYER_KEYS) layers[k] = true; saveLayers(); renderAll(); };
+}
+
+/* ─── bench ─────────────────────────────────────────────────────────────── */
+function renderBench(){
+  const box = $("playerList"); box.innerHTML = "";
+  for (const a of assignments()){
+    const p = a.player;
+    const b = document.createElement("button"); b.type = "button";
+    b.className = "tok" + (p.label === sel ? " sel" : "") + (OL.has(p.position) ? " ol" : "");
+    b.title = [`${p.label} · ${playerKind(p)}`, `x ${fmt(p.x)}, y ${fmt(p.y)}`,
+               a.motion_type ? `${a.motion_type} motion` : null,
+               a.is_ball_carrier ? "ball carrier" : null].filter(Boolean).join(" · ");
+    b.innerHTML = `<span class="c${a.is_ball_carrier ? " bc" : ""}${a.motion_type ? " mo" : ""}">${esc(p.label)}</span>`
+                + `<span class="a">${esc(assignmentSummary(a))}</span>`;
+    b.onclick = () => { sel = p.label; selDef = null; selWp = -1; renderAll(); };
+    box.appendChild(b);
+  }
+  if (play.defense){
+    const sep = document.createElement("div"); sep.className = "tok-sep"; box.appendChild(sep);
+    for (const d of play.defense.players){
+      const b = document.createElement("button"); b.type = "button";
+      b.className = "tok def" + (d.label === selDef ? " sel" : "");
+      b.title = `${d.label} · ${d.position} · x ${fmt(d.x)}, y ${fmt(d.y)}`;
+      b.innerHTML = `<span class="c">${esc(d.label)}</span><span class="a">${esc(defenderSummary(d))}</span>`;
+      b.onclick = () => { selDef = d.label; sel = null; selWp = -1; renderAll(); };
+      box.appendChild(b);
+    }
+  }
+  const on = box.querySelector(".tok.sel");
+  if (on && on.scrollIntoView) on.scrollIntoView({block:"nearest", inline:"nearest"});
+}
+
+/* ─── inspector strip ───────────────────────────────────────────────────── */
+let lastInspKey = null;
+function inspectorEnter(box, key){
+  // Animate only when the thing being inspected changes, not on every drag tick.
+  box.classList.toggle("insp-in", key !== lastInspKey);
+  lastInspKey = key;
+}
+const bind = (id, ev, fn) => { const n = $(id); if (n) n[ev] = fn; };
+
 function renderDefenderInspector(box, d){
   const call = d.assignment || {};
+  inspectorEnter(box, "def:" + d.label);
   box.innerHTML = `
-    <h2>${d.label} &middot; ${d.position} <span class="note">(defense)</span></h2>
-    <div class="grid2">
-      <div><label>X (yd)</label><input id="dX" type="number" step="0.5" value="${d.x}"></div>
-      <div><label>Y (yd)</label><input id="dY" type="number" step="0.5" value="${d.y}"></div>
+    <div class="ihead">
+      <div class="top"><span class="glyph def"></span><span class="who">${esc(d.label)}</span>
+        <span class="what">${esc(d.position)} · defense</span></div>
+      <div class="tip">Drag him on the field, or set the job here</div>
     </div>
-    <div class="field" style="margin-top:8px">
-      <label>Role</label><select id="defRole"></select>
-    </div>
-    <div class="field"><label>Zone</label><select id="defZone"></select></div>
-    <div class="row" style="margin-bottom:8px">
-      <div style="flex:2"><label>Covers</label><select id="defCovers"></select></div>
-      <div style="flex:1"><label>Side</label>
-        <input id="defSide" type="number" step="0.1" value="${call.side ?? 1}"></div>
-    </div>
-    <div class="field"><label>Gap</label><input id="defGap" value="${call.gap ?? ""}"
-      placeholder="A, B, C, D"></div>
-    <div class="row"><button id="defClear" class="danger">Clear assignment</button></div>`;
+    <div class="ifield"><label for="dX">X</label><input id="dX" class="w56" type="number" step="0.5" value="${d.x}"></div>
+    <div class="ifield"><label for="dY">Y</label><input id="dY" class="w56" type="number" step="0.5" value="${d.y}"></div>
+    <div class="isep"></div>
+    <div class="ifield"><label for="defRole">Role</label><select id="defRole" class="w104"></select></div>
+    <div class="ifield"><label for="defZone">Zone</label><select id="defZone" class="w130"></select></div>
+    <div class="ifield"><label for="defCovers">Covers</label><select id="defCovers" class="w104"></select></div>
+    <div class="ifield"><label for="defSide">Side</label><input id="defSide" class="w56" type="number" step="0.1" value="${call.side ?? 1}"></div>
+    <div class="ifield"><label for="defGap">Gap</label><input id="defGap" class="w56" value="${esc(call.gap ?? "")}" placeholder="A" autocomplete="off"></div>
+    <div class="isep"></div>
+    <div class="ifield"><label>&nbsp;</label><div class="btns"><button id="defClear" class="danger">Clear assignment</button></div></div>`;
 
   const ensure = () => (d.assignment = d.assignment ||
     {role:"zone", zone:null, side:1, covers:null, gap:null, path:[], note:null});
 
-  fillSelect($("defRole"), CATALOG.def_roles.map(r => [r, r.replace(/_/g, " ")]),
-    call.role, "— none —");
+  fillSelect($("defRole"), CATALOG.def_roles.map(r => [r, words(r)]), call.role, "No role");
   $("defRole").onchange = e => {
     pushUndo();
     if (!e.target.value){ d.assignment = null; }
     else { ensure().role = e.target.value; }
     renderAll();
   };
-
   fillSelect($("defZone"),
-    Object.entries(CATALOG.zones).map(([k, z]) => [k, z.name]),
-    call.zone, "— no zone —");
+    Object.entries(CATALOG.zones).map(([k, z]) => [k, z.name]), call.zone, "No zone");
   $("defZone").onchange = e => {
     pushUndo(); ensure().zone = e.target.value || null;
     if (e.target.value) d.assignment.role = "zone";
     renderAll();
   };
-
   fillSelect($("defCovers"),
-    eligibleReceivers().map(p => [p.label, p.label]), call.covers, "— nobody —");
+    eligibleReceivers().map(p => [p.label, p.label]), call.covers, "Nobody");
   $("defCovers").onchange = e => {
     pushUndo(); ensure().covers = e.target.value || null;
     if (e.target.value){ d.assignment.role = "man"; d.assignment.zone = null; }
     renderAll();
   };
-
   $("dX").onchange = e => { pushUndo(); d.x = +e.target.value; renderAll(); };
   $("dY").onchange = e => { pushUndo(); d.y = +e.target.value; renderAll(); };
   $("defSide").onchange = e => { ensure().side = +e.target.value; renderAll(); };
@@ -1067,50 +1631,52 @@ function renderInspector(){
   }
   const a = selA();
   if (!a){
-    box.innerHTML = `<h2>Player</h2><div class="note">Select a player to edit the
-      assignment. Then click the field to add route points, drag the yellow
-      handles to shape it, and double-click a handle to delete it.</div>`;
+    inspectorEnter(box, "none");
+    box.innerHTML = `<div class="empty">
+      <div><span class="lead">Nothing selected.</span>Pick a player on the field or on the bench.</div>
+      <div class="legend"><b>Click</b> the field to add a route point · <b>Drag</b> a player, or a yellow handle
+        · <b>Double-click</b> a handle to delete it · <kbd>Backspace</kbd> drops the last point
+        · <kbd>F</kbd> flips · <kbd>Ctrl</kbd>+<kbd>K</kbd> opens the commands</div></div>`;
     return;
   }
-  const p = a.player;
+  const p = a.player, kind = playerKind(p);
+  const isOL = kind === "lineman", isQB = kind === "quarterback";
+  const drawing = !!(a.route && a.route.route_type !== "block");
+  inspectorEnter(box, "off:" + p.label);
+  const what = p.position !== p.label ? `${esc(p.position)} · ${kind}` : kind;
+  const tip = drawing ? "Click the field to extend the route · drag a handle to bend it"
+            : isOL   ? "Pick a block here, or click the field to pull him"
+                     : "Click the field to start a route";
   box.innerHTML = `
-    <h2>${p.label} &middot; ${p.position}</h2>
-    <div class="grid2">
-      <div><label>X (yd)</label><input id="pX" type="number" step="0.5" value="${p.x}"></div>
-      <div><label>Y (yd)</label><input id="pY" type="number" step="0.5" value="${p.y}"></div>
+    <div class="ihead">
+      <div class="top"><span class="glyph"></span><span class="who">${esc(p.label)}</span><span class="what">${what}</span></div>
+      <div class="tip">${tip}</div>
     </div>
-    <div class="field" style="margin-top:8px">
-      <label>Route</label><select id="routeSel"></select>
-    </div>
-    <div class="field">
-      <label>Block</label><select id="blockSel"></select>
-    </div>
-    <div class="row" style="margin-bottom:8px">
-      <div style="flex:2"><label>Target</label><input id="blockTarget"
-        value="${(a.block && a.block.target) || ""}" placeholder="M, 3T, C-gap"></div>
-      <div style="flex:1"><label>Dir</label>
-        <select id="blockDir">
-          <option value="1">Right</option>
-          <option value="-1">Left</option>
-        </select></div>
-    </div>
-    <div class="field">
-      <label>Motion</label><select id="motionSel"></select>
-    </div>
-    <div class="row" style="margin-bottom:8px">
-      <button id="btnBc" class="${a.is_ball_carrier ? "on" : ""}">Ball carrier</button>
-      <button id="btnBlock">Block</button>
-    </div>
-    <div class="field"><label>Note</label><input id="pNote" value="${a.note ?? ""}"></div>
-    <h2>Waypoints</h2>
-    <div class="stack" id="wpList"></div>
-    <div class="row" style="margin-top:8px">
-      <button id="btnClearRoute" class="danger">Clear route</button>
-    </div>`;
+    <div class="ifield"><label for="pX">X</label><input id="pX" class="w56" type="number" step="0.5" value="${p.x}"></div>
+    <div class="ifield"><label for="pY">Y</label><input id="pY" class="w56" type="number" step="0.5" value="${p.y}"></div>
+    <div class="isep"></div>
+    <div class="ifield"><label for="routeSel">Route</label><select id="routeSel" class="w140"></select></div>
+    <div class="ifield"><label for="blockSel">Block</label><select id="blockSel" class="w130"></select></div>
+    ${a.block ? `
+    <div class="ifield"><label for="blockTarget">Target</label><input id="blockTarget" class="w72"
+      value="${esc(a.block.target || "")}" placeholder="3T" autocomplete="off"></div>
+    <div class="ifield"><label for="blockDir">Direction</label><select id="blockDir" class="w72">
+      <option value="1">Right</option><option value="-1">Left</option></select></div>` : ""}
+    ${(!isOL && !isQB) ? `
+    <div class="ifield"><label for="motionSel">Motion</label><select id="motionSel" class="w104"></select></div>` : ""}
+    <div class="isep"></div>
+    <div class="ifield"><label>&nbsp;</label><div class="btns">
+      <button id="btnBc" class="${a.is_ball_carrier ? "on" : ""}" title="Give this player the ball">Ball carrier</button>
+      ${a.block ? "" : `<button id="btnBlock" title="Base block, route cleared">Block</button>`}
+      ${(a.route || a.block) ? `<button id="btnClearRoute" class="danger" title="Clear the route and the block">Clear</button>` : ""}
+    </div></div>
+    <div class="ifield grow"><label for="pNote">Note</label><input id="pNote" value="${esc(a.note ?? "")}"
+      placeholder="Coaching point" autocomplete="off"></div>
+    ${drawing ? `<div class="ifield"><label>Waypoints</label><div class="wps" id="wpList"></div></div>` : ""}`;
 
   fillSelect($("routeSel"),
-    Object.keys(CATALOG.routes).map(k => [k, k.replace(/_/g," ")]),
-    null, a.route ? `${a.route.route_type} (current)` : "— none —");
+    Object.keys(CATALOG.routes).map(k => [k, words(k)]),
+    null, a.route ? `${words(a.route.route_type)} (current)` : "No route");
   $("routeSel").onchange = e => {
     if (!e.target.value) return;
     pushUndo();
@@ -1118,11 +1684,9 @@ function renderInspector(){
     a.block = null;                       // a player blocks or runs, not both
     selWp = -1; renderAll();
   };
-
   fillSelect($("blockSel"),
-    Object.keys(CATALOG.blocks).map(k => [k, k.replace(/_/g, " ")]),
-    null, a.block ? `${a.block.kind} (current)` : "— not blocking —");
-  $("blockDir").value = String(blockDir);
+    Object.keys(CATALOG.blocks).map(k => [k, words(k)]),
+    null, a.block ? `${words(a.block.kind)} (current)` : "Not blocking");
   $("blockSel").onchange = e => {
     if (!e.target.value) return;
     pushUndo();
@@ -1130,9 +1694,10 @@ function renderInspector(){
     a.route = null;                       // a player blocks or runs, not both
     renderAll();
   };
-  $("blockDir").onchange = e => {
-    blockDir = +e.target.value;
-    if (a.block){
+  if (a.block){
+    $("blockDir").value = String(blockDir);
+    $("blockDir").onchange = e => {
+      blockDir = +e.target.value;
       const kind = Object.keys(CATALOG.blocks).find(
         k => CATALOG.blocks[k]["1"].kind === a.block.kind);
       if (kind){
@@ -1141,59 +1706,61 @@ function renderInspector(){
         a.block = clone(CATALOG.blocks[kind][String(blockDir)]);
         a.block.target = target; a.block.combo_with = partner;
       }
-    }
-    renderAll();
-  };
-  $("blockTarget").onchange = e => {
-    if (a.block){ a.block.target = e.target.value || null; renderAll(); }
-  };
-
-  fillSelect($("motionSel"), CATALOG.motions.map(m => [m, m]),
-    a.motion_type, "— no motion —");
-  $("motionSel").onchange = e => applyMotion(p.label, e.target.value || null);
-
+      renderAll();
+    };
+    $("blockTarget").onchange = e => { a.block.target = e.target.value || null; renderAll(); };
+  }
+  if ($("motionSel")){
+    fillSelect($("motionSel"), CATALOG.motions.map(m => [m, m]), a.motion_type, "No motion");
+    $("motionSel").onchange = e => applyMotion(p.label, e.target.value || null);
+  }
   $("pX").onchange = e => { pushUndo(); p.x = +e.target.value; syncFormation(); renderAll(); };
   $("pY").onchange = e => { pushUndo(); p.y = +e.target.value; syncFormation(); renderAll(); };
-  $("pNote").onchange = e => { a.note = e.target.value || null; };
+  $("pNote").onchange = e => { a.note = e.target.value || null; save(); };
   $("btnBc").onclick = () => {
     pushUndo();
     const on = !a.is_ball_carrier;
     assignments().forEach(x => x.is_ball_carrier = false);
     a.is_ball_carrier = on; renderAll();
   };
-  $("btnBlock").onclick = () => {
+  bind("btnBlock", "onclick", () => {
     pushUndo();
     a.block = clone(CATALOG.blocks.BASE[String(blockDir)]);
     a.route = null;
     renderAll();
-  };
-  $("btnClearRoute").onclick = () => {
+  });
+  bind("btnClearRoute", "onclick", () => {
     pushUndo(); a.route = null; a.block = null; selWp = -1; renderAll();
-  };
+  });
 
   const wl = $("wpList");
-  if (a.route && a.route.route_type !== "block"){
+  if (wl){
     a.route.waypoints.forEach((w, i) => {
       const [ax, ay] = wpAbs(p, w);
-      const row = document.createElement("div");
-      row.className = "wpline";
-      row.innerHTML = `<b>${i+1}</b> x ${fmt(ax)} &nbsp; y ${fmt(ay)}`;
-      const del = document.createElement("button");
-      del.textContent = "×"; del.title = "Delete waypoint";
-      del.onclick = () => {
-        pushUndo(); a.route.waypoints.splice(i,1);
-        if (a.route.waypoints.length < 2) a.route = null;
-        renderAll();
-      };
-      row.appendChild(del);
-      wl.appendChild(row);
+      const b = document.createElement("button"); b.type = "button";
+      b.className = "wp" + (i === selWp ? " sel" : "");
+      b.title = `Waypoint ${i + 1}: x ${fmt(ax)}, y ${fmt(ay)}`;
+      b.textContent = i + 1;
+      b.onclick = () => { selWp = i; renderAll(); };
+      wl.appendChild(b);
+      if (i === selWp){
+        const xy = document.createElement("span");
+        xy.className = "wpxy"; xy.textContent = `${fmt(ax)}, ${fmt(ay)}`;
+        wl.appendChild(xy);
+        const del = document.createElement("button"); del.type = "button";
+        del.className = "wpdel"; del.textContent = "×"; del.title = "Delete this waypoint";
+        del.onclick = () => {
+          pushUndo(); a.route.waypoints.splice(i, 1);
+          if (a.route.waypoints.length < 2) a.route = null;
+          selWp = -1; renderAll();
+        };
+        wl.appendChild(del);
+      }
     });
-  } else {
-    wl.innerHTML = `<div class="note">No route. Pick one above, or click the
-      field to draw your own.</div>`;
   }
 }
 
+/* ─── play sheet ────────────────────────────────────────────────────────── */
 function renderReads(){
   const box = $("readList");
   if (!box) return;
@@ -1201,16 +1768,18 @@ function renderReads(){
   const a = qbAssignment();
   const plan = a && a.qb;
   if (!plan){
-    box.innerHTML = '<span class="note">Give him a plan first.</span>';
+    box.innerHTML = '<p class="note" style="margin:0">Give him a plan first.</p>';
     return;
   }
   for (const p of eligibleReceivers()){
     const order = plan.reads.indexOf(p.label);
     const b = document.createElement("button");
+    b.type = "button";
     b.className = "chip" + (order >= 0 ? " sel" : "");
+    b.title = order >= 0 ? `Read ${order + 1} · click to drop` : "Add to the progression";
     b.innerHTML = order >= 0
-      ? `<span class="rt">${order + 1}</span> ${p.label}`
-      : p.label;
+      ? `<span class="n">${order + 1}</span>${esc(p.label)}`
+      : esc(p.label);
     b.onclick = () => {
       pushUndo();
       plan.reads = order >= 0
@@ -1222,15 +1791,20 @@ function renderReads(){
   }
 }
 
-function renderMeta(){
+function renderTitle(){
   $("playName").value = play.name || "";
   $("formationName").value = play.formation.name || "";
+  $("formationName").style.width = Math.min(30, Math.max(9, (play.formation.name || "").length + 1)) + "ch";
   $("personnel").value = play.formation.personnel || "";
+  setSeg($("playTypeSeg"), play.play_type);
+  document.title = (play.name ? play.name + " · " : "") + "Chalktalk";
+}
+
+function renderMeta(){
   $("protection").value = play.protection || "";
   $("alerts").value = (play.alerts || []).join("\n");
   $("tags").value = (play.tags || []).join(", ");
   $("description").value = play.description || "";
-  $("playType").value = play.play_type;
   $("tempo").value = play.tempo || "normal";
   const s = play.situation || {};
   $("sitDown").value = s.down ?? "";
@@ -1238,7 +1812,6 @@ function renderMeta(){
   $("sitYard").value = s.yard_line ?? "";
   $("sitHash").value = s.hash_mark ?? "";
   $("sitOut").textContent = describeSituation(play.situation);
-  $("defenseSel").value = play.defense ? (play.defense._key || "") : "";
   const plan = (qbAssignment() || {}).qb;
   if (plan){
     const key = Object.keys(CATALOG.qb_actions).find(
@@ -1279,10 +1852,12 @@ function readSituation(){
 }
 
 function renderFieldInfo(){
-  const f = CATALOG.fields[level];
-  $("fieldInfo").innerHTML =
-    `hashes <b>±${f.hash_from_center.toFixed(2)} yd</b> &middot; ` +
-    `on a hash: boundary <b>${f.boundary}</b> / field <b>${f.field_side}</b>`;
+  for (const b of $("levelSeg").children){
+    const f = CATALOG.fields[b.dataset.value];
+    if (!f) continue;
+    b.title = `${f.name} hashes · ±${f.hash_from_center.toFixed(2)} yd from the middle`
+            + ` · on a hash: boundary ${f.boundary} / field ${f.field_side}`;
+  }
 }
 
 function renderStage(){
@@ -1296,8 +1871,8 @@ function renderStage(){
 
 function renderAll(){
   syncFormation();
-  renderStage(); renderPlayerList(); renderInspector(); renderMeta();
-  renderReads();
+  renderBench(); renderInspector(); renderTitle(); renderMeta(); renderReads(); renderPop();
+  fitScale(); renderStage();
   save();
 }
 
@@ -1359,81 +1934,123 @@ function restore(){
 
 /* ─── boot ──────────────────────────────────────────────────────────────── */
 function fitScale(){
-  const avail = document.querySelector("main").clientWidth - 28;
-  const span = (X_RANGE[1]-X_RANGE[0]);
-  SCALE = Math.max(6.5, Math.min(20, (avail - 2*PAD) / span));
+  // Fit the field to whatever the chrome leaves free; it is the window.
+  const box = $("stageBox");
+  const availW = Math.max(0, box.clientWidth - 8), availH = Math.max(0, box.clientHeight - 8);
+  const spanX = X_RANGE[1] - X_RANGE[0], spanY = Y_RANGE[1] - Y_RANGE[0];
+  SCALE = Math.max(6.5, Math.min(26, (availW - 2*PAD) / spanX, (availH - 2*PAD) / spanY));
 }
 
+const LS_SHEET = "chalktalk.designer.sheet";
+const LS_LAYERS = "chalktalk.designer.layers";
+let sheetOpen = false;
+
+function setSheet(open, quiet){
+  sheetOpen = open;
+  $("app").classList.toggle("sheet-open", open);
+  $("btnSheet").classList.toggle("on", open);
+  try { localStorage.setItem(LS_SHEET, open ? "1" : "0"); } catch(e){}
+  if (!quiet){ fitScale(); renderStage(); }
+}
+function saveLayers(){
+  try { localStorage.setItem(LS_LAYERS, JSON.stringify(layers)); } catch(e){}
+}
+function loadLayers(){
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_LAYERS) || "null");
+    if (raw) for (const k of LAYER_KEYS) if (typeof raw[k] === "boolean") layers[k] = raw[k];
+  } catch(e){}
+}
+function setLevel(k){ level = k; setSeg($("levelSeg"), k); renderStage(); }
+
+/* ─── command palette ───────────────────────────────────────────────────── */
+let palIdx = 0, palItems = [];
+const LEVEL_SHORT = {nfl:"NFL", ncaa:"NCAA", hs:"HS"};
+
+function commands(){
+  const out = [];
+  const add = (group, label, run, hint) => out.push({group, label, run, hint});
+  add("Play", "Flip the play", flipPlay, "F");
+  add("Play", "Undo", undo, "Ctrl+Z");
+  add("Play", "Base block the whole line", blockOl);
+  add("Play", sheetOpen ? "Hide the play sheet" : "Show the play sheet", () => setSheet(!sheetOpen));
+  add("Play", "Remove the defense", () => setDefense(null));
+  add("Play", "Show every layer", () => { for (const k of LAYER_KEYS) layers[k] = true; saveLayers(); renderAll(); });
+  add("File", "Save play (.json)", () => download(slug(play.name) + ".json", playJson()));
+  add("File", "Download SVG", () => download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml"));
+  add("File", "View JSON", () => openIo("JSON", playJson()));
+  add("File", "Import a play", () => openIo("Paste a play JSON", ""));
+  for (const v of Object.values(CATALOG.plays)) add("Load", v.name, () => loadPlay(clone(v)));
+  for (const [k, v] of Object.entries(CATALOG.formations))
+    add("Formation", `${v.name} (${v.personnel})`, () => { setFormation(k); toast(v.name); });
+  for (const [k, v] of Object.entries(CATALOG.defenses)) add("Defense", v.name, () => setDefense(k));
+  for (const k of CATALOG.coverages) add("Coverage", words(k), () => applyCoverage(k));
+  for (const k of Object.keys(CATALOG.schemes)){
+    add("Scheme", `${words(k)} right`, () => { lastScheme = k; applyScheme(k, 1); });
+    add("Scheme", `${words(k)} left`,  () => { lastScheme = k; applyScheme(k, -1); });
+  }
+  for (const [k, v] of Object.entries(CATALOG.fields))
+    add("View", `${v.name} hashes`, () => setLevel(k));
+  for (const [key, name] of LAYER_DEFS)
+    add("Layer", `${layers[key] ? "Hide" : "Show"} ${name.toLowerCase()}`,
+        () => { layers[key] = !layers[key]; saveLayers(); renderAll(); });
+  return out;
+}
+
+function openPalette(){
+  $("palInput").value = ""; palIdx = 0; drawPalette("");
+  $("palette").showModal(); $("palInput").focus();
+}
+function drawPalette(q){
+  const list = $("palList"); list.innerHTML = "";
+  q = q.trim().toLowerCase();
+  const score = c => {
+    if (!q) return 1;
+    const l = c.label.toLowerCase(), g = c.group.toLowerCase();
+    if (l.startsWith(q)) return 3;
+    if (l.includes(q)) return 2;
+    if ((g + " " + l).includes(q)) return 1;
+    return 0;
+  };
+  palItems = commands().map(c => [score(c), c]).filter(([s]) => s > 0)
+    .sort((a, b) => b[0] - a[0]).slice(0, 12).map(([, c]) => c);
+  if (palIdx >= palItems.length) palIdx = 0;
+  if (!palItems.length){ list.innerHTML = `<div class="pal-empty">Nothing matches.</div>`; return; }
+  palItems.forEach((c, i) => {
+    const b = document.createElement("button"); b.type = "button";
+    b.className = "pal-item" + (i === palIdx ? " on" : "");
+    b.innerHTML = `<span class="grp">${esc(c.group)}</span><span class="nm">${esc(c.label)}</span>`
+                + (c.hint ? `<kbd>${esc(c.hint)}</kbd>` : "");
+    b.onclick = () => runCommand(c);
+    list.appendChild(b);
+  });
+}
+function runCommand(c){ $("palette").close(); c.run(); }
+
+/* ─── wiring ────────────────────────────────────────────────────────────── */
 function boot(){
-  fitScale();
   play = INITIAL_PLAY || restore()
       || newPlay(CATALOG.default_formation || Object.keys(CATALOG.formations)[0]);
+  loadLayers();
 
-  fillSelect($("formationSel"),
-    Object.entries(CATALOG.formations).map(([k,v]) => [k, `${v.name} (${v.personnel})`]),
-    null, "— pick a formation —");
-  $("formationSel").onchange = e => { if (e.target.value) setFormation(e.target.value); };
-
-  fillSelect($("defenseSel"),
-    Object.entries(CATALOG.defenses).map(([k,v]) => [k, v.name + (v.coverage ? " · " + v.coverage : "")]),
-    null, "— no defense —");
-  $("defenseSel").onchange = e => {
-    pushUndo();
-    if (!e.target.value) play.defense = null;
-    else {
-      play.defense = clone(CATALOG.defenses[e.target.value]);
-      play.defense._key = e.target.value;
-    }
-    selDef = null;
-    $("coverageSel").value = "";
-    renderAll();
-  };
-
-  fillSelect($("schemeSel"),
-    Object.keys(CATALOG.schemes).map(k => [k, k.replace(/_/g, " ")]),
-    null, "— apply a scheme —");
-  $("schemeSel").onchange = e => {
-    if (e.target.value) applyScheme(e.target.value, blockDir);
-  };
-  const setDir = d => {
-    blockDir = d;
-    $("schemeRight").classList.toggle("on", d > 0);
-    $("schemeLeft").classList.toggle("on", d < 0);
-    if ($("schemeSel").value) applyScheme($("schemeSel").value, d);
-  };
-  $("schemeLeft").onclick = () => setDir(-1);
-  $("schemeRight").onclick = () => setDir(1);
-
-  fillSelect($("coverageSel"),
-    CATALOG.coverages.map(k => [k, k.replace(/_/g, " ")]),
-    null, "— apply a coverage —");
-  $("coverageSel").onchange = e => { if (e.target.value) applyCoverage(e.target.value); };
-
-  fillSelect($("catalogSel"),
-    Object.entries(CATALOG.plays).map(([k,v]) => [k, v.name]),
-    null, "— load a stock concept —");
-  $("catalogSel").onchange = e => {
-    if (e.target.value) loadPlay(clone(CATALOG.plays[e.target.value]));
-    e.target.value = "";
-  };
-
-  fillSelect($("playType"), [["pass","Pass"],["run","Run"],["rpo","RPO"],
-    ["screen","Screen"],["special","Special"]], play.play_type);
-  $("playType").onchange = e => { play.play_type = e.target.value; renderStage(); save(); };
-
-  fillSelect($("levelSel"),
-    Object.entries(CATALOG.fields).map(([k,v]) => [k, v.name + " hashes"]), level);
-  $("levelSel").onchange = e => { level = e.target.value; renderStage(); };
+  segment($("playTypeSeg"), [["pass","Pass"],["run","Run"],["rpo","RPO"],
+    ["screen","Screen"],["special","Special"]], play.play_type, v => {
+    play.play_type = v; setSeg($("playTypeSeg"), v); renderStage(); save();
+  });
+  segment($("levelSeg"),
+    Object.entries(CATALOG.fields).map(([k,v]) => [k, LEVEL_SHORT[k] || v.name, v.name + " hashes"]),
+    level, setLevel);
 
   fillSelect($("tempo"), [["normal","Normal"],["no_huddle","No huddle"],
     ["check","Check with me"],["freeze","Freeze"],["kill","Kill"]], play.tempo);
   $("tempo").onchange = e => { play.tempo = e.target.value; save(); };
-
   fillSelect($("sitHash"), [["L","Left"],["M","Middle"],["R","Right"]],
-    play.situation?.hash_mark, "—");
+    play.situation?.hash_mark, "Any");
 
-  $("playName").oninput = e => { play.name = e.target.value; renderStage(); save(); };
-  $("formationName").oninput = e => { play.formation.name = e.target.value; renderStage(); save(); };
+  $("playName").oninput = e => { play.name = e.target.value; renderStage(); save();
+    document.title = (play.name ? play.name + " · " : "") + "Chalktalk"; };
+  $("formationName").oninput = e => { play.formation.name = e.target.value;
+    e.target.style.width = Math.min(30, Math.max(9, e.target.value.length + 1)) + "ch"; renderStage(); save(); };
   $("personnel").oninput = e => { play.formation.personnel = e.target.value; renderStage(); save(); };
   $("protection").oninput = e => { play.protection = e.target.value || null; save(); };
   $("alerts").oninput = e => {
@@ -1444,11 +2061,11 @@ function boot(){
   };
   $("description").oninput = e => { play.description = e.target.value || null; save(); };
   for (const id of ["sitDown","sitDist","sitYard","sitHash"])
-    $(id).onchange = () => { readSituation(); save(); };
+    $(id).onchange = () => { readSituation(); renderStage(); save(); };
 
   fillSelect($("qbAction"),
-    Object.keys(CATALOG.qb_actions).map(k => [k, k.replace(/_/g, " ")]),
-    null, "— no quarterback plan —");
+    Object.keys(CATALOG.qb_actions).map(k => [k, words(k)]),
+    null, "No quarterback plan");
   $("qbAction").onchange = e => {
     const a = qbAssignment() || findA("QB");
     if (!a) return toast("No quarterback on the field");
@@ -1484,18 +2101,20 @@ function boot(){
 
   $("btnFlip").onclick = flipPlay;
   $("btnUndo").onclick = undo;
-  $("btnBlockOl").onclick = () => {
-    pushUndo();
-    assignments().forEach(a => {
-      if (OL.has(a.player.position) && !a.route && !a.block)
-        a.block = clone(CATALOG.blocks.BASE["1"]);
-    });
-    renderAll();
-  };
+  $("btnSheet").onclick = () => setSheet(!sheetOpen);
+  $("btnSheetClose").onclick = () => setSheet(false);
   $("btnSave").onclick = () => download(slug(play.name) + ".json", playJson());
-  $("btnSvg").onclick = () => download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml");
-  $("btnJson").onclick = () => openIo("JSON", playJson());
+  $("btnSvg").onclick = () => { $("exportMenu").hidden = true; download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml"); };
+  $("btnJson").onclick = () => { $("exportMenu").hidden = true; openIo("JSON", playJson()); };
   $("btnImport").onclick = () => openIo("Paste a play JSON", "");
+  $("btnExport").onclick = () => { $("exportMenu").hidden = !$("exportMenu").hidden; };
+
+  for (const b of $("rail").querySelectorAll("button"))
+    b.onclick = () => openPop(b.dataset.pop);
+  document.addEventListener("pointerdown", e => {
+    if (!e.target.closest("#pop, #rail")) closePop();
+    if (!e.target.closest(".menu-wrap")) $("exportMenu").hidden = true;
+  });
 
   $("ioClose").onclick = () => $("ioDialog").close();
   $("ioCopy").onclick = async () => {
@@ -1507,11 +2126,24 @@ function boot(){
     catch(e){ toast("Invalid JSON"); }
   };
 
+  $("palInput").oninput = e => { palIdx = 0; drawPalette(e.target.value); };
+  $("palInput").onkeydown = e => {
+    if (!palItems.length) return;
+    if (e.key === "ArrowDown"){ e.preventDefault(); palIdx = (palIdx + 1) % palItems.length; drawPalette(e.target.value); }
+    else if (e.key === "ArrowUp"){ e.preventDefault(); palIdx = (palIdx - 1 + palItems.length) % palItems.length; drawPalette(e.target.value); }
+    else if (e.key === "Enter"){ e.preventDefault(); runCommand(palItems[palIdx]); }
+  };
+
   document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){ e.preventDefault(); openPalette(); return; }
     if (e.target.matches("input,textarea,select")) return;
     if ((e.ctrlKey||e.metaKey) && e.key === "z"){ e.preventDefault(); undo(); }
-    else if (e.key === "f"){ flipPlay(); }
-    else if (e.key === "Escape"){ sel = null; selDef = null; selWp = -1; renderAll(); }
+    else if (e.key === "f" || e.key === "F"){ flipPlay(); }
+    else if (e.key === "Escape"){
+      if (pop) return closePop();
+      if (!$("exportMenu").hidden) return ($("exportMenu").hidden = true);
+      sel = null; selDef = null; selWp = -1; renderAll();
+    }
     else if (e.key === "Backspace" && sel){
       const a = selA();
       if (a && a.route && a.route.waypoints.length > 2){
@@ -1521,6 +2153,7 @@ function boot(){
   });
 
   window.addEventListener("resize", () => { fitScale(); renderStage(); });
+  try { setSheet(localStorage.getItem(LS_SHEET) === "1", true); } catch(e){}
   renderAll();
 }
 

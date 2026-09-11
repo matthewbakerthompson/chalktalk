@@ -319,25 +319,27 @@ chalk design --level hs --out designer.html --no-open
 ```
 
 It writes one self-contained HTML file — the whole catalog inlined, no server,
-no CDN, no build step — and opens it. Inside:
+no CDN, no build step — and opens it. The field is the window and the tools float over it:
 
-- **click a player** to select, **drag** to move (snapped to half yards)
-- **click the field** to add route points, **drag** the yellow handles to shape
-  the route, **double-click** one to delete it
-- pick a stock route from the tree, or draw your own
-- apply **motion** (jet, orbit, across, return, short, out, in) and watch the
-  pre-snap trail and snap position update
-- drop a **blocking scheme** on the whole line and flip it left or right, or set
-  one blocker's assignment, direction and target by hand
-- pick a **defensive look and a coverage**, then click any defender to change his
-  role, zone, match-up or gap — man assignments are recomputed against whoever
-  is actually on the field
-- give the **quarterback** an action and build the progression by clicking
-  receivers in the order he works them
-- drop in any of the 23 defensive looks
-- **Flip** the whole play, **Undo** with <kbd>Ctrl</kbd>+<kbd>Z</kbd>
-- fill in protection, tempo, alerts, tags and the situation it is called in
-- **Save .json** and open it right back up in Python
+- **Formation, Line, Defense, Library, Layers** sit on the rail at the left.
+  Formations and defensive looks are picked from thumbnails, schemes and
+  coverages from a list, concepts from a searchable library.
+- **Click a player** on the field or on the bench to select it, **drag** to
+  move (snapped to half yards). The strip above the bench edits the selection:
+  route, block, target, direction, motion, ball carrier, note.
+- **Click the field** to add route points, **drag** the yellow handles to shape
+  the route, **double-click** one to delete it. Or pick a stock route.
+- **Layers** hide whatever you are not working on: routes, blocks, motion, the
+  quarterback, reads, the defense, its assignments, zone landmarks, the title.
+  Exports follow the toggles.
+- The **play sheet** drawer holds the quarterback action and progression
+  (click receivers in the order he works them), protection, tempo, alerts,
+  tags, the situation and notes.
+- <kbd>Ctrl</kbd>+<kbd>K</kbd> opens a command palette: every concept,
+  formation, look, coverage and scheme is two keystrokes away. <kbd>F</kbd>
+  flips the play, <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.
+- **Save** the play as JSON and open it right back up in Python; **Export**
+  gives you the SVG.
 
 Routes are authored as if the player is on the right side of the ball and
 mirrored for left-side players. The designer and the Python renderer share that
