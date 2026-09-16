@@ -494,4 +494,12 @@ Contributions welcome — the catalog especially. Adding a play is one function.
 
 ## License
 
-MIT. Your playbook is yours.
+[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0).
+
+Free to use, study, change and share for any noncommercial purpose — a coach,
+a team, a school, a club, a hobbyist, a researcher. What it does not allow is
+selling chalktalk, or a product built on it or on a modified copy of it. If
+that is what you want to do, ask: matthewbakerthompson@gmail.com.
+
+Your playbook is yours. The licence covers the software, not the plays you
+draw with it.

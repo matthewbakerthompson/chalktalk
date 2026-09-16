@@ -3,6 +3,14 @@
 The fastest way to help is to add football knowledge. A formation, a route, a
 play, or a series is one function — no plumbing required.
 
+## Licence
+
+chalktalk is released under the PolyForm Noncommercial 1.0.0 licence (see
+`LICENSE`). By opening a pull request you agree that your contribution is
+licensed to the project under those same terms, and that the project may also
+offer it under a commercial licence — that is what lets the software stay free
+for everyone who is not selling it.
+
 ## Setup
 
 ```bash
