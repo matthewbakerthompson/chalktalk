@@ -4,6 +4,7 @@ the contract between the two — anything that drifts here puts a drawn route in
 a different place than the coach put it.
 """
 import json
+import os
 import re
 
 import pytest
@@ -262,3 +263,20 @@ def test_designer_only_uses_ink_the_theme_defines():
     unknown = used - set(theme_keys())
     assert not unknown, unknown
     assert "CATALOG.themes" in src
+
+
+def test_designer_script_parses():
+    """The suite pins strings in the JS; make sure the JS is at least JavaScript."""
+    import shutil, subprocess, tempfile
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not installed")
+    with open(designer._TEMPLATE, encoding="utf-8") as fh:
+        src = fh.read()
+    script = src[src.index("<script>") + len("<script>"):src.rindex("</script>")]
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "designer.js")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(script)
+        result = subprocess.run([node, "--check", path], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

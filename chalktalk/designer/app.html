@@ -401,6 +401,7 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
             <div class="card menu" id="exportMenu" role="menu" hidden>
               <button id="btnSvg" role="menuitem">Download SVG</button>
+              <button id="btnPng" role="menuitem">Download PNG</button>
               <button id="btnJson" role="menuitem">View JSON</button>
             </div>
           </div>
@@ -579,6 +580,30 @@ function pushUndo(){
   undoStack.push(clone(play));
   if (undoStack.length > 60) undoStack.shift();
 }
+// Arrow keys move the selection: a defender, a route point, or a player.
+// Held keys coalesce into one undo step.
+let lastNudge = 0;
+function nudge(dx, dy){
+  const now = Date.now();
+  if (now - lastNudge > 600) pushUndo();
+  lastNudge = now;
+  if (selDef){
+    const d = play.defense && play.defense.players.find(p => p.label === selDef);
+    if (d){ d.x = snap(d.x + dx); d.y = snap(d.y + dy); }
+  } else {
+    const a = selA(); if (!a) return;
+    if (selWp >= 0 && a.route && a.route.waypoints[selWp]){
+      const [ax, ay] = wpAbs(a.player, a.route.waypoints[selWp]);
+      a.route.waypoints[selWp] = wpRel(a.player, snap(ax + dx), snap(ay + dy));
+      a.route.route_type = "custom";
+    } else {
+      a.player.x = snap(a.player.x + dx); a.player.y = snap(a.player.y + dy);
+      syncFormation();
+    }
+  }
+  renderAll();
+}
+
 function undo(){
   if (!undoStack.length) return toast("Nothing to undo");
   play = undoStack.pop(); sel = null; selWp = -1; renderAll();
@@ -1703,8 +1728,8 @@ function renderInspector(){
     box.innerHTML = `<div class="empty">
       <div><span class="lead">Nothing selected.</span>Pick a player on the field or on the bench.</div>
       <div class="legend"><b>Click</b> the field to add a route point · <b>Drag</b> a player, or a yellow handle
-        · <b>Double-click</b> a handle to delete it · <kbd>Backspace</kbd> drops the last point
-        · <kbd>F</kbd> flips · <kbd>Ctrl</kbd>+<kbd>K</kbd> opens the commands</div></div>`;
+        · <b>Double-click</b> a handle to delete it · <b>Arrows</b> nudge, <kbd>Shift</kbd> for a yard
+        · <kbd>F</kbd> flips · <kbd>Ctrl</kbd>+<kbd>K</kbd> commands</div></div>`;
     return;
   }
   const p = a.player, kind = playerKind(p);
@@ -1974,6 +1999,30 @@ function exportSvg(){
   return '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.outerHTML;
 }
 
+// Rasterise the diagram exactly as drawn — the SVG painted onto a canvas at 2x.
+function exportPng(scaleUp){
+  scaleUp = scaleUp || 2;
+  const svg = renderSvg();
+  const w = +svg.getAttribute("width"), h = +svg.getAttribute("height");
+  const url = URL.createObjectURL(new Blob([exportSvg()], {type:"image/svg+xml;charset=utf-8"}));
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement("canvas");
+    c.width = Math.round(w * scaleUp); c.height = Math.round(h * scaleUp);
+    const ctx = c.getContext("2d");
+    ctx.scale(scaleUp, scaleUp); ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+    c.toBlob(b => {
+      const u = URL.createObjectURL(b);
+      const a = document.createElement("a");
+      a.href = u; a.download = slug(play.name) + ".png"; a.click();
+      setTimeout(() => URL.revokeObjectURL(u), 1000);
+    }, "image/png");
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast("This browser would not rasterise the SVG"); };
+  img.src = url;
+}
+
 function loadPlay(obj){
   if (!obj || !obj.assignments || !obj.formation)
     return toast("That doesn't look like a play");
@@ -2052,6 +2101,7 @@ function commands(){
   add("Play", "Show every layer", () => { for (const k of LAYER_KEYS) layers[k] = true; saveLayers(); renderAll(); });
   add("File", "Save play (.json)", () => download(slug(play.name) + ".json", playJson()));
   add("File", "Download SVG", () => download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml"));
+  add("File", "Download PNG", () => exportPng(2));
   add("File", "View JSON", () => openIo("JSON", playJson()));
   add("File", "Import a play", () => openIo("Paste a play JSON", ""));
   for (const v of Object.values(CATALOG.plays)) add("Load", v.name, () => loadPlay(clone(v)));
@@ -2182,6 +2232,7 @@ function boot(){
   $("btnSave").onclick = () => download(slug(play.name) + ".json", playJson());
   $("btnSvg").onclick = () => { $("exportMenu").hidden = true; download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml"); };
   $("btnJson").onclick = () => { $("exportMenu").hidden = true; openIo("JSON", playJson()); };
+  $("btnPng").onclick = () => { $("exportMenu").hidden = true; exportPng(2); };
   $("btnImport").onclick = () => openIo("Paste a play JSON", "");
   $("btnExport").onclick = () => { $("exportMenu").hidden = !$("exportMenu").hidden; };
 
@@ -2212,13 +2263,19 @@ function boot(){
 
   document.addEventListener("keydown", e => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){ e.preventDefault(); openPalette(); return; }
-    if (e.target.matches("input,textarea,select")) return;
+    if (e.target && e.target.matches && e.target.matches("input,textarea,select")) return;
     if ((e.ctrlKey||e.metaKey) && e.key === "z"){ e.preventDefault(); undo(); }
     else if (e.key === "f" || e.key === "F"){ flipPlay(); }
     else if (e.key === "Escape"){
       if (pop) return closePop();
       if (!$("exportMenu").hidden) return ($("exportMenu").hidden = true);
       sel = null; selDef = null; selWp = -1; renderAll();
+    }
+    else if (e.key.startsWith("Arrow") && (sel || selDef)){
+      e.preventDefault();
+      const step = e.shiftKey ? 1 : 0.5;
+      nudge(e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0,
+            e.key === "ArrowUp" ? step : e.key === "ArrowDown" ? -step : 0);
     }
     else if (e.key === "Backspace" && sel){
       const a = selA();

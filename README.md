@@ -329,6 +329,8 @@ no CDN, no build step — and opens it. The field is the window and the tools fl
   route, block, target, direction, motion, ball carrier, note.
 - **Click the field** to add route points, **drag** the yellow handles to shape
   the route, **double-click** one to delete it. Or pick a stock route.
+- **Arrow keys** nudge the selected player, defender or route point by half a
+  yard; hold <kbd>Shift</kbd> for a full yard.
 - **Layers** hide whatever you are not working on: routes, blocks, motion, the
   quarterback, reads, the defense, its assignments, zone landmarks, the title.
   Exports follow the toggles.
@@ -339,7 +341,7 @@ no CDN, no build step — and opens it. The field is the window and the tools fl
   formation, look, coverage and scheme is two keystrokes away. <kbd>F</kbd>
   flips the play, <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.
 - **Save** the play as JSON and open it right back up in Python; **Export**
-  gives you the SVG.
+  gives you the SVG or a 2x PNG.
 
 Routes are authored as if the player is on the right side of the ball and
 mirrored for left-side players. The designer and the Python renderer share that
