@@ -26,30 +26,52 @@ from reportlab.lib.utils import ImageReader
 if TYPE_CHECKING:
     from ..models.play import Play, Playbook
 
-# ── Color palette ──────────────────────────────────────────────────────────────
-_C_FIELD       = colors.HexColor("#1e5c2e")
-_C_FIELD_ALT   = colors.HexColor("#1a5229")
-_C_LINE        = colors.Color(1, 1, 1, alpha=0.28)
-_C_LOS         = colors.Color(1, 1, 1, alpha=0.85)
-_C_HASH        = colors.Color(1, 1, 1, alpha=0.20)
-_C_PLAYER      = colors.HexColor("#1d4ed8")
-_C_PLAYER_STK  = colors.HexColor("#93c5fd")
-_C_LABEL       = colors.white
-_C_ROUTE       = colors.white
-_C_AMBER       = colors.HexColor("#f59e0b")
-_C_BLOCK       = colors.HexColor("#e5e7eb")
-_C_QB          = colors.HexColor("#fbbf24")
-_C_READ_FILL   = colors.HexColor("#0f172a")
-_C_READ_TEXT   = colors.HexColor("#fde68a")
-_C_DEF_ASSIGN  = colors.HexColor("#f87171")
-_C_DEF_DL      = colors.HexColor("#374151")
-_C_DEF_LB      = colors.HexColor("#4b5563")
-_C_DEF_DB      = colors.HexColor("#6b7280")
-_C_DEF_STROKE  = colors.HexColor("#d1d5db")
-_C_PAGE_BG     = colors.HexColor("#0f172a")
-_C_PAGE_TEXT   = colors.HexColor("#e2e8f0")
-_C_MUTED       = colors.HexColor("#94a3b8")
-_C_ACCENT      = colors.HexColor("#3b82f6")
+# ── Colours ───────────────────────────────────────────────────────────────────
+# Everything comes from the shared theme table, so a PDF page, an SVG and the
+# designer show the same diagram.
+from .theme import theme_for as _theme_for, to_rgba as _to_rgba
+
+
+def _rl(color: str):
+    r, g, b, a = _to_rgba(color)
+    return colors.Color(r, g, b, alpha=a)
+
+
+class _Palette:
+    """The theme as reportlab colours, under the names the drawing code uses."""
+
+    def __init__(self, theme):
+        t = theme
+        self.theme = t
+        self.FIELD      = _rl(t.field)
+        self.FIELD_ALT  = _rl(t.field_alt)
+        self.OOB        = _rl(t.oob)
+        self.LINE       = _rl(t.line)
+        self.LOS        = _rl(t.los)
+        self.HASH       = _rl(t.hash)
+        self.SIDELINE   = _rl(t.sideline)
+        self.PLAYER     = _rl(t.offense_fill)
+        self.PLAYER_STK = _rl(t.offense_stroke)
+        self.BALL_RING  = _rl(t.ball_ring)
+        self.LABEL      = _rl(t.offense_text)
+        self.ROUTE      = _rl(t.route)
+        self.AMBER      = _rl(t.run)
+        self.BLOCK      = _rl(t.block)
+        self.QB         = _rl(t.qb)
+        self.READ_FILL  = _rl(t.read_fill)
+        self.READ_TEXT  = _rl(t.read_text)
+        self.DEF_ASSIGN = _rl(t.def_assign)
+        self.DEF_FILL   = _rl(t.defense_fill)
+        self.DEF_STROKE = _rl(t.defense_stroke)
+        self.DEF_TEXT   = _rl(t.defense_text)
+        self.ZONE_FILL  = _rl(t.zone_fill)
+        self.ZONE_STROKE = _rl(t.zone_stroke)
+        self.PAGE_BG    = _rl(t.page_bg)
+        self.PAGE_TEXT  = _rl(t.page_text)
+        self.MUTED      = _rl(t.page_muted)
+        self.ACCENT     = _rl(t.page_rule)
+
+
 from ..models.field import field_for as _field_for
 
 
@@ -66,8 +88,11 @@ class PDFExporter:
         path: str,
         plays_per_page: int = 1,
         level=None,
+        theme=None,
     ):
         self.playbook = playbook
+        self.theme = _theme_for(theme)
+        self.c = _Palette(self.theme)
         self.path = path
         self.ppp = plays_per_page
         self.field = _field_for(level)
@@ -117,36 +142,36 @@ class PDFExporter:
         m = self._margin
 
         # Dark background
-        c.setFillColor(_C_PAGE_BG)
+        c.setFillColor(self.c.PAGE_BG)
         c.rect(0, 0, pw, ph, fill=1, stroke=0)
 
         # Accent bar left edge
-        c.setFillColor(_C_ACCENT)
+        c.setFillColor(self.c.ACCENT)
         c.rect(0, 0, 6, ph, fill=1, stroke=0)
 
         # Title
-        c.setFillColor(_C_PAGE_TEXT)
+        c.setFillColor(self.c.PAGE_TEXT)
         c.setFont("Helvetica-Bold", 32)
         c.drawCentredString(pw / 2, ph * 0.62, self.playbook.name)
 
         if self.playbook.team:
             c.setFont("Helvetica", 18)
-            c.setFillColor(_C_ACCENT)
+            c.setFillColor(self.c.ACCENT)
             c.drawCentredString(pw / 2, ph * 0.55, self.playbook.team)
 
         if self.playbook.season:
             c.setFont("Helvetica", 14)
-            c.setFillColor(_C_MUTED)
+            c.setFillColor(self.c.MUTED)
             c.drawCentredString(pw / 2, ph * 0.50, str(self.playbook.season))
 
         # Divider
-        c.setStrokeColor(_C_ACCENT)
+        c.setStrokeColor(self.c.ACCENT)
         c.setLineWidth(1.5)
         c.line(pw * 0.2, ph * 0.46, pw * 0.8, ph * 0.46)
 
         # Stats row
         c.setFont("Helvetica", 12)
-        c.setFillColor(_C_MUTED)
+        c.setFillColor(self.c.MUTED)
         total = len(self.playbook.plays)
         from ..models.play import PlayType
         n_pass = sum(1 for p in self.playbook.plays if p.play_type == PlayType.PASS)
@@ -157,10 +182,10 @@ class PDFExporter:
 
         # Play index
         c.setFont("Helvetica-Bold", 11)
-        c.setFillColor(_C_ACCENT)
+        c.setFillColor(self.c.ACCENT)
         c.drawString(m, ph * 0.35, "PLAY INDEX")
         c.setLineWidth(0.5)
-        c.setStrokeColor(_C_MUTED)
+        c.setStrokeColor(self.c.MUTED)
         c.line(m, ph * 0.34, pw - m, ph * 0.34)
 
         col_w = (pw - 2 * m) / 2
@@ -171,17 +196,17 @@ class PDFExporter:
             y    = ph * 0.32 - row * 16
             if y < m + 20:
                 break  # truncate if too many plays
-            c.setFillColor(_C_MUTED)
+            c.setFillColor(self.c.MUTED)
             c.setFont("Helvetica", 9)
             c.drawString(x, y, f"{idx + 1:>2}.")
-            c.setFillColor(_C_PAGE_TEXT)
+            c.setFillColor(self.c.PAGE_TEXT)
             c.drawString(x + 16, y, play.name)
-            c.setFillColor(_C_MUTED)
+            c.setFillColor(self.c.MUTED)
             c.setFont("Helvetica", 8)
             c.drawString(x + 16, y - 9, f"{play.formation.name}  |  {play.play_type.value}")
 
         # Footer
-        c.setFillColor(_C_MUTED)
+        c.setFillColor(self.c.MUTED)
         c.setFont("Helvetica", 8)
         c.drawRightString(pw - m, m, f"Generated {date.today().isoformat()} by chalktalk")
 
@@ -192,24 +217,24 @@ class PDFExporter:
         m = self._margin
 
         # Dark background
-        c.setFillColor(_C_PAGE_BG)
+        c.setFillColor(self.c.PAGE_BG)
         c.rect(0, 0, pw, ph, fill=1, stroke=0)
-        c.setFillColor(_C_ACCENT)
+        c.setFillColor(self.c.ACCENT)
         c.rect(0, 0, 4, ph, fill=1, stroke=0)
 
         # Header area
         header_y = ph - m
-        c.setFillColor(_C_PAGE_TEXT)
+        c.setFillColor(self.c.PAGE_TEXT)
         c.setFont("Helvetica-Bold", 20)
         c.drawCentredString(pw / 2, header_y - 20, play.name)
 
         c.setFont("Helvetica", 11)
-        c.setFillColor(_C_MUTED)
+        c.setFillColor(self.c.MUTED)
         sub = f"{play.formation.name}   |   {play.formation.personnel} personnel   |   {play.play_type.value.upper()}"
         c.drawCentredString(pw / 2, header_y - 38, sub)
 
         # Divider
-        c.setStrokeColor(_C_ACCENT)
+        c.setStrokeColor(self.c.ACCENT)
         c.setLineWidth(1)
         c.line(m, header_y - 46, pw - m, header_y - 46)
 
@@ -236,7 +261,7 @@ class PDFExporter:
         if play.description:
             desc_y = table_y - 44
             c.setFont("Helvetica-Oblique", 9)
-            c.setFillColor(_C_MUTED)
+            c.setFillColor(self.c.MUTED)
             c.drawString(m, desc_y, play.description)
 
         # Tags
@@ -245,7 +270,7 @@ class PDFExporter:
             self._draw_tags(c, play.tags, m, tag_y)
 
         # Footer
-        c.setFillColor(_C_MUTED)
+        c.setFillColor(self.c.MUTED)
         c.setFont("Helvetica", 8)
         c.drawRightString(pw - m, m, self.playbook.name)
 
@@ -256,9 +281,9 @@ class PDFExporter:
         m = self._margin
         gap = 20.0
 
-        c.setFillColor(_C_PAGE_BG)
+        c.setFillColor(self.c.PAGE_BG)
         c.rect(0, 0, pw, ph, fill=1, stroke=0)
-        c.setFillColor(_C_ACCENT)
+        c.setFillColor(self.c.ACCENT)
         c.rect(0, 0, 4, ph, fill=1, stroke=0)
 
         cell_w = (pw - 2 * m - gap) / 2
@@ -274,11 +299,11 @@ class PDFExporter:
             dx, dy = origins[idx]
 
             # Play header
-            c.setFillColor(_C_PAGE_TEXT)
+            c.setFillColor(self.c.PAGE_TEXT)
             c.setFont("Helvetica-Bold", 13)
             c.drawString(dx, dy + diag_h + 32, play.name)
             c.setFont("Helvetica", 9)
-            c.setFillColor(_C_MUTED)
+            c.setFillColor(self.c.MUTED)
             c.drawString(dx, dy + diag_h + 18,
                          f"{play.formation.name}  |  {play.play_type.value.upper()}")
 
@@ -294,7 +319,7 @@ class PDFExporter:
             self._draw_route_table(c, play, dx, dy - 20, cell_w, compact=True)
 
         # Footer
-        c.setFillColor(_C_MUTED)
+        c.setFillColor(self.c.MUTED)
         c.setFont("Helvetica", 8)
         c.drawRightString(pw - m, m, self.playbook.name)
 
@@ -332,11 +357,11 @@ class PDFExporter:
             # Tight y range for 4-up
             y_range = (-6.0, -6.0 + y_span)
 
-            c.setFillColor(_C_PAGE_TEXT)
+            c.setFillColor(self.c.PAGE_TEXT)
             c.setFont("Helvetica-Bold", 11)
             c.drawString(dx, dy + diag_h + 16, play.name)
             c.setFont("Helvetica", 8)
-            c.setFillColor(_C_MUTED)
+            c.setFillColor(self.c.MUTED)
             c.drawString(dx, dy + diag_h + 4,
                          f"{play.formation.name}  |  {play.play_type.value.upper()}")
 
@@ -350,7 +375,7 @@ class PDFExporter:
 
             self._draw_route_table(c, play, dx, dy - 20, cell_w, compact=True)
 
-        c.setFillColor(_C_MUTED)
+        c.setFillColor(self.c.MUTED)
         c.setFont("Helvetica", 8)
         c.drawRightString(pw - m, m, self.playbook.name)
 
@@ -370,11 +395,14 @@ class PDFExporter:
         h  = (yr[1] - yr[0]) * scale
 
         # Field background
-        c.setFillColor(_C_FIELD)
+        c.setFillColor(self.c.FIELD)
         c.rect(ox, oy, w, h, fill=1, stroke=0)
+        side = self.field.sideline
+        sx_l = ox + (-side - xr[0]) * scale
+        sx_r = ox + (side - xr[0]) * scale
 
         # Alternating 5-yard bands
-        c.setFillColor(_C_FIELD_ALT)
+        c.setFillColor(self.c.FIELD_ALT)
         band_h = 5 * scale
         y_start = int(yr[0] // 5) * 5
         band_num = 0
@@ -385,7 +413,7 @@ class PDFExporter:
                 y_top = min(yr[1], y_yd + 5)
                 rl_bot = oy + (y_bot - yr[0]) * scale
                 rl_top = oy + (y_top - yr[0]) * scale
-                c.setFillColor(_C_FIELD_ALT)
+                c.setFillColor(self.c.FIELD_ALT)
                 c.rect(ox, rl_bot, w, rl_top - rl_bot, fill=1, stroke=0)
             y_yd += 5
             band_num += 1
@@ -399,14 +427,14 @@ class PDFExporter:
             if rl_y < oy or rl_y > oy + h:
                 continue
             if y_yd == 0:
-                c.setStrokeColor(_C_LOS)
+                c.setStrokeColor(self.c.LOS)
                 c.setLineWidth(2.0)
-                c.setDash(8, 5)
+                c.setDash(1, 0)
             else:
-                c.setStrokeColor(_C_LINE)
+                c.setStrokeColor(self.c.LINE)
                 c.setLineWidth(0.5)
                 c.setDash(1, 0)
-            c.line(ox, rl_y, ox + w, rl_y)
+            c.line(max(ox, sx_l), rl_y, min(ox + w, sx_r), rl_y)
 
         c.setDash(1, 0)
         c.setLineWidth(0.5)
@@ -420,15 +448,21 @@ class PDFExporter:
                 rl_y = oy + (y_yd - yr[0]) * scale
                 if rl_y < oy or rl_y > oy + h:
                     continue
-                c.setStrokeColor(_C_HASH)
+                c.setStrokeColor(self.c.HASH)
                 c.setLineWidth(1.2)
                 c.line(sx - tick, rl_y, sx + tick, rl_y)
 
-        # Sidelines
-        c.setStrokeColor(colors.Color(1, 1, 1, alpha=0.55))
-        c.setLineWidth(1.5)
-        c.line(ox, oy, ox, oy + h)
-        c.line(ox + w, oy, ox + w, oy + h)
+        # Out of bounds past the real sidelines, then the sidelines themselves
+        c.setFillColor(self.c.OOB)
+        if sx_l > ox:
+            c.rect(ox, oy, sx_l - ox, h, fill=1, stroke=0)
+        if sx_r < ox + w:
+            c.rect(sx_r, oy, ox + w - sx_r, h, fill=1, stroke=0)
+        c.setStrokeColor(self.c.SIDELINE)
+        c.setLineWidth(1.6)
+        for sx in (sx_l, sx_r):
+            if ox <= sx <= ox + w:
+                c.line(sx, oy, sx, oy + h)
 
     # ── Routes ────────────────────────────────────────────────────────────────
 
@@ -464,7 +498,7 @@ class PDFExporter:
                 continue
             rl_pts = _trim_start([to_rl(fx, fy) for fx, fy in pts], scale * 0.42)
 
-            c.setStrokeColor(_C_BLOCK)
+            c.setStrokeColor(self.c.BLOCK)
             c.setLineWidth(2.0)
             c.setLineCap(1)
             path = c.beginPath()
@@ -518,10 +552,10 @@ class PDFExporter:
             ]
 
             if a.is_ball_carrier or a.route.route_type.value == "run":
-                stroke_color = _C_AMBER
+                stroke_color = self.c.AMBER
                 lw = 2.5
             else:
-                stroke_color = _C_ROUTE
+                stroke_color = self.c.ROUTE
                 lw = 2.0
 
             c.setStrokeColor(stroke_color)
@@ -566,13 +600,14 @@ class PDFExporter:
             sy = oy + (p.y - yr[0]) * scale
 
             r = max(3.5, scale * (0.55 if p.is_ol else 0.65))
-            c.setFillColor(_C_PLAYER)
-            c.setStrokeColor(_C_PLAYER_STK)
-            c.setLineWidth(1.2)
+            has_ball = a.is_ball_carrier or p.position.value == "QB"
+            c.setFillColor(self.c.PLAYER)
+            c.setStrokeColor(self.c.BALL_RING if has_ball else self.c.PLAYER_STK)
+            c.setLineWidth(1.8 if has_ball else 1.1)
             c.circle(sx, sy, r, fill=1, stroke=1)
 
             fs = max(5, min(10, int(r * 0.95)))
-            c.setFillColor(_C_LABEL)
+            c.setFillColor(self.c.LABEL)
             c.setFont("Helvetica-Bold", fs)
             c.drawCentredString(sx, sy - fs * 0.35, p.label)
 
@@ -596,7 +631,7 @@ class PDFExporter:
             pts = [(ox + (fx - xr[0]) * scale, oy + (fy - yr[0]) * scale)
                    for fx, fy in plan.absolute_path(a.player.x, a.player.y)]
             pts = _trim_start(pts, scale * 0.5)
-            c.setStrokeColor(_C_QB)
+            c.setStrokeColor(self.c.QB)
             c.setLineWidth(1.8)
             c.setLineCap(1)
             path = c.beginPath()
@@ -604,7 +639,7 @@ class PDFExporter:
             c.drawPath(path, stroke=1, fill=0)
             ex, ey = pts[-1]
             _draw_arrowhead(c, ex, ey, ex - pts[-2][0], ey - pts[-2][1],
-                            max(3.5, scale * 0.4), _C_QB)
+                            max(3.5, scale * 0.4), self.c.QB)
             mesh = plan.mesh_point
             if mesh is not None:
                 mx = ox + (a.player.x + mesh.x - xr[0]) * scale
@@ -641,12 +676,12 @@ class PDFExporter:
             cx = ox + (fx - xr[0]) * scale
             cy = oy + (fy - yr[0]) * scale
             r = max(4.0, scale * 0.36)
-            c.setFillColor(_C_READ_FILL)
-            c.setStrokeColor(_C_QB)
+            c.setFillColor(self.c.READ_FILL)
+            c.setStrokeColor(self.c.QB)
             c.setLineWidth(1.1)
             c.circle(cx, cy, r, fill=1, stroke=1)
             fs = max(4, min(9, int(r * 1.05)))
-            c.setFillColor(_C_READ_TEXT)
+            c.setFillColor(self.c.READ_TEXT)
             c.setFont("Helvetica-Bold", fs)
             c.drawCentredString(cx, cy - fs * 0.35, str(order))
 
@@ -677,7 +712,7 @@ class PDFExporter:
             ball_x = self.field.hash_x(play.situation.hash_mark)
 
         # Assignments first, so the defenders sit on top of their own ink.
-        c.setStrokeColor(_C_DEF_ASSIGN)
+        c.setStrokeColor(self.c.DEF_ASSIGN)
         c.setLineWidth(1.6)
         c.setLineCap(1)
         for d in play.defense.players:
@@ -689,8 +724,9 @@ class PDFExporter:
                 half_w, half_h = zone_size(call.zone)
                 cx, cy = to_rl(*spot)
                 c.saveState()
-                c.setFillColor(colors.Color(0.97, 0.44, 0.44, alpha=0.08))
-                c.setDash(3, 4)
+                c.setFillColor(self.c.ZONE_FILL)
+                c.setStrokeColor(self.c.ZONE_STROKE)
+                c.setLineWidth(0.8)
                 c.ellipse(cx - half_w * scale * 0.7, cy - half_h * scale * 0.7,
                           cx + half_w * scale * 0.7, cy + half_h * scale * 0.7,
                           fill=1, stroke=1)
@@ -709,20 +745,18 @@ class PDFExporter:
                 c.drawPath(path, stroke=1, fill=0)
                 ex, ey = pts[-1]
                 _draw_arrowhead(c, ex, ey, ex - pts[-2][0], ey - pts[-2][1],
-                                max(4.0, scale * 0.4), _C_DEF_ASSIGN)
+                                max(4.0, scale * 0.4), self.c.DEF_ASSIGN)
 
         # Defenders: squares, so they read differently from the offense.
         for d in play.defense.players:
             sx, sy = to_rl(d.x, d.y)
             r = max(3.5, scale * 0.6)
-            fill = (_C_DEF_DL if d.position in DL_POSITIONS
-                    else _C_DEF_LB if d.position in LB_POSITIONS else _C_DEF_DB)
-            c.setFillColor(fill)
-            c.setStrokeColor(_C_DEF_STROKE)
+            c.setFillColor(self.c.DEF_FILL)
+            c.setStrokeColor(self.c.DEF_STROKE)
             c.setLineWidth(1.2)
             c.roundRect(sx - r, sy - r, r * 2, r * 2, 1.5, fill=1, stroke=1)
             fs = max(4, min(9, int(r * 0.85)))
-            c.setFillColor(_C_LABEL)
+            c.setFillColor(self.c.DEF_TEXT)
             c.setFont("Helvetica-Bold", fs)
             c.drawCentredString(sx, sy - fs * 0.35, d.label)
 
@@ -743,10 +777,10 @@ class PDFExporter:
         sx += ux * trim
         sy += uy * trim
         ex, ey = sx + ux * visible, sy + uy * visible
-        c.setStrokeColor(_C_DEF_ASSIGN)
+        c.setStrokeColor(self.c.DEF_ASSIGN)
         c.setLineWidth(1.6)
         c.line(sx, sy, ex, ey)
-        _draw_arrowhead(c, ex, ey, ux, uy, max(3.5, scale * 0.38), _C_DEF_ASSIGN)
+        _draw_arrowhead(c, ex, ey, ux, uy, max(3.5, scale * 0.38), self.c.DEF_ASSIGN)
 
     # ── Route table ───────────────────────────────────────────────────────────
 
@@ -775,7 +809,7 @@ class PDFExporter:
                 for lbl, rt, bc in rows
             )
             c.setFont("Helvetica", 7.5)
-            c.setFillColor(_C_MUTED)
+            c.setFillColor(self.c.MUTED)
             c.drawString(x, y, summary)
         else:
             # 3-column table
@@ -784,10 +818,10 @@ class PDFExporter:
             row_y = y
             for lbl, rt, bc in rows:
                 cx = x + col * col_w
-                c.setFillColor(_C_ACCENT)
+                c.setFillColor(self.c.ACCENT)
                 c.setFont("Helvetica-Bold", 9)
                 c.drawString(cx, row_y, lbl)
-                c.setFillColor(_C_PAGE_TEXT)
+                c.setFillColor(self.c.PAGE_TEXT)
                 c.setFont("Helvetica", 9)
                 suffix = "  [BC]" if bc else ""
                 c.drawString(cx + 22, row_y, rt + suffix)
@@ -810,7 +844,7 @@ class PDFExporter:
             tw = c.stringWidth(label, "Helvetica", 8) + 4
             c.setFillColor(colors.HexColor("#1e3a5f"))
             c.roundRect(cx, y, tw, 13, 3, fill=1, stroke=0)
-            c.setFillColor(_C_ACCENT)
+            c.setFillColor(self.c.ACCENT)
             c.drawString(cx + 2, y + 3, label)
             cx += tw + 6
 

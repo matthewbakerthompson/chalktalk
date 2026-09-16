@@ -375,12 +375,48 @@ chalk design --level ncaa
 
 ---
 
+## Themes and layers
+
+Every diagram is ink on a surface, and the ink comes from one table —
+`chalktalk/renderer/theme.py` — that the SVG renderer, the PDF exporter and the
+designer all draw from. Two themes ship:
+
+| Theme | For | Field | Ink |
+|---|---|---|---|
+| `turf` (default) | the screen | a field under lights | chalk white, defense in coral |
+| `paper` | the printer | white | black, defense in red |
+
+The offense is drawn as open circles with a ring on whoever has the ball, the
+defense as squares, zone drops as soft areas. Once a play has a situation with
+a yard line, the five-yard grid becomes the real one, the tens get numbers, and
+the end zone shows up when it is in view.
+
+Each part of the drawing is a layer — `motion`, `blocks`, `qb`, `routes`,
+`reads`, `defense`, `coverage`, `zones`, `title` — and any of them can be left
+out. The designer's Layers control is the same list, and its exports follow
+the toggles.
+
+```python
+play.render(theme="paper").save("mesh.svg")
+play.render(hide=["defense", "zones"]).save("offense_only.svg")
+playbook.save_pdf("book.pdf", theme="paper")      # PDFs default to turf
+playbook.save_html("book.html")                   # HTML pages are paper already
+```
+
+```bash
+chalk render mesh_concept --theme paper -o mesh.svg
+chalk render mesh_concept -d NICKEL_425 --coverage cover_3 --hide zones,title
+chalk design --theme paper
+```
+
+---
+
 ## Command line
 
 ```bash
 chalk design                         # visual play designer
 chalk list plays                     # or formations | defenses | routes | series | schemes | blocks | coverages | qb
-chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs
+chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs --theme paper
 chalk show mesh_concept              # assignments as text
 chalk series mesh --out out/mesh_series
 chalk script inside_zone --reps 2 --looks NICKEL_425 FIRE_ZONE --hashes
@@ -397,7 +433,7 @@ without installing the console script.
 
 | Format | How |
 |---|---|
-| SVG diagram | `play.render().save("play.svg")` |
+| SVG diagram | `play.render(theme="turf", hide=[]).save("play.svg")` |
 | PDF playbook (1/2/4-up) | `playbook.save_pdf("book.pdf", plays_per_page=4)` |
 | HTML playbook page | `playbook.save_html("book.html")` |
 | Call sheet / wristband | `sheet.save_html(...)`, `band.save_html(...)` |

@@ -45,6 +45,7 @@ def catalog() -> dict:
                              schemes as SC)
     from ..models.defense import DefensiveRole, Zone, _ZONE_GEOMETRY
     from ..adjustments import _MOTION_PRESETS
+    from ..renderer.theme import LAYERS, themes_json
 
     plays: dict[str, dict] = {}
     for module in (passing, running, redzone):
@@ -111,6 +112,8 @@ def catalog() -> dict:
             for name, fn in QB.ACTIONS.items()
         },
         "default_formation": DEFAULT_FORMATION,
+        "themes": themes_json(),
+        "layers": list(LAYERS),
     }
 
 
@@ -201,7 +204,8 @@ def _json_for_script(obj) -> str:
             .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
 
 
-def build(play: Optional[Play] = None, level: str = "nfl") -> str:
+def build(play: Optional[Play] = None, level: str = "nfl",
+          theme: str = "turf") -> str:
     """Return the designer as one self-contained HTML string."""
     with open(_TEMPLATE, encoding="utf-8") as fh:
         html = fh.read()
@@ -211,15 +215,18 @@ def build(play: Optional[Play] = None, level: str = "nfl") -> str:
                             _json_for_script(play.model_dump(mode="json")), 1)
     if level != "nfl":
         html = html.replace('let level = "nfl";', f'let level = "{level}";', 1)
+    if theme != "turf":
+        html = html.replace('let look = "turf";', f'let look = "{theme}";', 1)
     return html
 
 
-def write(path: str, play: Optional[Play] = None, level: str = "nfl") -> str:
+def write(path: str, play: Optional[Play] = None, level: str = "nfl",
+          theme: str = "turf") -> str:
     """Write the designer to `path` and return the absolute path."""
     path = os.path.abspath(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
-        fh.write(build(play=play, level=level))
+        fh.write(build(play=play, level=level, theme=theme))
     return path
 
 

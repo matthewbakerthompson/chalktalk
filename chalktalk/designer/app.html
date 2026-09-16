@@ -141,11 +141,12 @@ h3.first{margin-top:0;padding-top:0;border-top:0}
   scrollbar-width:thin;scrollbar-color:oklch(1 0 0 / .15) transparent;
 }
 #stage{
-  flex:none;border-radius:8px;background:#0e1a12;
+  flex:none;border-radius:8px;background:transparent;
   border:1px solid oklch(1 0 0 / .12);
   box-shadow:0 0 0 1px oklch(0 0 0 / .5),0 30px 60px -30px oklch(0 0 0 / .9);
 }
 svg{display:block;border-radius:7px}
+#stage.paper{border-color:oklch(0 0 0 / .35);box-shadow:0 0 0 1px oklch(0 0 0 / .2),0 30px 60px -30px oklch(0 0 0 / .7)}
 svg *{-webkit-user-select:none;user-select:none}
 .grabbable{cursor:grab}
 .grabbing{cursor:grabbing}
@@ -522,23 +523,32 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
 const CATALOG = /*__CATALOG__*/{};
 const INITIAL_PLAY = /*__PLAY__*/null;
 
-/* ─── constants mirrored from chalktalk/renderer/svg.py ─────────────────── */
-const FIELD_GREEN="#1e5c2e", FIELD_GREEN_ALT="#1a5229";
-const LINE_COLOR="rgba(255,255,255,0.30)", LOS_COLOR="rgba(255,255,255,0.85)";
-const HASH_COLOR="rgba(255,255,255,0.20)";
-const PLAYER_FILL="#1d4ed8", PLAYER_STROKE="#93c5fd";
-const LABEL_COLOR="#ffffff", TITLE_COLOR="#f1f5f9";
-const MOTION_COLOR="#7dd3fc";
-const DEF_DL="#374151", DEF_LB="#4b5563", DEF_DB="#6b7280", DEF_STROKE="#d1d5db";
-const BLOCK_COLOR="#e5e7eb", BLOCK_WIDTH=2.2;
-const DEF_ASSIGN="#f87171", ZONE_FILL="rgba(248,113,113,0.07)", ZONE_SCALE=0.7;
-const QB_COLOR="#fbbf24", READ_FILL="#0f172a", READ_TEXT="#fde68a";
+/* ─── ink: the theme table is shared with svg.py through the catalog ────── */
+const QB_COLOR="#fbbf24", READ_TEXT="#fde68a";   // the turf accents, kept as fallbacks
+const FALLBACK_THEME = {
+  name:"turf", dark:true,
+  field:"#22503a", field_alt:"#1f4b37", oob:"#1a3a2b", endzone:"#1d4432",
+  line:"rgba(255,255,255,0.22)", los:"rgba(255,255,255,0.92)",
+  hash:"rgba(255,255,255,0.20)", sideline:"rgba(255,255,255,0.78)",
+  number:"rgba(255,255,255,0.30)",
+  offense_fill:"#f4f1e8", offense_stroke:"#15221b", offense_text:"#15221b", ball_ring:QB_COLOR,
+  route:"#ffffff", run:"#f59e0b", block:"#ffffff", motion:"#7dd3fc",
+  qb:QB_COLOR, read_fill:"#15221b", read_text:READ_TEXT,
+  defense_fill:"#222d28", defense_stroke:"#cfd6d1", defense_text:"#f4f1e8",
+  def_assign:"#f0806a", zone_fill:"rgba(240,128,106,0.13)", zone_stroke:"rgba(240,128,106,0.35)",
+  title:"#ffffff", subtitle:"rgba(255,255,255,0.62)", ball:"#c2703a",
+};
+const FONT = "Inter,'Segoe UI',Helvetica,Arial,sans-serif";
+const ZONE_SCALE = 0.7;
 const OL = new Set(["C","LG","RG","LT","RT"]);
 const DL = new Set(["DE","DT","NT"]);
 const LB = new Set(["W","M","S","OLB","ILB","LB"]);
+const PLAY_TYPE_LABELS = {rpo:"RPO"};
 
 const X_RANGE=[-29,29], Y_RANGE=[-8,22], PAD=28;
 let SCALE=17;
+let look = "turf";                    // which theme the diagram is drawn in
+const T = () => (CATALOG.themes && CATALOG.themes[look]) || FALLBACK_THEME;
 
 /* ─── state ─────────────────────────────────────────────────────────────── */
 let play = null;
@@ -774,6 +784,11 @@ function el(tag, attrs, text){
   if (text !== undefined) n.textContent = text;
   return n;
 }
+function txt(g, x, y, text, fill, size, weight, anchor, opacity){
+  g.appendChild(el("text", {x:x.toFixed(1), y:y.toFixed(1), "text-anchor":anchor || null,
+    fill, "font-family":FONT, "font-size":size, "font-weight":weight || null,
+    opacity: opacity ?? null}, String(text)));
+}
 
 function smoothPath(pts){
   if (pts.length < 2) return "";
@@ -791,52 +806,99 @@ function smoothPath(pts){
   return out.join(" ");
 }
 
+// Yards from the line of scrimmage to the opponent's goal, when known.
+function spotYard(){
+  const s = play.situation;
+  return (s && s.yard_line != null) ? Math.round(+s.yard_line) : null;
+}
+const goalY = spotYard;
+const mod5 = v => ((v % 5) + 5) % 5;
+// Which yards carry the five-yard lines: the real grid once the ball is spotted.
+function gridPhase(){ const s = spotYard(); return s === null ? 0 : mod5(s); }
+
 function drawField(g){
-  const w = W(), h = H();
-  g.appendChild(el("rect", {width:w, height:h, fill:FIELD_GREEN}));
-  for (let yd = -5; yd < Y_RANGE[1] + 5; yd += 10){
+  const t = T(), w = W(), h = H();
+  const side = CATALOG.fields[level].width / 2;
+  const [xLo, xHi] = X_RANGE, [yLo, yHi] = Y_RANGE;
+
+  // The surface, with the mowing pattern on the five-yard grid
+  const phase = gridPhase();
+  g.appendChild(el("rect", {width:w, height:h, fill:t.field}));
+  for (let yd = phase - 5; yd < yHi + 5; yd += 10){
     const y0 = sy(yd + 5), y1 = sy(yd);
     g.appendChild(el("rect", {x:0, y:Math.min(y0,y1), width:w,
-      height:Math.abs(y1-y0), fill:FIELD_GREEN_ALT, opacity:0.4}));
+      height:Math.abs(y1-y0), fill:t.field_alt}));
   }
-  for (let yd = Math.ceil(Y_RANGE[0]); yd <= Y_RANGE[1]; yd += 5){
+  // The end zone, when the ball spot says it is in view
+  const goal = goalY();
+  if (goal !== null && goal > yLo && goal < yHi)
+    g.appendChild(el("rect", {x:0, y:sy(yHi), width:w, height:sy(goal) - sy(yHi), fill:t.endzone}));
+  // Out of bounds past the real sidelines
+  if (xLo < -side) g.appendChild(el("rect", {x:0, y:0, width:sx(-side), height:h, fill:t.oob}));
+  if (xHi > side)  g.appendChild(el("rect", {x:sx(side), y:0, width:w - sx(side), height:h, fill:t.oob}));
+
+  // Yard lines between the sidelines; the line of scrimmage is solid ink
+  const lx0 = sx(Math.max(xLo, -side)), lx1 = sx(Math.min(xHi, side));
+  for (let yd = Math.ceil(yLo); yd <= yHi; yd++){
+    if (yd !== 0 && mod5(yd) !== phase) continue;
     const y = sy(yd);
-    if (yd === 0){
-      g.appendChild(el("line", {x1:sx(X_RANGE[0]), y1:y, x2:sx(X_RANGE[1]), y2:y,
-        stroke:LOS_COLOR, "stroke-width":2.5, "stroke-dasharray":"10,6"}));
-    } else {
-      g.appendChild(el("line", {x1:sx(X_RANGE[0]), y1:y, x2:sx(X_RANGE[1]), y2:y,
-        stroke:LINE_COLOR, "stroke-width":0.8}));
-    }
+    if (yd === 0)
+      g.appendChild(el("line", {x1:lx0, y1:y, x2:lx1, y2:y, stroke:t.los, "stroke-width":2.2}));
+    else
+      g.appendChild(el("line", {x1:lx0, y1:y, x2:lx1, y2:y, stroke:t.line, "stroke-width":1}));
   }
+  if (goal !== null && goal > yLo && goal < yHi && goal !== 0)
+    g.appendChild(el("line", {x1:lx0, y1:sy(goal), x2:lx1, y2:sy(goal), stroke:t.los, "stroke-width":2}));
+
+  // Hash marks
   const hx = CATALOG.fields[level].hash_from_center;
   for (const h_ of [-hx, hx]){
     const px = sx(h_), tick = SCALE * 0.25;
-    for (let yd = Math.ceil(Y_RANGE[0]); yd <= Y_RANGE[1]; yd++){
+    for (let yd = Math.ceil(yLo); yd <= yHi; yd++){
       const y = sy(yd);
       g.appendChild(el("line", {x1:px-tick, y1:y, x2:px+tick, y2:y,
-        stroke:HASH_COLOR, "stroke-width":1.5}));
+        stroke:t.hash, "stroke-width":1.5}));
     }
   }
-  // Real sidelines — 53 1/3 yards apart, not the edge of the view
-  const side = CATALOG.fields[level].width / 2;
+  // Sidelines
   for (const fx of [-side, side]){
-    if (fx < X_RANGE[0] || fx > X_RANGE[1]) continue;
-    g.appendChild(el("line", {x1:sx(fx), y1:sy(Y_RANGE[1]), x2:sx(fx), y2:sy(Y_RANGE[0]),
-      stroke:"rgba(255,255,255,0.55)", "stroke-width":1.5}));
+    if (fx < xLo || fx > xHi) continue;
+    g.appendChild(el("line", {x1:sx(fx), y1:sy(yHi), x2:sx(fx), y2:sy(yLo),
+      stroke:t.sideline, "stroke-width":2}));
   }
+  drawNumbers(g);
+
+  // Ball spot on the hash this play is run from
   const hm = play.situation && play.situation.hash_mark;
   if (hm){
     const bx = sx(hm === "L" ? -hx : hm === "R" ? hx : 0), by = sy(0);
     g.appendChild(el("ellipse", {cx:bx, cy:by, rx:SCALE*0.3, ry:SCALE*0.18,
-      fill:"#c2703a", stroke:"rgba(255,255,255,0.85)", "stroke-width":1}));
+      fill:t.ball, stroke:t.los, "stroke-width":1}));
   }
-  g.appendChild(el("text", {x:sx(X_RANGE[0]+0.8), y:sy(0)-5,
-    fill:"rgba(255,255,255,0.65)", "font-family":"Arial,sans-serif",
-    "font-size":11, "font-weight":"bold"}, "LOS"));
+}
+
+// Yard numbers on the tens, once the ball spot pins the field down.
+function drawNumbers(g){
+  const s = play.situation;
+  if (!s || s.yard_line == null) return;
+  const t = T(), fs = SCALE * 0.95;
+  const f = CATALOG.fields[level];
+  const nx = f.width / 2 - f.numbers_from_sideline;
+  const spot = spotYard();
+  for (let yd = Math.ceil(Y_RANGE[0]); yd <= Y_RANGE[1]; yd++){
+    const toGoal = spot - yd;
+    if (toGoal % 10 || !(toGoal > 0 && toGoal < 100)) continue;
+    const label = String(toGoal <= 50 ? toGoal : 100 - toGoal);
+    const y = sy(yd) + fs * 0.36;
+    for (const fx of [-nx, nx]){
+      if (fx <= X_RANGE[0] || fx >= X_RANGE[1]) continue;
+      txt(g, sx(fx), y, label, t.number, Math.round(fs), 700, "middle");
+    }
+  }
 }
 
 function drawMotions(g){
+  const t = T();
   for (const a of assignments()){
     if (!a.motion_from) continue;
     const [fx, fy] = a.motion_from;
@@ -847,16 +909,14 @@ function drawMotions(g){
     const mx = (s[0]+ex)/2, my = (s[1]+ey)/2 - SCALE*0.55;
     g.appendChild(el("path", {
       d:`M ${s[0].toFixed(1)} ${s[1].toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`,
-      fill:"none", stroke:MOTION_COLOR, "stroke-width":1.8,
+      fill:"none", stroke:t.motion, "stroke-width":1.8,
       "stroke-dasharray":"5,4", "stroke-linecap":"round",
       "marker-end":"url(#arr-motion)", opacity:0.9}));
     const r = SCALE * 0.42;
     g.appendChild(el("circle", {cx:s[0], cy:s[1], r:r, fill:"none",
-      stroke:MOTION_COLOR, "stroke-width":1.4, "stroke-dasharray":"3,3", opacity:0.75}));
+      stroke:t.motion, "stroke-width":1.4, "stroke-dasharray":"3,3", opacity:0.75}));
     if (a.motion_type)
-      g.appendChild(el("text", {x:s[0], y:s[1]-r-4, "text-anchor":"middle",
-        fill:MOTION_COLOR, "font-family":"Arial,sans-serif", "font-size":9,
-        "font-weight":"bold", opacity:0.9}, a.motion_type.toUpperCase()));
+      txt(g, s[0], s[1]-r-4, a.motion_type.toUpperCase(), t.motion, 9, 700, "middle", 0.9);
   }
 }
 
@@ -872,15 +932,16 @@ function blockCap(g, pts, isCut){
   const [x0,y0] = pts[pts.length-2], [x1,y1] = pts[pts.length-1];
   const dx = x1-x0, dy = y1-y0, len = Math.hypot(dx,dy) || 1;
   const nx = -dy/len, ny = dx/len, half = SCALE*0.42;
+  const stroke = T().block;
   if (isCut){
     const ux = dx/len*half, uy = dy/len*half;
     g.appendChild(el("line", {x1:x1-ux-nx*half, y1:y1-uy-ny*half,
-      x2:x1+ux+nx*half, y2:y1+uy+ny*half, stroke:BLOCK_COLOR,
-      "stroke-width":BLOCK_WIDTH, "stroke-linecap":"round", opacity:0.88}));
+      x2:x1+ux+nx*half, y2:y1+uy+ny*half, stroke,
+      "stroke-width":2.4, "stroke-linecap":"round", opacity:0.9}));
   } else {
     g.appendChild(el("line", {x1:x1-nx*half, y1:y1-ny*half,
-      x2:x1+nx*half, y2:y1+ny*half, stroke:BLOCK_COLOR,
-      "stroke-width":BLOCK_WIDTH, "stroke-linecap":"round", opacity:0.88}));
+      x2:x1+nx*half, y2:y1+ny*half, stroke,
+      "stroke-width":2.4, "stroke-linecap":"round", opacity:0.9}));
   }
 }
 
@@ -890,6 +951,7 @@ function blockAbs(p, blk){
 }
 
 function drawBlocks(g){
+  const t = T();
   const combos = new Set();
   for (const a of assignments()){
     let blk = a.block;
@@ -901,8 +963,8 @@ function drawBlocks(g){
     if (pts.length < 2) continue;
     const trimmed = trimStart(pts, SCALE*0.42);
     g.appendChild(el("path", {d:smoothPath(trimmed), fill:"none",
-      stroke:BLOCK_COLOR, "stroke-width":BLOCK_WIDTH, "stroke-linecap":"round",
-      "stroke-linejoin":"round", opacity:0.88}));
+      stroke:t.block, "stroke-width":2.4, "stroke-linecap":"round",
+      "stroke-linejoin":"round", opacity:0.9}));
     blockCap(g, trimmed, blk.kind === "cut");
 
     if (blk.combo_with){
@@ -915,7 +977,7 @@ function drawBlocks(g){
         const my = Math.max(y1,y2) + SCALE*0.75;
         g.appendChild(el("path", {
           d:`M ${x1.toFixed(1)} ${(y1+SCALE*0.5).toFixed(1)} Q ${((x1+x2)/2).toFixed(1)} ${my.toFixed(1)} ${x2.toFixed(1)} ${(y2+SCALE*0.5).toFixed(1)}`,
-          fill:"none", stroke:BLOCK_COLOR, "stroke-width":1.4,
+          fill:"none", stroke:t.block, "stroke-width":1.4,
           "stroke-dasharray":"4,3", opacity:0.65}));
       }
     }
@@ -927,18 +989,19 @@ function qbAssignment(){
 }
 
 function drawQB(g){
+  const t = T();
   for (const a of assignments()){
     const plan = a.qb;
     if (!plan || !plan.path || plan.path.length < 2) continue;
     const pts = trimStart(plan.path.map(p => [sx(a.player.x + p.x), sy(a.player.y + p.y)]),
                           SCALE*0.5);
-    g.appendChild(el("path", {d:smoothPath(pts), fill:"none", stroke:QB_COLOR,
+    g.appendChild(el("path", {d:smoothPath(pts), fill:"none", stroke:t.qb,
       "stroke-width":2.2, "stroke-linecap":"round", "stroke-linejoin":"round",
       "marker-end":"url(#arr-qb)", opacity:0.95}));
     if (plan.mesh_at){
       g.appendChild(el("circle", {cx:sx(a.player.x + plan.mesh_at.x),
         cy:sy(a.player.y + plan.mesh_at.y), r:SCALE*0.28, fill:"none",
-        stroke:QB_COLOR, "stroke-width":1.8, opacity:0.95}));
+        stroke:t.qb, "stroke-width":1.8, opacity:0.95}));
     }
   }
 }
@@ -946,6 +1009,7 @@ function drawQB(g){
 function drawReads(g){
   const plan = (qbAssignment() || {}).qb;
   if (!plan || !plan.reads || !plan.reads.length) return;
+  const t = T();
   for (const a of assignments()){
     const order = plan.reads.indexOf(a.player.label);
     if (order < 0 || !a.route) continue;
@@ -955,15 +1019,14 @@ function drawReads(g){
     const dx = ex-px, dy = ey-py, len = Math.hypot(dx, dy) || 1;
     const cx = sx(ex - dy/len*1.3), cy = sy(ey + dx/len*1.3);
     const r = Math.max(6, SCALE*0.36);
-    g.appendChild(el("circle", {cx, cy, r, fill:READ_FILL, stroke:QB_COLOR,
-      "stroke-width":1.4, opacity:0.92}));
-    g.appendChild(el("text", {x:cx, y:cy + r*0.36, "text-anchor":"middle",
-      fill:READ_TEXT, "font-family":"Arial,sans-serif",
-      "font-size":Math.round(r*1.05), "font-weight":"bold"}, String(order+1)));
+    g.appendChild(el("circle", {cx, cy, r, fill:t.read_fill, stroke:t.qb,
+      "stroke-width":1.4, opacity:0.95}));
+    txt(g, cx, cy + r*0.36, order+1, t.read_text, Math.round(r*1.05), 700, "middle");
   }
 }
 
 function drawRoutes(g){
+  const t = T();
   for (const a of assignments()){
     if (!a.route) continue;
     const rt = a.route.route_type;
@@ -974,11 +1037,11 @@ function drawRoutes(g){
     });
     const runner = a.is_ball_carrier || rt === "run";
     g.appendChild(el("path", {d:smoothPath(pts), fill:"none",
-      stroke: runner ? "#f59e0b" : "#ffffff",
-      "stroke-width": runner ? 2.8 : 2.2,
+      stroke: runner ? t.run : t.route,
+      "stroke-width": runner ? 2.8 : 2.4,
       "stroke-linecap":"round", "stroke-linejoin":"round",
-      "marker-end": runner ? "url(#arr-amber)" : "url(#arr-white)",
-      opacity:0.92}));
+      "marker-end": runner ? "url(#arr-run)" : "url(#arr-route)",
+      opacity:0.94}));
   }
 }
 
@@ -1023,7 +1086,7 @@ function defArrow(g, from, to, dashed, maxYards, minYards){
   const visible = Math.max(dist - 2*trim, (minYards||0)*SCALE);
   sx += ux*trim; sy += uy*trim;
   ex = sx + ux*visible; ey = sy + uy*visible;
-  g.appendChild(el("line", {x1:sx, y1:sy, x2:ex, y2:ey, stroke:DEF_ASSIGN,
+  g.appendChild(el("line", {x1:sx, y1:sy, x2:ex, y2:ey, stroke:T().def_assign,
     "stroke-width":2, "stroke-dasharray": dashed ? "7,5" : null,
     "marker-end":"url(#arr-def)", opacity:0.85}));
 }
@@ -1032,6 +1095,7 @@ const sy0 = p => sy(p[1]);
 
 function drawDefenseAssignments(g){
   if (!play.defense) return;
+  const t = T();
   const offense = {};
   assignments().forEach(a => offense[a.player.label] = a.player);
 
@@ -1045,12 +1109,11 @@ function drawDefenseAssignments(g){
       const z = CATALOG.zones[call.zone];
       if (layers.zones) g.appendChild(el("ellipse", {cx:sx(spot[0]), cy:sy(spot[1]),
         rx:z.half_w*SCALE*ZONE_SCALE, ry:z.half_h*SCALE*ZONE_SCALE,
-        fill:ZONE_FILL, stroke:DEF_ASSIGN, "stroke-width":1,
-        "stroke-dasharray":"5,6", opacity:0.45}));
+        fill:t.zone_fill, stroke:t.zone_stroke, "stroke-width":1}));
       if (layers.coverage) defArrow(g, [d.x, d.y], spot, true, 6.0, 0);
     } else if (call.role === "man" && offense[call.covers]){
-      const t = offense[call.covers];
-      if (layers.coverage) defArrow(g, [d.x, d.y], [t.x, t.y], false, null, 2.2);
+      const tg = offense[call.covers];
+      if (layers.coverage) defArrow(g, [d.x, d.y], [tg.x, tg.y], false, null, 2.2);
     } else {
       if (!layers.coverage) continue;
       const rel = defPath(call, d);
@@ -1058,7 +1121,7 @@ function drawDefenseAssignments(g){
       const pts = trimStart(rel.map(p => [sx(d.x + p[0]), sy(d.y + p[1])]),
                             SCALE*0.5);
       g.appendChild(el("path", {d:smoothPath(pts), fill:"none",
-        stroke:DEF_ASSIGN, "stroke-width":2.2, "stroke-linecap":"round",
+        stroke:t.def_assign, "stroke-width":2.2, "stroke-linecap":"round",
         "marker-end":"url(#arr-def)", opacity:0.9}));
     }
   }
@@ -1066,56 +1129,54 @@ function drawDefenseAssignments(g){
 
 function drawDefense(g){
   if (!play.defense) return;
+  const t = T();
   for (const d of play.defense.players){
     const px = sx(d.x), py = sy(d.y), r = 10;
-    const fill = DL.has(d.position) ? DEF_DL : (LB.has(d.position) ? DEF_LB : DEF_DB);
-    g.appendChild(el("rect", {x:px-r, y:py-r, width:r*2, height:r*2, rx:2,
-      fill, stroke:DEF_STROKE, "stroke-width":1.5, opacity:0.92}));
+    g.appendChild(el("rect", {x:px-r, y:py-r, width:r*2, height:r*2, rx:2.5,
+      fill:t.defense_fill, stroke:t.defense_stroke, "stroke-width":1.3}));
     const fs = d.label.length > 2 ? 9 : 10;
-    g.appendChild(el("text", {x:px, y:py+fs*0.37, "text-anchor":"middle",
-      fill:"#fff", "font-family":"Arial,sans-serif", "font-size":fs,
-      "font-weight":"bold"}, d.label));
+    txt(g, px, py+fs*0.37, d.label, t.defense_text, fs, 700, "middle");
   }
 }
 
 function drawPlayers(g){
+  const t = T();
   for (const a of assignments()){
     const p = a.player;
     const px = sx(p.x), py = sy(p.y), r = OL.has(p.position) ? 9 : 11;
+    const hasBall = a.is_ball_carrier || p.position === "QB";
     g.appendChild(el("circle", {cx:px, cy:py, r,
-      fill:PLAYER_FILL, stroke:PLAYER_STROKE, "stroke-width":1.5}));
+      fill:t.offense_fill, stroke: hasBall ? t.ball_ring : t.offense_stroke,
+      "stroke-width": hasBall ? 2.2 : 1.4}));
     const fs = p.label.length > 2 ? 9 : 10;
-    g.appendChild(el("text", {x:px, y:py+fs*0.37, "text-anchor":"middle",
-      fill:LABEL_COLOR, "font-family":"Arial,sans-serif", "font-size":fs,
-      "font-weight":"bold"}, p.label));
+    txt(g, px, py+fs*0.37, p.label, t.offense_text, fs, 700, "middle");
   }
 }
 
+// A name plate in the corner nothing else needs — the backfield's left.
 function drawTitle(g){
-  const w = W();
-  g.appendChild(el("text", {x:w/2, y:H()-10, "text-anchor":"middle",
-    fill:TITLE_COLOR, "font-family":"Arial,sans-serif", "font-size":15,
-    "font-weight":"bold"}, play.name || ""));
-  const sub = `${play.formation.name}  ·  ${play.formation.personnel} personnel  ·  ${(play.play_type||"").toUpperCase()}`;
-  g.appendChild(el("text", {x:w/2, y:PAD-8, "text-anchor":"middle",
-    fill:"rgba(255,255,255,0.55)", "font-family":"Arial,sans-serif",
-    "font-size":11}, sub));
+  const t = T(), h = H();
+  const kind = PLAY_TYPE_LABELS[play.play_type] ||
+    ((play.play_type || "").charAt(0).toUpperCase() + (play.play_type || "").slice(1));
+  const sub = `${play.formation.name}  ·  ${play.formation.personnel} personnel  ·  ${kind}`;
+  txt(g, 14, h-26, play.name || "", t.title, 14, 700);
+  txt(g, 14, h-10, sub, t.subtitle, 10.5);
 }
 
 function defs(){
+  const t = T();
   const d = el("defs");
   const arrow = (id, color) => {
-    const m = el("marker", {id, markerWidth:10, markerHeight:7, refX:9, refY:3.5,
-      orient:"auto"});
-    m.appendChild(el("polygon", {points:"0 0, 10 3.5, 0 7", fill:color}));
+    const m = el("marker", {id, markerWidth:9, markerHeight:7, refX:8, refY:3.5,
+      orient:"auto", markerUnits:"userSpaceOnUse"});
+    m.appendChild(el("polygon", {points:"0 0.5, 9 3.5, 0 6.5", fill:color}));
     return m;
   };
-  d.appendChild(arrow("arr-white", "#ffffff"));
-  d.appendChild(arrow("arr-amber", "#f59e0b"));
-  d.appendChild(arrow("arr-gray", "#9ca3af"));
-  d.appendChild(arrow("arr-motion", MOTION_COLOR));
-  d.appendChild(arrow("arr-def", DEF_ASSIGN));
-  d.appendChild(arrow("arr-qb", QB_COLOR));
+  d.appendChild(arrow("arr-route", t.route));
+  d.appendChild(arrow("arr-run", t.run));
+  d.appendChild(arrow("arr-motion", t.motion));
+  d.appendChild(arrow("arr-def", t.def_assign));
+  d.appendChild(arrow("arr-qb", t.qb));
   return d;
 }
 
@@ -1156,7 +1217,7 @@ function drawUI(g){
     a.route.waypoints.forEach((w, i) => {
       const [ax, ay] = wpAbs(a.player, w);
       g.appendChild(el("circle", {cx:sx(ax), cy:sy(ay), r:5.5,
-        fill: i === selWp ? "#fde047" : "#14201a",
+        fill: i === selWp ? "#fde047" : (T().dark ? "#14201a" : "#ffffff"),
         stroke:"#fde047", "stroke-width":2, class:"grabbable",
         "data-wp":i}));
     });
@@ -1515,9 +1576,13 @@ const LAYER_DEFS = [
 ];
 function popLayers(box){
   box.innerHTML = `<div class="pop-head"><h2>Layers</h2></div><div class="pop-body">
+    <div class="seg full" id="lookSeg" role="group" aria-label="Look"></div>
+    <p class="note" style="margin:6px 0 10px">Turf for the screen, paper for the printer.</p>
     <div class="list" id="layerList"></div>
     <p class="note">Hide what you are not working on. Exports follow these toggles.</p>
     <button id="layersAll" class="wide">Show everything</button></div>`;
+  segment($("lookSeg"), Object.keys(CATALOG.themes || {turf:1}).map(k => [k, k[0].toUpperCase() + k.slice(1)]),
+    look, v => { look = v; saveLook(); renderAll(); });
   const list = $("layerList");
   for (const [key, name, tip] of LAYER_DEFS){
     const off = (key === "coverage" || key === "zones") && !layers.defense;
@@ -1863,6 +1928,7 @@ function renderFieldInfo(){
 function renderStage(){
   const stage = $("stage");
   stage.innerHTML = "";
+  stage.classList.toggle("paper", !T().dark);
   const svg = renderSvg();
   stage.appendChild(svg);
   bindStage(svg);
@@ -1943,6 +2009,11 @@ function fitScale(){
 
 const LS_SHEET = "chalktalk.designer.sheet";
 const LS_LAYERS = "chalktalk.designer.layers";
+const LS_LOOK = "chalktalk.designer.look";
+function saveLook(){ try { localStorage.setItem(LS_LOOK, look); } catch(e){} }
+function loadLook(){
+  try { const v = localStorage.getItem(LS_LOOK); if (v && CATALOG.themes && CATALOG.themes[v]) look = v; } catch(e){}
+}
 let sheetOpen = false;
 
 function setSheet(open, quiet){
@@ -1991,6 +2062,8 @@ function commands(){
   }
   for (const [k, v] of Object.entries(CATALOG.fields))
     add("View", `${v.name} hashes`, () => setLevel(k));
+  for (const k of Object.keys(CATALOG.themes || {}))
+    add("View", `Draw on ${k}`, () => { look = k; saveLook(); renderAll(); });
   for (const [key, name] of LAYER_DEFS)
     add("Layer", `${layers[key] ? "Hide" : "Show"} ${name.toLowerCase()}`,
         () => { layers[key] = !layers[key]; saveLayers(); renderAll(); });
@@ -2031,7 +2104,7 @@ function runCommand(c){ $("palette").close(); c.run(); }
 function boot(){
   play = INITIAL_PLAY || restore()
       || newPlay(CATALOG.default_formation || Object.keys(CATALOG.formations)[0]);
-  loadLayers();
+  loadLayers(); loadLook();
 
   segment($("playTypeSeg"), [["pass","Pass"],["run","Run"],["rpo","RPO"],
     ["screen","Screen"],["special","Special"]], play.play_type, v => {

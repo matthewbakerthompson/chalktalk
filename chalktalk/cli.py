@@ -155,8 +155,10 @@ def cmd_render(args: argparse.Namespace) -> int:
     play = _build_play(args.play, args.formation, args.defense, args.flip,
                        getattr(args, "coverage", None))
     out = args.out or f"{args.play}.svg"
+    hide = [h.strip() for h in (args.hide or "").split(",") if h.strip()]
     if out.endswith(".pdf"):
-        Playbook(name=play.name, plays=[play]).save_pdf(out, level=args.level)
+        Playbook(name=play.name, plays=[play]).save_pdf(out, level=args.level,
+                                                        theme=args.theme)
         print(f"Saved: {os.path.abspath(out)}")
     elif out.endswith(".json"):
         os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
@@ -164,7 +166,8 @@ def cmd_render(args: argparse.Namespace) -> int:
             fh.write(play.to_json())
         print(f"Saved: {os.path.abspath(out)}")
     else:
-        play.render(scale=args.scale, level=args.level).save(out)
+        play.render(scale=args.scale, level=args.level, theme=args.theme,
+                    hide=hide).save(out)
     if args.describe:
         print()
         print(play.describe())
@@ -257,7 +260,7 @@ def cmd_design(args: argparse.Namespace) -> int:
                                getattr(args, "coverage", None))
 
     out = args.out or os.path.join("output", "designer.html")
-    path = write(out, play=play, level=args.level)
+    path = write(out, play=play, level=args.level, theme=args.theme)
     print(f"Designer: {path}")
     if play is not None:
         print(f"Loaded:   {play.call}")
@@ -332,6 +335,9 @@ def build_parser() -> argparse.ArgumentParser:
     ren.add_argument("--scale", type=float, default=18.0)
     ren.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"],
                      help="hash marks: nfl | ncaa | hs")
+    ren.add_argument("--theme", default="turf", choices=["turf", "paper"],
+                     help="turf for the screen, paper for the printer")
+    ren.add_argument("--hide", help="layers to leave out, e.g. defense,zones")
     ren.add_argument("--describe", action="store_true")
     ren.set_defaults(func=cmd_render)
 
@@ -374,6 +380,8 @@ def build_parser() -> argparse.ArgumentParser:
     des.add_argument("--flip", action="store_true")
     des.add_argument("--coverage", help="a coverage call, e.g. cover_3")
     des.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
+    des.add_argument("--theme", default="turf", choices=["turf", "paper"],
+                     help="the look the designer opens in")
     des.add_argument("--no-open", action="store_true",
                      help="write the file without launching a browser")
     des.set_defaults(func=cmd_design)
