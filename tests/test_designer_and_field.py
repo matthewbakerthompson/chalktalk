@@ -189,6 +189,7 @@ def test_app_template_keeps_both_placeholders():
         src = fh.read()
     assert src.count("/*__CATALOG__*/{}") == 1
     assert src.count("/*__PLAY__*/null") == 1
+    assert src.count("/*__BOOK__*/null") == 1
 
 
 def test_designer_mirrors_the_python_motion_geometry():
@@ -280,3 +281,51 @@ def test_designer_script_parses():
             fh.write(script)
         result = subprocess.run([node, "--check", path], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+# ── Playbooks ─────────────────────────────────────────────────────────────────
+
+def _book():
+    from chalktalk.catalog import running
+    from chalktalk.models import Playbook
+    return Playbook(name="Week 3", team="Owls", season=2026,
+                    plays=[passing.mesh_concept(), running.power_right()])
+
+
+def test_build_can_open_a_whole_playbook():
+    html = designer.build(playbook=_book())
+    assert "/*__BOOK__*/null" not in html
+    assert "/*__PLAY__*/null" in html              # the single-play slot stays empty
+    assert "Week 3" in html and "Power Right" in html
+    assert html.count("</script>") == 1
+
+
+def test_a_designer_book_is_a_python_playbook(tmp_path):
+    """The file the designer saves is `Playbook` JSON, nothing more."""
+    from chalktalk.models import Playbook
+    path = tmp_path / "book.json"
+    _book().save(str(path))
+    again = Playbook.load(str(path))
+    assert [p.name for p in again.plays] == ["Mesh Concept", "Power Right"]
+    assert again.team == "Owls" and again.season == 2026
+
+
+def test_cli_opens_a_playbook_in_the_designer(tmp_path, capsys):
+    from chalktalk import cli
+    book = tmp_path / "book.json"
+    _book().save(str(book))
+    out = tmp_path / "designer.html"
+    assert cli.main(["design", str(book), "--out", str(out), "--no-open"]) == 0
+    assert "Week 3 (2 plays)" in capsys.readouterr().out
+    assert "/*__BOOK__*/null" not in out.read_text(encoding="utf-8")
+
+
+def test_cli_prints_a_playbook(tmp_path):
+    from chalktalk import cli
+    book = tmp_path / "book.json"
+    _book().save(str(book))
+    assert cli.main(["book", str(book), "-o", str(tmp_path / "book.pdf")]) == 0
+    assert (tmp_path / "book.pdf").stat().st_size > 1500
+    assert cli.main(["book", str(book), "-o", str(tmp_path / "book.html")]) == 0
+    page = (tmp_path / "book.html").read_text(encoding="utf-8")
+    assert "Week 3" in page and page.count("<svg") == 2

@@ -288,6 +288,43 @@ svg *{-webkit-user-select:none;user-select:none}
 .fieldinfo{white-space:nowrap;font-variant-numeric:tabular-nums}
 .fieldinfo b{color:var(--ink-2);font-weight:500}
 
+/* ─── playbook panel ────────────────────────────────────────────────── */
+.book{display:none;flex:none;width:276px;flex-direction:column;background:var(--panel);border-right:1px solid var(--hair);min-height:0}
+#app.book-open .book{display:flex}
+.book-head{display:flex;align-items:center;gap:4px;padding:8px 8px 2px 8px}
+.book-head .title{width:auto;flex:1;min-width:0;font-size:14px}
+.book-meta{display:flex;align-items:center;gap:6px;padding:0 12px 10px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--hair)}
+.book-meta .inline{width:11ch}
+.book-meta .inline.pers{width:6ch}
+.book-meta .count{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+.book-list{flex:1;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:2px;scrollbar-width:thin;scrollbar-color:oklch(1 0 0 / .15) transparent}
+.brow{
+  display:grid;grid-template-columns:16px 96px minmax(0,1fr) auto;align-items:center;gap:8px;
+  padding:5px 4px 5px 6px;border-radius:8px;border:1px solid transparent;cursor:pointer;position:relative;
+}
+.brow:hover{background:oklch(1 0 0 / .05)}
+.brow.on{background:var(--accent-soft);border-color:var(--accent-line)}
+.brow.dragging{opacity:.4}
+.brow .num{font-size:11px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.brow .pthumb{width:96px;height:50px;display:block;border-radius:4px}
+.brow .nm{display:block;font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brow .sub{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brow .acts{display:flex;flex-direction:column;gap:2px;opacity:0;transition:opacity var(--t)}
+.brow:hover .acts,.brow:focus-within .acts,.brow.on .acts{opacity:1}
+.brow .acts button{width:22px;height:22px;padding:0;border-color:transparent;color:var(--muted)}
+.brow .acts button:hover{color:var(--ink)}
+.brow .acts button[data-act="del"]:hover{color:var(--danger);background:oklch(0.740 0.160 25 / .1)}
+.brow.drop-before::before,.brow.drop-after::after{content:"";position:absolute;left:6px;right:6px;height:2px;border-radius:2px;background:var(--accent)}
+.brow.drop-before::before{top:-2px}
+.brow.drop-after::after{bottom:-2px}
+.book-undo{display:flex;align-items:center;gap:8px;margin:0 8px 8px;padding:6px 8px 6px 10px;border-radius:8px;background:var(--panel-2);font-size:12px;color:var(--ink-2)}
+.book-undo span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.book-undo b{color:var(--ink);font-weight:600}
+.book-undo button{margin-left:auto;height:24px;flex:none}
+.book-foot{display:flex;gap:6px;padding:8px;border-top:1px solid var(--hair)}
+.book-foot button{flex:1}
+.rail .count{position:absolute;top:3px;right:5px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--panel-2);border:1px solid var(--hair-2);color:var(--ink-2);font-size:10px;line-height:14px;font-variant-numeric:tabular-nums}
+
 /* ─── play sheet drawer ─────────────────────────────────────────────── */
 .sheet{display:none;flex:none;width:320px;flex-direction:column;background:var(--panel);border-left:1px solid var(--hair);min-height:0}
 #app.sheet-open .sheet{display:flex}
@@ -346,6 +383,7 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
   .rail{top:132px}
   .pop{top:132px;width:min(344px,calc(100vw - 100px));max-height:calc(100% - 144px)}
   .sheet{position:absolute;right:0;top:0;bottom:0;z-index:var(--z-sheet);box-shadow:-20px 0 40px -20px oklch(0 0 0 / .8)}
+  .book{position:absolute;left:0;top:0;bottom:0;z-index:var(--z-sheet);box-shadow:20px 0 40px -20px oklch(0 0 0 / .8)}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
@@ -354,6 +392,30 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
 </head>
 <body>
 <div id="app">
+  <aside class="book" id="bookPanel" aria-label="Playbook">
+    <div class="book-head">
+      <input id="bookName" class="title" placeholder="Playbook name" spellcheck="false"
+        aria-label="Playbook name" autocomplete="off">
+      <button class="ghost icon" id="btnBookClose" aria-label="Close the playbook">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <div class="book-meta">
+      <input id="bookTeam" class="inline" placeholder="Team" aria-label="Team" autocomplete="off">
+      <span class="dot">&middot;</span>
+      <input id="bookSeason" class="inline pers" placeholder="Year" aria-label="Season" autocomplete="off"
+        inputmode="numeric">
+      <span class="count" id="bookCount"></span>
+    </div>
+    <div class="book-list" id="bookList" role="listbox" aria-label="Plays"></div>
+    <div class="book-undo" id="bookUndo" hidden>
+      <span>Deleted <b id="bookUndoName"></b></span><button id="btnUndelete">Undo</button>
+    </div>
+    <div class="book-foot">
+      <button id="btnNewPlay" title="Add a blank play after this one">New play</button>
+      <button id="btnBookLib" title="Add a concept from the library">From library</button>
+    </div>
+  </aside>
   <div class="work">
     <div class="canvas" id="canvas">
       <div class="stage-box" id="stageBox"><div id="stage"></div></div>
@@ -394,12 +456,15 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg>Play sheet</button>
           <div class="sep"></div>
-          <button id="btnImport" title="Paste a play JSON">Import</button>
+          <button id="btnImport" title="Paste a play or a playbook JSON">Import</button>
           <div class="menu-wrap">
             <button id="btnExport" title="Export the play" aria-haspopup="menu">Export
               <svg class="chev" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"
                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
             <div class="card menu" id="exportMenu" role="menu" hidden>
+              <button id="btnSavePlay" role="menuitem">This play (.json)</button>
+              <button id="btnSaveBook" role="menuitem">Whole playbook (.json)</button>
+              <button id="btnPrintBook" role="menuitem">Print playbook</button>
               <button id="btnSvg" role="menuitem">Download SVG</button>
               <button id="btnPng" role="menuitem">Download PNG</button>
               <button id="btnJson" role="menuitem">View JSON</button>
@@ -410,6 +475,11 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
       </div>
 
       <div class="card rail" id="rail" role="toolbar" aria-label="Build">
+        <button id="btnBook" title="Playbook (P)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2.5" y="2.5" width="11" height="3.2" rx="1"/><rect x="2.5" y="7.4" width="11" height="3.2" rx="1"/>
+            <path d="M3.5 13h9"/></svg>Plays<span class="count" id="bookBadge" hidden></span></button>
         <button data-pop="formation" title="Formation">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
             stroke-linecap="round" aria-hidden="true">
@@ -525,6 +595,7 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
 <script>
 const CATALOG = /*__CATALOG__*/{};
 const INITIAL_PLAY = /*__PLAY__*/null;
+const INITIAL_BOOK = /*__BOOK__*/null;
 
 /* ─── ink: the theme table is shared with svg.py through the catalog ────── */
 const QB_COLOR="#fbbf24", READ_TEXT="#fde68a";   // the turf accents, kept as fallbacks
@@ -1488,7 +1559,7 @@ function closePop(){ if (pop){ pop = null; renderPop(); } }
 
 function renderPop(){
   const box = $("pop");
-  for (const b of $("rail").querySelectorAll("button")){
+  for (const b of $("rail").querySelectorAll("button[data-pop]")){
     b.classList.toggle("on", b.dataset.pop === pop);
     if (b.dataset.pop === "layers")
       b.classList.toggle("dim", LAYER_KEYS.some(k => !layers[k]));
@@ -1568,7 +1639,7 @@ function popLibrary(box){
     <div class="pop-body">
     <input id="libSearch" placeholder="Search concepts" autocomplete="off" spellcheck="false" aria-label="Search concepts">
     <div class="list" id="libList"></div>
-    <p class="note">Loading a concept replaces the current play. Undo brings the old one back.</p></div>`;
+    <p class="note">A concept fills a blank play, or joins the book as a new one.</p></div>`;
   const list = $("libList"), input = $("libSearch");
   const draw = () => {
     list.innerHTML = "";
@@ -1580,7 +1651,7 @@ function popLibrary(box){
       shown++;
       list.appendChild(pick("row-pick" + (v.name === play.name ? " on" : ""),
         `<span class="nm">${esc(v.name)}</span><span class="meta">${esc(v.formation.name)} · ${esc(v.play_type)}</span>`,
-        () => { loadPlay(clone(v)); closePop(); }, v.description || v.name));
+        () => { openPlay(clone(v)); closePop(); }, v.description || v.name));
     }
     if (!shown) list.innerHTML = `<p class="note" style="margin:4px 0 0">Nothing matches.</p>`;
   };
@@ -1966,6 +2037,7 @@ function renderStage(){
 function renderAll(){
   syncFormation();
   renderBench(); renderInspector(); renderTitle(); renderMeta(); renderReads(); renderPop();
+  renderBook();
   fitScale(); renderStage();
   save();
 }
@@ -2037,17 +2109,348 @@ function loadPlay(obj){
   toast(`Loaded ${play.name}`);
 }
 
-/* ─── persistence ───────────────────────────────────────────────────────── */
-const LS_KEY = "chalktalk.designer.play";
+/* ─── the playbook ──────────────────────────────────────────────────────────
+   The designer always holds a book — `Playbook` in Python, the same JSON — and
+   `play` is whichever page is on the field. A book of one is just a play. */
+const LS_BOOK = "chalktalk.designer.book";
+const LS_BOOK_PREV = "chalktalk.designer.book.prev";
+const LS_BOOKPANEL = "chalktalk.designer.bookpanel";
+const LS_KEY = "chalktalk.designer.play";          // the single-play key older builds wrote
+let book = null, bookIndex = 0, bookOpen = false, lastDeleted = null;
+
+function normalizePlay(p){
+  p.tags = p.tags || []; p.alerts = p.alerts || [];
+  p.adjustments = p.adjustments || []; p.tempo = p.tempo || "normal";
+  return p;
+}
+function normalizeBook(b){
+  const plays = (b && Array.isArray(b.plays) ? b.plays : [])
+    .filter(p => p && p.assignments && p.formation).map(normalizePlay);
+  if (!plays.length) plays.push(newBlankPlay());
+  return {name: (b && b.name) || "Playbook", team: (b && b.team) || null,
+          season: (b && b.season) || null, plays};
+}
+function newBlankPlay(){
+  return newPlay(CATALOG.default_formation || Object.keys(CATALOG.formations)[0]);
+}
+const clampIndex = i => Math.max(0, Math.min(book.plays.length - 1, i | 0));
+
+// The play on the field is a page of the book; write it back before anything reads the book.
+function commit(){ if (book && play) book.plays[bookIndex] = play; }
+
+function exportOne(p){
+  const out = clone(p);
+  if (out.defense) delete out.defense._key;
+  return out;
+}
+function exportBook(){
+  commit();
+  return {name: book.name || "Playbook", team: book.team || null,
+          season: book.season || null, plays: book.plays.map(exportOne)};
+}
+function bookJson(){ return JSON.stringify(exportBook(), null, 2); }
+
 function save(){
-  try { localStorage.setItem(LS_KEY, JSON.stringify(exportPlay())); } catch(e){}
+  commit();
+  try { localStorage.setItem(LS_BOOK, JSON.stringify({book: exportBook(), index: bookIndex})); }
+  catch(e){}
 }
 function restore(){
   try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) return JSON.parse(raw);
+    const raw = localStorage.getItem(LS_BOOK);
+    if (raw){
+      const got = JSON.parse(raw);
+      if (got && got.book) return {book: normalizeBook(got.book), index: got.index | 0};
+    }
+    const old = localStorage.getItem(LS_KEY);       // a play saved by an older build
+    if (old) return {book: normalizeBook({plays: [JSON.parse(old)]}), index: 0};
   } catch(e){}
   return null;
+}
+function stashWorkingCopy(stored){
+  try { localStorage.setItem(LS_BOOK_PREV, JSON.stringify({book: stored.book, index: stored.index})); }
+  catch(e){}
+}
+function restorePrevious(){
+  try {
+    const raw = localStorage.getItem(LS_BOOK_PREV);
+    if (!raw) return toast("No previous working copy");
+    const got = JSON.parse(raw);
+    stashWorkingCopy({book: exportBook(), index: bookIndex});
+    book = normalizeBook(got.book); bookIndex = clampIndex(got.index); play = book.plays[bookIndex];
+    undoStack.length = 0; sel = null; selDef = null; selWp = -1;
+    renderAll(); toast(`Restored ${book.name}`);
+  } catch(e){ toast("Could not restore it"); }
+}
+
+function startBook(){
+  const stored = restore();
+  if (INITIAL_BOOK){
+    const incoming = normalizeBook(clone(INITIAL_BOOK));
+    if (stored && JSON.stringify(stored.book.plays.map(p => p.name)) !==
+                  JSON.stringify(incoming.plays.map(p => p.name))) stashWorkingCopy(stored);
+    book = incoming; bookIndex = 0;
+  } else if (INITIAL_PLAY && stored){
+    // Opened on one play with a book already in progress: it joins the book.
+    book = stored.book;
+    const at = book.plays.findIndex(p => p.name === INITIAL_PLAY.name);
+    if (at >= 0) bookIndex = at;
+    else { bookIndex = Math.min(book.plays.length, (stored.index | 0) + 1);
+           book.plays.splice(bookIndex, 0, normalizePlay(clone(INITIAL_PLAY))); }
+  } else if (INITIAL_PLAY){
+    book = normalizeBook({plays: [clone(INITIAL_PLAY)]}); bookIndex = 0;
+  } else if (stored){
+    book = stored.book; bookIndex = stored.index;
+  } else {
+    book = normalizeBook(null); bookIndex = 0;
+  }
+  bookIndex = clampIndex(bookIndex);
+  play = book.plays[bookIndex];
+}
+
+/* ─── pages ─────────────────────────────────────────────────────────────── */
+function gotoPlay(i){
+  commit();
+  i = clampIndex(i);
+  if (i === bookIndex && play === book.plays[i]) return;
+  bookIndex = i; play = book.plays[i];
+  undoStack.length = 0;                     // undo belongs to the page you are on
+  sel = null; selDef = null; selWp = -1;
+  renderAll();
+}
+function uniqueName(base){
+  const names = new Set(book.plays.map(p => p.name));
+  if (!names.has(base)) return base;
+  for (let n = 2; ; n++) if (!names.has(`${base} ${n}`)) return `${base} ${n}`;
+}
+function isPristine(p){
+  return /^New Play( \d+)?$/.test(p.name || "") && !p.defense && !p.description
+      && !p.assignments.some(a => (a.route && a.route.route_type !== "block") || a.motion_type || a.qb);
+}
+function addPlay(p){
+  commit();
+  const at = bookIndex + 1;
+  p.name = uniqueName(p.name || "New Play");   // two pages never share a name
+  book.plays.splice(at, 0, normalizePlay(p));
+  bookIndex = at; play = book.plays[at];
+  undoStack.length = 0; sel = null; selDef = null; selWp = -1;
+  if (book.plays.length === 2 && !bookOpen) setBook(true, true);
+  renderAll();
+}
+// From the library, the palette or a pasted play: fill a blank page, otherwise add one.
+function openPlay(obj){
+  if (!obj || !obj.assignments || !obj.formation) return toast("That doesn't look like a play");
+  if (isPristine(play)) return loadPlay(obj);
+  addPlay(obj); toast(`Added ${play.name}`);
+}
+function loadBook(obj){
+  stashWorkingCopy({book: exportBook(), index: bookIndex});
+  book = normalizeBook(obj); bookIndex = 0; play = book.plays[0];
+  undoStack.length = 0; sel = null; selDef = null; selWp = -1;
+  if (book.plays.length > 1) setBook(true, true);
+  renderAll(); toast(`Opened ${book.name} · ${book.plays.length} plays`);
+}
+function openAny(obj){
+  if (obj && Array.isArray(obj.plays)) return loadBook(obj);
+  openPlay(obj);
+}
+function newPagePlay(){
+  const p = newBlankPlay(); p.name = uniqueName("New Play");
+  addPlay(p);
+}
+function duplicatePlay(i){
+  commit();
+  const copy = clone(book.plays[i]);
+  copy.name = uniqueName(`${copy.name} copy`);
+  bookIndex = i; play = book.plays[i];
+  addPlay(copy); toast(`Duplicated as ${copy.name}`);
+}
+function deletePlay(i){
+  commit();
+  const [gone] = book.plays.splice(i, 1);
+  lastDeleted = {play: gone, index: i};
+  if (!book.plays.length) book.plays.push(newBlankPlay());
+  if (i < bookIndex) bookIndex--;
+  bookIndex = clampIndex(bookIndex); play = book.plays[bookIndex];
+  undoStack.length = 0; sel = null; selDef = null; selWp = -1;
+  renderAll();
+  clearTimeout(deletePlay._t);
+  deletePlay._t = setTimeout(() => { lastDeleted = null; renderBook(); }, 10000);
+}
+function undeletePlay(){
+  if (!lastDeleted) return;
+  commit();
+  const {play: p, index} = lastDeleted; lastDeleted = null;
+  const at = Math.min(index, book.plays.length);
+  book.plays.splice(at, 0, p);
+  bookIndex = at; play = p;
+  undoStack.length = 0; renderAll(); toast(`Restored ${p.name}`);
+}
+function movePlay(from, to){
+  commit();
+  to = Math.max(0, Math.min(book.plays.length - 1, to));
+  if (from === to) return;
+  const [p] = book.plays.splice(from, 1);
+  book.plays.splice(to, 0, p);
+  bookIndex = book.plays.indexOf(play);
+  renderAll();
+}
+
+function setBook(open, quiet){
+  bookOpen = open;
+  $("app").classList.toggle("book-open", open);
+  $("btnBook").classList.toggle("on", open);
+  try { localStorage.setItem(LS_BOOKPANEL, open ? "1" : "0"); } catch(e){}
+  if (!quiet){ renderBook(); fitScale(); renderStage(); }
+}
+
+/* ─── the panel ─────────────────────────────────────────────────────────── */
+// A page in miniature: the routes and the dots, in the current look.
+function playThumb(p){
+  const W = 96, H = 50, t = T();
+  const px = x => (x + 29) / 58 * W, py = y => H - ((y + 8) / 30) * H;
+  const los = py(0).toFixed(1);
+  let s = `<svg class="pthumb" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
+        + `<rect width="${W}" height="${H}" rx="3" fill="${t.field}"/>`
+        + `<line x1="0" y1="${los}" x2="${W}" y2="${los}" stroke="${t.los}" stroke-width="0.8"/>`;
+  for (const a of p.assignments){
+    if (!a.route || a.route.route_type === "block" || a.route.waypoints.length < 2) continue;
+    const pts = a.route.waypoints.map(w => { const [ax, ay] = wpAbs(a.player, w); return [px(ax), py(ay)]; });
+    const runner = a.is_ball_carrier || a.route.route_type === "run";
+    s += `<path d="${smoothPath(pts)}" fill="none" stroke="${runner ? t.run : t.route}" `
+       + `stroke-width="${runner ? 1.4 : 1}" stroke-linecap="round" opacity="0.95"/>`;
+  }
+  if (p.defense) for (const d of p.defense.players)
+    s += `<rect x="${(px(d.x) - 1.4).toFixed(1)}" y="${(py(d.y) - 1.4).toFixed(1)}" width="2.8" height="2.8" `
+       + `fill="${t.defense_fill}" stroke="${t.defense_stroke}" stroke-width="0.4"/>`;
+  for (const a of p.assignments)
+    s += `<circle cx="${px(a.player.x).toFixed(1)}" cy="${py(a.player.y).toFixed(1)}" r="1.7" `
+       + `fill="${t.offense_fill}" stroke="${t.offense_stroke}" stroke-width="0.4"/>`;
+  return s + "</svg>";
+}
+
+function renderBook(){
+  commit();
+  const n = book.plays.length;
+  $("bookBadge").textContent = n > 1 ? n : "";
+  $("bookBadge").hidden = n < 2;
+  $("btnSave").title = n > 1 ? `Download the playbook (${n} plays) as .json`
+                             : "Download this play as .json";
+  if (!bookOpen) return;
+
+  if (document.activeElement !== $("bookName")) $("bookName").value = book.name || "";
+  if (document.activeElement !== $("bookTeam")) $("bookTeam").value = book.team || "";
+  if (document.activeElement !== $("bookSeason")) $("bookSeason").value = book.season || "";
+  $("bookCount").textContent = `${bookIndex + 1} of ${n}`;
+
+  const list = $("bookList"); list.innerHTML = "";
+  book.plays.forEach((p, i) => {
+    const row = document.createElement("div");
+    row.className = "brow" + (i === bookIndex ? " on" : "");
+    row.tabIndex = 0; row.draggable = true; row.dataset.i = i;
+    row.setAttribute("role", "option"); row.setAttribute("aria-selected", i === bookIndex);
+    row.title = p.description || p.name;
+    const bits = [p.formation.name, p.play_type === "rpo" ? "RPO" : p.play_type];
+    if (p.install_day) bits.push(`day ${p.install_day}`);
+    row.innerHTML = `<span class="num">${i + 1}</span>${playThumb(p)}`
+      + `<span class="pmeta"><span class="nm">${esc(p.name || "Untitled")}</span>`
+      + `<span class="sub">${esc(bits.filter(Boolean).join(" · "))}</span></span>`
+      + `<span class="acts"><button type="button" data-act="dup" title="Duplicate" aria-label="Duplicate ${esc(p.name)}">`
+      + `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg></button>`
+      + `<button type="button" data-act="del" title="Delete" aria-label="Delete ${esc(p.name)}">`
+      + `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></span>`;
+    row.onclick = e => {
+      const act = e.target.closest("[data-act]");
+      if (act) return act.dataset.act === "dup" ? duplicatePlay(i) : deletePlay(i);
+      gotoPlay(i);
+    };
+    row.onkeydown = e => {
+      if (e.target !== row) return;
+      let handled = true;
+      if (e.key === "Enter" || e.key === " ") gotoPlay(i);
+      else if (e.altKey && e.key === "ArrowUp") { movePlay(i, i - 1); focusRow(i - 1); }
+      else if (e.altKey && e.key === "ArrowDown") { movePlay(i, i + 1); focusRow(i + 1); }
+      else if (e.key === "ArrowUp") focusRow(i - 1);
+      else if (e.key === "ArrowDown") focusRow(i + 1);
+      else if (e.key === "Delete") deletePlay(i);
+      else handled = false;
+      if (handled){ e.preventDefault(); e.stopPropagation(); }
+    };
+    row.ondragstart = e => { e.dataTransfer.setData("text/plain", String(i)); e.dataTransfer.effectAllowed = "move"; row.classList.add("dragging"); };
+    row.ondragend = () => { row.classList.remove("dragging"); clearDrops(); };
+    row.ondragover = e => {
+      e.preventDefault(); clearDrops();
+      const r = row.getBoundingClientRect();
+      row.classList.add(e.clientY < r.top + r.height / 2 ? "drop-before" : "drop-after");
+    };
+    row.ondrop = e => {
+      e.preventDefault();
+      const from = +e.dataTransfer.getData("text/plain");
+      const before = row.classList.contains("drop-before");
+      clearDrops();
+      let to = before ? i : i + 1;
+      if (from < to) to--;
+      movePlay(from, to);
+    };
+    list.appendChild(row);
+  });
+
+  const bar = $("bookUndo");
+  bar.hidden = !lastDeleted;
+  if (lastDeleted) $("bookUndoName").textContent = lastDeleted.play.name;
+  const on = list.querySelector(".brow.on");
+  if (on && on.scrollIntoView) on.scrollIntoView({block:"nearest"});
+}
+function clearDrops(){
+  for (const r of $("bookList").children) r.classList.remove("drop-before", "drop-after");
+}
+function focusRow(i){
+  const row = $("bookList").children[Math.max(0, Math.min(book.plays.length - 1, i))];
+  if (row) row.focus();
+}
+
+/* ─── saving and printing a book ────────────────────────────────────────── */
+function saveSmart(){
+  if (book.plays.length > 1) download(slug(book.name) + ".json", bookJson());
+  else download(slug(play.name) + ".json", playJson());
+}
+
+// Every page in the paper look, laid out to print — built here, no server involved.
+function printBook(){
+  commit();
+  const keep = {play, look, scale: SCALE, sel, selDef, selWp};
+  look = "paper"; SCALE = 14; sel = null; selDef = null; selWp = -1;
+  const pages = book.plays.map((p, i) => {
+    play = p;
+    const svg = renderSvg();
+    svg.querySelector("#ui").remove();
+    svg.removeAttribute("width"); svg.removeAttribute("height");
+    const notes = [p.protection, ...(p.alerts || []).map(a => "! " + a)].filter(Boolean).map(esc).join(" · ");
+    return `<figure><figcaption><b>${i + 1}.</b> ${esc(p.name || "Untitled")}</figcaption>${svg.outerHTML}`
+         + (p.description ? `<p>${esc(p.description)}</p>` : "")
+         + (notes ? `<p class="notes">${notes}</p>` : "") + `</figure>`;
+  });
+  ({play, look, sel, selDef, selWp} = keep); SCALE = keep.scale;
+  const meta = [book.team, book.season, `${book.plays.length} plays`].filter(Boolean).map(esc).join(" · ");
+  const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(book.name)}</title><style>
+    @page{margin:12mm}
+    body{margin:0;padding:16px 20px;color:#111;font:13px/1.4 Inter,"Segoe UI",Helvetica,Arial,sans-serif}
+    header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:14px}
+    h1{font-size:20px;margin:0;letter-spacing:-.01em}.meta{color:#6b6b66;font-size:12px}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+    figure{margin:0;padding:10px;border:1px solid #d4d4d0;border-radius:6px;break-inside:avoid}
+    figcaption{font-weight:600;margin-bottom:6px}figcaption b{color:#6b6b66;font-weight:600}
+    svg{width:100%;height:auto;display:block;border:1px solid #e4e4e0;border-radius:4px}
+    p{margin:6px 0 0;color:#444;font-size:11.5px}.notes{color:#b45309;font-weight:600}
+    .foot{margin-top:14px;color:#6b6b66;font-size:10px;text-align:right}
+    @media print{body{padding:0}}
+  </style></head><body><header><h1>${esc(book.name)}</h1><div class="meta">${meta}</div></header>
+  <div class="grid">${pages.join("")}</div><div class="foot">made with chalktalk</div>
+  <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script></body></html>`;
+  const url = URL.createObjectURL(new Blob([doc], {type:"text/html"}));
+  const win = window.open(url, "_blank");
+  if (!win) toast("The browser blocked the print window — allow pop-ups for this page");
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 /* ─── boot ──────────────────────────────────────────────────────────────── */
@@ -2099,12 +2502,22 @@ function commands(){
   add("Play", sheetOpen ? "Hide the play sheet" : "Show the play sheet", () => setSheet(!sheetOpen));
   add("Play", "Remove the defense", () => setDefense(null));
   add("Play", "Show every layer", () => { for (const k of LAYER_KEYS) layers[k] = true; saveLayers(); renderAll(); });
+  add("Book", bookOpen ? "Hide the playbook" : "Show the playbook", () => setBook(!bookOpen), "P");
+  add("Book", "New play", newPagePlay);
+  add("Book", "Duplicate this play", () => duplicatePlay(bookIndex));
+  add("Book", "Delete this play", () => deletePlay(bookIndex));
+  add("Book", "Next play", () => gotoPlay(bookIndex + 1), "]");
+  add("Book", "Previous play", () => gotoPlay(bookIndex - 1), "[");
   add("File", "Save play (.json)", () => download(slug(play.name) + ".json", playJson()));
+  add("File", "Save playbook (.json)", () => download(slug(book.name) + ".json", bookJson()));
+  add("File", "Print playbook", printBook);
+  add("File", "Restore the previous working copy", restorePrevious);
   add("File", "Download SVG", () => download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml"));
   add("File", "Download PNG", () => exportPng(2));
   add("File", "View JSON", () => openIo("JSON", playJson()));
-  add("File", "Import a play", () => openIo("Paste a play JSON", ""));
-  for (const v of Object.values(CATALOG.plays)) add("Load", v.name, () => loadPlay(clone(v)));
+  add("File", "Import a play or a playbook", () => openIo("Paste a play or a playbook JSON", ""));
+  book.plays.forEach((p, i) => { if (i !== bookIndex) add("Go to", `${i + 1}. ${p.name}`, () => gotoPlay(i)); });
+  for (const v of Object.values(CATALOG.plays)) add("Load", v.name, () => openPlay(clone(v)));
   for (const [k, v] of Object.entries(CATALOG.formations))
     add("Formation", `${v.name} (${v.personnel})`, () => { setFormation(k); toast(v.name); });
   for (const [k, v] of Object.entries(CATALOG.defenses)) add("Defense", v.name, () => setDefense(k));
@@ -2155,8 +2568,7 @@ function runCommand(c){ $("palette").close(); c.run(); }
 
 /* ─── wiring ────────────────────────────────────────────────────────────── */
 function boot(){
-  play = INITIAL_PLAY || restore()
-      || newPlay(CATALOG.default_formation || Object.keys(CATALOG.formations)[0]);
+  startBook();
   loadLayers(); loadLook();
 
   segment($("playTypeSeg"), [["pass","Pass"],["run","Run"],["rpo","RPO"],
@@ -2173,10 +2585,10 @@ function boot(){
   fillSelect($("sitHash"), [["L","Left"],["M","Middle"],["R","Right"]],
     play.situation?.hash_mark, "Any");
 
-  $("playName").oninput = e => { play.name = e.target.value; renderStage(); save();
+  $("playName").oninput = e => { play.name = e.target.value; renderStage(); save(); renderBook();
     document.title = (play.name ? play.name + " · " : "") + "Chalktalk"; };
   $("formationName").oninput = e => { play.formation.name = e.target.value;
-    e.target.style.width = Math.min(30, Math.max(9, e.target.value.length + 1)) + "ch"; renderStage(); save(); };
+    e.target.style.width = Math.min(30, Math.max(9, e.target.value.length + 1)) + "ch"; renderStage(); save(); renderBook(); };
   $("personnel").oninput = e => { play.formation.personnel = e.target.value; renderStage(); save(); };
   $("protection").oninput = e => { play.protection = e.target.value || null; save(); };
   $("alerts").oninput = e => {
@@ -2229,17 +2641,29 @@ function boot(){
   $("btnUndo").onclick = undo;
   $("btnSheet").onclick = () => setSheet(!sheetOpen);
   $("btnSheetClose").onclick = () => setSheet(false);
-  $("btnSave").onclick = () => download(slug(play.name) + ".json", playJson());
+  $("btnSave").onclick = saveSmart;
+  const closeMenu = () => { $("exportMenu").hidden = true; };
+  $("btnSavePlay").onclick = () => { closeMenu(); download(slug(play.name) + ".json", playJson()); };
+  $("btnSaveBook").onclick = () => { closeMenu(); download(slug(book.name) + ".json", bookJson()); };
+  $("btnPrintBook").onclick = () => { closeMenu(); printBook(); };
+  $("btnBook").onclick = () => setBook(!bookOpen);
+  $("btnBookClose").onclick = () => setBook(false);
+  $("btnNewPlay").onclick = newPagePlay;
+  $("btnBookLib").onclick = () => openPop("library");
+  $("btnUndelete").onclick = undeletePlay;
+  $("bookName").oninput = e => { book.name = e.target.value; save(); renderBook(); };
+  $("bookTeam").oninput = e => { book.team = e.target.value || null; save(); };
+  $("bookSeason").oninput = e => { const y = parseInt(e.target.value, 10); book.season = Number.isFinite(y) ? y : null; save(); };
   $("btnSvg").onclick = () => { $("exportMenu").hidden = true; download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml"); };
   $("btnJson").onclick = () => { $("exportMenu").hidden = true; openIo("JSON", playJson()); };
   $("btnPng").onclick = () => { $("exportMenu").hidden = true; exportPng(2); };
-  $("btnImport").onclick = () => openIo("Paste a play JSON", "");
+  $("btnImport").onclick = () => openIo("Paste a play or a playbook JSON", "");
   $("btnExport").onclick = () => { $("exportMenu").hidden = !$("exportMenu").hidden; };
 
-  for (const b of $("rail").querySelectorAll("button"))
+  for (const b of $("rail").querySelectorAll("button[data-pop]"))
     b.onclick = () => openPop(b.dataset.pop);
   document.addEventListener("pointerdown", e => {
-    if (!e.target.closest("#pop, #rail")) closePop();
+    if (!e.target.closest("#pop, #rail, #btnBookLib")) closePop();
     if (!e.target.closest(".menu-wrap")) $("exportMenu").hidden = true;
   });
 
@@ -2249,7 +2673,7 @@ function boot(){
     catch(e){ $("ioText").select(); document.execCommand("copy"); toast("Copied"); }
   };
   $("ioLoad").onclick = () => {
-    try { loadPlay(JSON.parse($("ioText").value)); $("ioDialog").close(); }
+    try { openAny(JSON.parse($("ioText").value)); $("ioDialog").close(); }
     catch(e){ toast("Invalid JSON"); }
   };
 
@@ -2264,8 +2688,12 @@ function boot(){
   document.addEventListener("keydown", e => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){ e.preventDefault(); openPalette(); return; }
     if (e.target && e.target.matches && e.target.matches("input,textarea,select")) return;
+    if (e.target && e.target.closest && e.target.closest(".brow")) return;   // the list has its own keys
     if ((e.ctrlKey||e.metaKey) && e.key === "z"){ e.preventDefault(); undo(); }
     else if (e.key === "f" || e.key === "F"){ flipPlay(); }
+    else if (e.key === "p" || e.key === "P"){ setBook(!bookOpen); }
+    else if (e.key === "["){ gotoPlay(bookIndex - 1); }
+    else if (e.key === "]"){ gotoPlay(bookIndex + 1); }
     else if (e.key === "Escape"){
       if (pop) return closePop();
       if (!$("exportMenu").hidden) return ($("exportMenu").hidden = true);
@@ -2287,6 +2715,7 @@ function boot(){
 
   window.addEventListener("resize", () => { fitScale(); renderStage(); });
   try { setSheet(localStorage.getItem(LS_SHEET) === "1", true); } catch(e){}
+  try { setBook(localStorage.getItem(LS_BOOKPANEL) === "1" || (INITIAL_BOOK && book.plays.length > 1), true); } catch(e){}
   renderAll();
 }
 

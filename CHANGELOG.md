@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Designer
+- Playbook mode. The designer holds a book — the same `Playbook` JSON Python
+  reads — with a panel of live thumbnails: add, duplicate, delete with undo,
+  drag to reorder, `[` and `]` to turn pages. Library concepts fill a blank page
+  or join the book. Save writes the book once it has more than one play; Export
+  offers the play, the book, and a client-side Print playbook in the paper look.
+- Opening a different book stashes the previous working copy; the command
+  palette restores it.
+
+### Command line
+- `chalk design book.json` opens a whole playbook.
+- `chalk book book.json` prints a playbook file to PDF or HTML, paper by default.
+
 ## 0.4.0 — 2026-09-16
 
 ### Designer

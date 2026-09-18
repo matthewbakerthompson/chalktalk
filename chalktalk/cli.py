@@ -246,24 +246,46 @@ def cmd_callsheet(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_book(args: argparse.Namespace) -> int:
+    """Turn a playbook file — from the designer or from Python — into pages."""
+    book = Playbook.load(args.file)
+    out = args.out or os.path.splitext(args.file)[0] + ".pdf"
+    if out.endswith(".html"):
+        book.save_html(out, level=args.level, theme=args.theme or "paper")
+        print(f"Saved: {os.path.abspath(out)}  ({len(book.plays)} plays)")
+    else:                                   # the exporter reports its own save
+        book.save_pdf(out, plays_per_page=args.per_page, level=args.level,
+                      theme=args.theme or "paper")
+    return 0
+
+
 def cmd_design(args: argparse.Namespace) -> int:
     """Open the visual designer, optionally on an existing play."""
     from .designer import open_in_browser, write
 
     play = None
+    playbook = None
     if args.play:
         if os.path.exists(args.play):
             with open(args.play, encoding="utf-8") as fh:
-                play = Play.from_json(fh.read())
+                raw = fh.read()
+            import json
+            if isinstance(json.loads(raw).get("plays"), list):
+                playbook = Playbook.from_json(raw)       # a whole book
+            else:
+                play = Play.from_json(raw)
         else:
             play = _build_play(args.play, args.formation, args.defense, args.flip,
                                getattr(args, "coverage", None))
 
     out = args.out or os.path.join("output", "designer.html")
-    path = write(out, play=play, level=args.level, theme=args.theme)
+    path = write(out, play=play, level=args.level, theme=args.theme,
+                 playbook=playbook)
     print(f"Designer: {path}")
     if play is not None:
         print(f"Loaded:   {play.call}")
+    if playbook is not None:
+        print(f"Loaded:   {playbook.name} ({len(playbook.plays)} plays)")
     if not args.no_open:
         open_in_browser(path)
     return 0
@@ -371,9 +393,19 @@ def build_parser() -> argparse.ArgumentParser:
     cs.add_argument("--wristband", help="also write a wristband .html")
     cs.set_defaults(func=cmd_callsheet)
 
+    bk = sub.add_parser("book", help="print a playbook .json to PDF or HTML")
+    bk.add_argument("file", help="a playbook .json saved from the designer or Python")
+    bk.add_argument("-o", "--out", help="output file (.pdf or .html); default: next to the input")
+    bk.add_argument("--per-page", type=int, default=2, choices=[1, 2, 4],
+                    help="plays per PDF page")
+    bk.add_argument("--theme", choices=["turf", "paper"],
+                    help="default: paper, because it prints")
+    bk.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
+    bk.set_defaults(func=cmd_book)
+
     des = sub.add_parser("design", help="open the visual play designer")
     des.add_argument("play", nargs="?",
-                     help="a saved play .json, or a catalog play name")
+                     help="a saved play or playbook .json, or a catalog play name")
     des.add_argument("-o", "--out", help="where to write the designer HTML")
     des.add_argument("-f", "--formation", help="override the formation")
     des.add_argument("-d", "--defense", help="draw a defensive look")

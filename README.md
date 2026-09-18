@@ -315,6 +315,7 @@ Two things worth knowing:
 chalk design                          # a blank formation
 chalk design mesh_concept             # start from a catalog concept
 chalk design my_play.json             # keep editing a saved play
+chalk design week3.json               # or a whole playbook
 chalk design --level hs --out designer.html --no-open
 ```
 
@@ -340,8 +341,30 @@ no CDN, no build step — and opens it. The field is the window and the tools fl
 - <kbd>Ctrl</kbd>+<kbd>K</kbd> opens a command palette: every concept,
   formation, look, coverage and scheme is two keystrokes away. <kbd>F</kbd>
   flips the play, <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.
-- **Save** the play as JSON and open it right back up in Python; **Export**
-  gives you the SVG or a 2x PNG.
+- **Plays** opens the playbook: every page with a live thumbnail. Add a blank
+  play or one from the library, duplicate, delete (with undo), drag to reorder,
+  <kbd>[</kbd> and <kbd>]</kbd> to turn pages. A concept from the library fills a
+  blank page or joins the book as a new one.
+- **Save** writes the playbook once it has more than one play, otherwise the
+  play; **Export** offers either, plus the SVG, a 2x PNG, and **Print playbook**,
+  which lays every page out in the paper look and opens the print dialog.
+
+The file the designer saves is the same JSON Python reads, so a book drawn in
+the browser prints from the command line and loads in a script:
+
+```python
+book = Playbook.load("week3.json")
+book.save_pdf("week3.pdf", plays_per_page=4, theme="paper")
+```
+
+```bash
+chalk book week3.json                       # week3.pdf, two to a page, paper
+chalk book week3.json -o week3.html
+```
+
+The browser keeps a working copy of the book, not a document store — save the
+file. Opening a different book stashes the old working copy; the command
+palette can bring it back.
 
 Routes are authored as if the player is on the right side of the ball and
 mirrored for left-side players. The designer and the Python renderer share that
@@ -417,6 +440,7 @@ chalk design --theme paper
 
 ```bash
 chalk design                         # visual play designer
+chalk book week3.json                # a designer playbook to PDF or HTML
 chalk list plays                     # or formations | defenses | routes | series | schemes | blocks | coverages | qb
 chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs --theme paper
 chalk show mesh_concept              # assignments as text
@@ -473,13 +497,11 @@ a clean SVG render, and every adjustment for immutability and JSON round-trippin
 
 ## Roadmap
 
-- Playbook mode in the designer: open a whole book, reorder it, export it
 - Self-scout: tendency reports by down, distance, hash, personnel and formation
 - A concept taxonomy for the pass game, so a call sheet can be checked for the
   answers it is missing
 - Coverage *checks* against trips and bunch, the way modern two-high defenses
   actually adjust, rather than one call for every formation
-- Playbook-level editing in the designer (multiple plays, drag to reorder)
 - A concept taxonomy for the pass game — horizontal, vertical and three-level
   stretches, isolation concepts — so plays are classified by what they attack
 - Pressure checks and hot answers as first-class objects next to alerts
