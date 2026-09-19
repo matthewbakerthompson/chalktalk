@@ -7,7 +7,8 @@ JSON, and render to SVG, PDF, and printable call sheets.
 Quick-start
 -----------
 from chalktalk import adjustments as A
-from chalktalk.catalog import passing, running, redzone
+from chalktalk.catalog import (passing, running, redzone,
+                               playaction, screens, rpo)
 from chalktalk.templates import routes as R, defense as D
 
 mesh = passing.mesh_concept()
@@ -37,7 +38,8 @@ from .models import (
 from . import templates, catalog, adjustments
 from .adjustments import Adjustment
 from .builder import PlayBuilder, play as build_play
-from .series import Series, SeriesBuilder, Role, series
+from .series import (Series, SeriesBuilder, Role, series,
+                     SeriesSet, SeriesSetBuilder, series_set)
 from .script import Script, ScriptEntry, Period, PracticeScript
 from .callsheet import CallSheet, Wristband, STANDARD_BUCKETS
 from .renderer import SVGRenderer, PDFExporter
@@ -53,10 +55,11 @@ __all__ = [
     "PlayBuilder", "build_play",
     "Adjustment", "adjustments",
     "Series", "SeriesBuilder", "Role", "series",
+    "SeriesSet", "SeriesSetBuilder", "series_set",
     "Script", "ScriptEntry", "Period", "PracticeScript",
     "CallSheet", "Wristband", "STANDARD_BUCKETS",
     "SVGRenderer", "PDFExporter",
     "templates", "catalog",
 ]
 
-__version__ = "0.4.0"
+__version__ = "0.6.0"

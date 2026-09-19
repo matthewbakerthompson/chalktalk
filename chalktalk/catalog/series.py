@@ -15,7 +15,7 @@ from ..series import series, Series
 from ..models import situation as S
 from .. import adjustments as A
 from ..templates import routes as R, formations as F
-from . import passing, running, redzone
+from . import passing, playaction, redzone, rpo, running, screens
 
 
 def inside_zone_series() -> Series:
@@ -43,7 +43,7 @@ def inside_zone_series() -> Series:
         .shot(passing.four_verticals().adjust(A.PLAY_ACTION("RB")),
               tell="Single-high with the FS cheating into the box",
               situation=S.Situation(down=1, distance=10))
-        .answer(passing.rpo_bubble(),
+        .answer(rpo.bubble(),
                 tell="Overhang defender playing inside the box, no leverage",
                 situation=S.FIRST_TEN)
         .tag("run", "zone", "install-week-1")
@@ -195,8 +195,104 @@ def two_minute_series() -> Series:
     )
 
 
+def play_action_series() -> Series:
+    """Everything that starts as a run and finishes downfield."""
+    return (
+        series("Play Action Series",
+               "The run game has to be honest first. Once it is, these are "
+               "the plays that make believing it expensive.")
+        .base(playaction.pa_boot(),
+              note="Zone action right, quarterback out the back door left",
+              situation=S.Situation(down=2, distance=6))
+        .complement(playaction.pa_waggle(),
+                    tell="They chase the boot; run the same picture off power",
+                    situation=S.Situation(down=1, distance=10))
+        .constraint(playaction.naked(),
+                    tell="The backside end is closing on the mesh every time",
+                    situation=S.Situation(down=2, distance=4))
+        .play_action(playaction.pa_cross(),
+                     tell="Linebackers stepping downhill on the first step",
+                     situation=S.Situation(down=1, distance=10))
+        .shot(playaction.pa_shot(),
+              tell="A safety rotating into the box on run action",
+              situation=S.Situation(down=1, distance=10))
+        .answer(playaction.pa_dagger(),
+                tell="Two high and squatting; run the seam off the safety",
+                situation=S.Situation(down=2, distance=8))
+        .trick(playaction.pa_keeper(),
+               tell="They have stopped respecting the quarterback as a runner",
+               situation=S.THIRD_SHORT)
+        .tag("play-action", "movement", "install-week-2")
+        .build()
+    )
+
+
+def screen_series() -> Series:
+    """Answers for pressure, and for a front that is winning."""
+    return (
+        series("Screen Series",
+               "When the rush is beating protection, stop blocking it and use "
+               "it instead.")
+        .base(screens.rb_slip(),
+              note="Show the drop, release three linemen, throw behind the rush",
+              situation=S.Situation(down=2, distance=8))
+        .complement(screens.middle(),
+                    tell="Ends rushing wide and up the field",
+                    situation=S.THIRD_LONG)
+        .constraint(screens.bubble_screen(),
+                    tell="Light box with the overhang inside the slot",
+                    situation=S.FIRST_TEN)
+        .answer(screens.tunnel(),
+                tell="Corners playing hard outside leverage",
+                situation=S.Situation(down=2, distance=5))
+        .answer(screens.jailbreak(),
+                tell="Everybody sprinting upfield on the snap",
+                situation=S.THIRD_LONG)
+        .trick(screens.te_leak(),
+               tell="They have seen the other five and are jumping them",
+               situation=S.Situation(down=3, distance=4))
+        .tag("screen", "pressure-answer", "install-week-3")
+        .build()
+    )
+
+
+def short_yardage_series() -> Series:
+    """Third and one, fourth and one, and the plays that have to work."""
+    return (
+        series("Short Yardage Series",
+               "No space, no time, and everybody in the stadium knows it is "
+               "coming. Win with movement and leverage instead of surprise.")
+        .base(redzone.qb_sneak(),
+              note="The highest-percentage play in football; use it first",
+              situation=S.Situation(down=3, distance=1))
+        .complement(running.lead_iso(),
+                    tell="They are pinching the A-gaps to stop the sneak",
+                    situation=S.Situation(down=3, distance=2))
+        .constraint(running.toss_sweep(),
+                    tell="Everybody crowding the middle of the formation",
+                    situation=S.Situation(down=3, distance=2))
+        .constraint(running.trap(),
+                    tell="An interior lineman shooting the gap on the snap",
+                    situation=S.Situation(down=4, distance=1))
+        .complement(redzone.goal_line_power(),
+                    tell="Heavy personnel and a two-back look",
+                    situation=S.GOAL_LINE)
+        .play_action(playaction.pa_keeper(),
+                     tell="Linebackers with their eyes in the backfield",
+                     situation=S.Situation(down=3, distance=1))
+        .shot(redzone.fade_corner(),
+              tell="Nine in the box and single coverage outside",
+              situation=S.Situation(down=4, distance=1))
+        .tag("short-yardage", "goal-line", "run", "install-week-2")
+        .build()
+    )
+
+
 ALL_SERIES = {
     "inside_zone": inside_zone_series,
+    "play_action": play_action_series,
+    "screen": screen_series,
+    "short_yardage": short_yardage_series,
     "power_counter": power_counter_series,
     "mesh": mesh_series,
     "sprint_out": sprint_out_series,
@@ -212,6 +308,7 @@ def all_series() -> list[Series]:
 
 __all__ = [
     "inside_zone_series", "power_counter_series", "mesh_series",
+    "play_action_series", "screen_series", "short_yardage_series",
     "sprint_out_series", "red_zone_series", "two_minute_series",
     "ALL_SERIES", "all_series",
 ]

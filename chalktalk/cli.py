@@ -17,7 +17,8 @@ import sys
 from typing import Callable, Optional
 
 from . import __version__
-from .catalog import passing, running, redzone, series as series_catalog
+from . import catalog as _catalog
+from .catalog import series as series_catalog, systems as systems_catalog
 from .templates import (blocking as BL, coverages as CV, defense as D,
                         formations as F, qb as QB, routes as R, schemes as SC)
 from .models.play import Play, Playbook
@@ -37,10 +38,7 @@ def _public_callables(module) -> dict[str, Callable]:
 
 
 def play_registry() -> dict[str, Callable[[], Play]]:
-    reg: dict[str, Callable[[], Play]] = {}
-    for mod in (passing, running, redzone):
-        reg.update(_public_callables(mod))
-    return reg
+    return _catalog.play_builders()
 
 
 def formation_registry() -> dict[str, Callable]:
@@ -119,6 +117,13 @@ def cmd_list(args: argparse.Namespace) -> int:
             mesh = "mesh" if plan.mesh_point else "    "
             print(f"  {name:<12} {mesh}  {plan.rule or ''}")
         print(f"{chr(10)}{len(QB.ACTIONS)} quarterback actions")
+    elif what in ("systems", "system", "sets"):
+        for key, fn in systems_catalog.ALL_SYSTEMS.items():
+            s_ = fn()
+            b = s_.balance()
+            print(f"  {key:<16} {b['series']} series  {b['plays']:>3} plays  "
+                  f"{b['run_pct']:>3}% run  {len(s_.gaps())} gaps   {s_.name}")
+        print(f"{chr(10)}{len(systems_catalog.ALL_SYSTEMS)} systems")
     elif what in ("series",):
         for key, fn in series_catalog.ALL_SERIES.items():
             s = fn()
@@ -126,7 +131,8 @@ def cmd_list(args: argparse.Namespace) -> int:
         print(f"\n{len(series_catalog.ALL_SERIES)} series")
     else:
         raise SystemExit("list what? plays | formations | defenses | routes | "
-                         "series | schemes | blocks | coverages | qb")
+                         "series | systems | schemes | blocks | "
+                         "coverages | qb")
     return 0
 
 
@@ -206,6 +212,46 @@ def cmd_series(args: argparse.Namespace) -> int:
         s.render_all(args.out)
         s.to_playbook().save(os.path.join(args.out, "series.json"))
         print(f"\nWrote {len(s)} diagrams + {html_path}")
+    return 0
+
+
+def _system_by_key(key: str):
+    reg = systems_catalog.ALL_SYSTEMS
+    if key in reg:
+        return reg[key]()
+    matches = [k for k in reg if key.lower() in k.lower()]
+    if len(matches) == 1:
+        return reg[matches[0]]()
+    raise SystemExit(f"unknown system '{key}'. Try: chalk list systems")
+
+
+def cmd_system(args: argparse.Namespace) -> int:
+    """Describe a series set, and optionally print the whole install."""
+    system = _system_by_key(args.name)
+    print(system.describe())
+
+    if args.balance:
+        b = system.balance()
+        print()
+        print("Answers off each base")
+        for name, answers in b["answers_per_base"].items():
+            print(f"  {answers:>2}  {name}")
+        print()
+        print("Personnel:", ", ".join(f"{k}: {v}"
+                                      for k, v in sorted(b["personnel"].items())))
+
+    if args.out:
+        os.makedirs(args.out, exist_ok=True)
+        system.save_html(os.path.join(args.out, "install.html"))
+        system.to_call_sheet().save_html(os.path.join(args.out, "call_sheet.html"))
+        with open(os.path.join(args.out, "practice.html"), "w",
+                  encoding="utf-8") as fh:
+            fh.write(system.to_practice(week=args.week).to_html())
+        system.to_playbook().save_pdf(os.path.join(args.out, "playbook.pdf"),
+                                      plays_per_page=4)
+        system.save(os.path.join(args.out, "system.json"))
+        system.render_all(os.path.join(args.out, "diagrams"))
+        print(f"{chr(10)}Wrote the install to {os.path.abspath(args.out)}")
     return 0
 
 
@@ -344,7 +390,7 @@ def build_parser() -> argparse.ArgumentParser:
     lst = sub.add_parser("list", help="list catalog contents")
     lst.add_argument("what",
                      help="plays | formations | defenses | routes | series | "
-                          "schemes | blocks | coverages | qb")
+                          "schemes | blocks | coverages | qb | systems")
     lst.set_defaults(func=cmd_list)
 
     ren = sub.add_parser("render", help="render one play to SVG/PDF/JSON")
@@ -383,6 +429,14 @@ def build_parser() -> argparse.ArgumentParser:
     scr.add_argument("--hashes", action="store_true", help="alternate hash marks")
     scr.add_argument("-o", "--out", help="output .html or .csv")
     scr.set_defaults(func=cmd_script)
+
+    sysp = sub.add_parser("system", help="describe or export a series set")
+    sysp.add_argument("name")
+    sysp.add_argument("--out", help="directory for the install book and sheets")
+    sysp.add_argument("--week", type=int, help="only this install week")
+    sysp.add_argument("--balance", action="store_true",
+                      help="show answers per base and personnel spread")
+    sysp.set_defaults(func=cmd_system)
 
     cs = sub.add_parser("callsheet", help="build a call sheet from series")
     cs.add_argument("series", nargs="+")

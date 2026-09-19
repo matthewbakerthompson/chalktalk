@@ -39,7 +39,7 @@ def _uppercase_builders(module) -> dict:
 
 def catalog() -> dict:
     """Everything the browser app needs, as plain JSON-able data."""
-    from ..catalog import passing, redzone, running
+    from .. import catalog as play_catalog
     from ..models.field import FIELDS
     from ..templates import (blocking as BL, coverages as CV, defense as D,
                              formations as F, qb as QB, routes as R,
@@ -48,12 +48,8 @@ def catalog() -> dict:
     from ..adjustments import _MOTION_PRESETS
     from ..renderer.theme import LAYERS, themes_json
 
-    plays: dict[str, dict] = {}
-    for module in (passing, running, redzone):
-        for name, fn in inspect.getmembers(module, inspect.isfunction):
-            if name.startswith("_") or fn.__module__ != module.__name__:
-                continue
-            plays[name] = fn().model_dump(mode="json")
+    plays = {name: play.model_dump(mode="json")
+             for name, play in play_catalog.all_plays().items()}
 
     return {
         "fields": {

@@ -20,8 +20,8 @@ def _catalog_functions(module):
             if not name.startswith("_") and fn.__module__ == module.__name__]
 
 
-ALL_PLAY_FNS = (_catalog_functions(passing) + _catalog_functions(running)
-                + _catalog_functions(redzone))
+from chalktalk import catalog as _catalog          # noqa: E402
+ALL_PLAY_FNS = list(_catalog.play_builders().values())
 ALL_FORMATIONS = [fn for name, fn in inspect.getmembers(F, inspect.isfunction)
                   if name.isupper()]
 ALL_DEFENSES = [fn for name, fn in inspect.getmembers(D, inspect.isfunction)

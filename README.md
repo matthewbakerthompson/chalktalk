@@ -69,11 +69,15 @@ The designer has none — it is one HTML file with no network calls.
 
 | | |
 |---|---|
-| **32 formations** | Shotgun, pistol, I-form, empty, bunch, trips, quads, wildcat, jumbo, goal line |
+| **40 formations** | Shotgun, pistol, I-form, empty, bunch, trips, quads, wildcat, jumbo, goal line |
 | **23 defensive looks** | 4-3, 3-4, nickel, dime, quarter, bear, 46, fire zone, cover-2 Tampa, goal line |
 | **30 named routes** | Full route tree plus red-zone specialties (fade, back-shoulder, sail, bubble) |
-| **37 stock plays** | Mesh, smash, flood, levels, snag, four verts, inside/outside zone, power, counter, RPOs |
-| **6 scripted series** | Inside zone, power/counter, mesh, sprint-out, red zone, two-minute |
+| **54 stock plays** | Mesh, smash, flood, levels, snag, four verts, inside/outside zone, power, counter |
+| **Play action & movement** | Boot, waggle, naked, keeper, dagger, and max-protect shot plays |
+| **Screen game** | RB slip, tunnel, bubble, jailbreak, middle, TE leak |
+| **RPO family** | Bubble, glance, slant, pop, and a gap-scheme arrow — each reading a different defender |
+| **9 scripted series** | Inside zone, power/counter, mesh, play action, screens, short yardage, sprint-out, red zone, two-minute |
+| **4 series sets** | Whole offenses: install order, one practice script, one call sheet, balance and gap checks |
 | **12 quarterback actions** | Drops, play action, boot, sprint, mesh, handoff, draw, pitch, option, keep, sneak — with read progressions |
 | **10 coverages + fronts** | Cover 0-6, Tampa 2, fire zone, zero blitz, line games — with zone drops, man match-ups and blitz paths |
 | **14 blocking schemes** | Inside/outside zone, power, counter, trap, iso, plus slide, half-slide, big-on-big, sprint and boot protections |
@@ -89,13 +93,20 @@ The designer has none — it is one HTML file with no network calls.
 ### 1. Formations and plays
 
 ```python
-from chalktalk.catalog import passing, running, redzone
+from chalktalk.catalog import passing, running, redzone, playaction, screens, rpo
 from chalktalk.templates import formations as F
 
 iz = running.inside_zone()                              # stock play
 iz_gun = running.inside_zone(formation=F.GUN_DOUBLES()) # same concept, new look
 smash_left = passing.smash().mirror()
+
+boot = playaction.pa_boot()      # zone action right, quarterback out the left
+slip = screens.rb_slip()         # let the rush come, throw behind it
+glance = rpo.glance()            # read the safety who fills
 ```
+
+`catalog.all_plays()` hands you every concept at once, keyed by name — that is
+what the CLI and the designer read, so anything in the catalog is everywhere.
 
 Or build your own with the fluent builder:
 
@@ -161,7 +172,56 @@ iz.to_script(reps=2)        # practice script
 iz.render_all("out/iz")     # one SVG per play
 ```
 
-Six stock series ship in `chalktalk.catalog.series`.
+Nine stock series ship in `chalktalk.catalog.series`.
+
+### Series sets
+
+A series answers one question. An offense is several of them, installed in an
+order, repped together and called off one sheet — that is a **series set**.
+
+```python
+from chalktalk.series import series_set
+from chalktalk.catalog import series as SR, systems
+
+system = (
+    series_set("Base Offense")
+    .add(SR.inside_zone_series(), install_week=1)
+    .add(SR.mesh_series(), install_week=1)
+    .add(SR.power_counter_series(), install_week=2)
+    .add(SR.play_action_series(), install_week=2)
+    .team("Riverside HS", 2026)
+    .build()
+)
+
+system.install(weeks=4)     # bases first, answers as the weeks go on
+system.to_practice(week=1)  # one period per series
+system.to_call_sheet()      # every play, bucketed by situation
+system.balance()            # run/pass, personnel, answers per base
+system.gaps()               # what the system cannot answer yet
+system.save_html("install.html")
+```
+
+```bash
+chalk list systems
+chalk system pro_style --balance
+chalk system base_offense --out out/install
+```
+
+`install()` puts **every base in before anybody's constraints** — a constraint
+installed before the play it constrains teaches nothing.
+
+`gaps()` is the part worth arguing about. It does not check style; it reports
+the holes a defensive coordinator finds on Sunday:
+
+```
+Gaps
+  - Mesh Series: nothing that goes over the top
+  - Two-Minute Series: no constraint on the base
+  - the whole set is 23% run / 74% pass
+```
+
+Four stock systems ship in `chalktalk.catalog.systems` — base offense, spread,
+pro style, and a one-week game plan.
 
 ### 4. Scripts, call sheets, wristbands
 
@@ -449,7 +509,8 @@ chalk design --theme paper
 ```bash
 chalk design                         # visual play designer
 chalk book week3.json                # a designer playbook to PDF or HTML
-chalk list plays                     # or formations | defenses | routes | series | schemes | blocks | coverages | qb
+chalk list plays                     # or formations | defenses | routes | series | systems | schemes | blocks | coverages | qb
+chalk system base_offense --out out/install   # the whole install book
 chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs --theme paper
 chalk show mesh_concept              # assignments as text
 chalk series mesh --out out/mesh_series

@@ -61,13 +61,14 @@ def GUN(steps: int = 3, reads: Optional[Sequence[str]] = None,
 
 
 def SCREEN(direction: int = 1, back: str = "RB",
-           reads: Optional[Sequence[str]] = None) -> QBPlan:
+           reads: Optional[Sequence[str]] = None,
+           rule: Optional[str] = None) -> QBPlan:
     """Retreat, invite the rush, and deliver it late."""
     d = _d(direction)
     return QBPlan(
         action=QBAction.SCREEN, depth=5.0, direction=d, mesh_with=back,
         reads=_reads(reads) or [back],
-        rule="Sell the drop, let them come, throw over the rush",
+        rule=rule or "Sell the drop, let them come, throw over the rush",
         path=_pts((0, 0), (-d * 0.8, -2.6), (-d * 1.4, -5.0)),
     )
 
@@ -98,6 +99,7 @@ def BOOT(direction: int = 1, back: str = "RB",
         action=QBAction.BOOT, depth=5.0, direction=d, mesh_with=back,
         reads=_reads(reads), rule=rule or "Flat to the edge, high-low the corner",
         path=_pts((0, 0), (-d * 1.5, -1.2), (d * 2.0, -3.2), (d * 7.0, -3.6)),
+        mesh_at=Point(x=-d * 1.5, y=-1.2),
     )
 
 

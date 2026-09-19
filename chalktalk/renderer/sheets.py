@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from ..callsheet import CallSheet, Wristband
     from ..script import Script, PracticeScript
     from ..models.play import Play, Playbook
-    from ..series import Series
+    from ..series import Series, SeriesSet
 
 
 _CSS = """
@@ -288,5 +288,75 @@ def series_html(series: "Series", columns: int = 2, scale: float = 9.0,
     return _page(series.name, body)
 
 
+
+
+def series_set_html(series_set: "SeriesSet", columns: int = 2,
+                    scale: float = 9.0, level: Optional[str] = None,
+                    theme: str = "paper") -> str:
+    """
+    The install book: every series in the set, week by week, base play first
+    with its answers underneath — and the gaps listed at the end, because the
+    holes are the part worth arguing about.
+    """
+    balance = series_set.balance()
+    blocks: list[str] = []
+
+    for week, series_list in series_set.by_week().items():
+        blocks.append(f'<div class="week"><h2>Week {week}</h2></div>')
+        for series in series_list:
+            cards = []
+            for entry in series.sorted().entries:
+                tell = (f'<div class="note"><b>{_e(entry.role.display)}</b>'
+                        + (f' &mdash; {_e(entry.tell or entry.note)}'
+                           if (entry.tell or entry.note) else "") + "</div>")
+                cards.append(_play_card(entry.play, scale, extra=tell,
+                                        level=level, theme=theme))
+            head = (f'<div class="series-head"><h3>{_e(series.name)}</h3>'
+                    f'<span class="tag">{len(series)} plays</span></div>')
+            sub = (f'<div class="note">{_e(series.description)}</div>'
+                   if series.description else "")
+            blocks.append(
+                f'<div class="series">{head}{sub}'
+                f'<div class="cards" style="grid-template-columns:'
+                f'repeat({columns},1fr)">{"".join(cards)}</div></div>'
+            )
+
+    chips = [f"{balance['series']} series", f"{balance['plays']} plays",
+             f"{balance['run_pct']}% run", f"{balance['pass_pct']}% pass"]
+    chips += [f"{k} pers: {v}" for k, v in sorted(balance["personnel"].items())]
+    chip_html = ('<div class="chips">'
+                 + "".join(f'<span class="chip">{_e(c)}</span>' for c in chips)
+                 + "</div>")
+
+    gaps = series_set.gaps()
+    gap_html = ""
+    if gaps:
+        gap_html = (
+            '<div class="gaps"><h2>Gaps</h2><ul>'
+            + "".join(f"<li>{_e(note)}</li>" for note in gaps)
+            + "</ul></div>"
+        )
+
+    extra_css = """
+.week h2{background:var(--ink);color:var(--paper);padding:4px 8px;
+  border-left:none;margin:18px 0 10px;border-radius:3px}
+.series{break-inside:avoid;margin-bottom:18px}
+.series-head{display:flex;align-items:baseline;gap:8px;
+  border-bottom:1px solid var(--line);padding-bottom:3px;margin-bottom:6px}
+.series-head h3{font-size:14px;margin:0}
+.gaps{margin-top:20px;border:1px solid var(--line);border-radius:6px;
+  padding:10px 14px;break-inside:avoid}
+.gaps h2{border:none;margin:0 0 4px}
+.gaps ul{margin:0;padding-left:18px;color:var(--muted);font-size:12px}
+.gaps li{margin-bottom:2px}
+"""
+    body = (
+        _header(series_set.name, [series_set.description or ""],
+                [series_set.team or "", str(series_set.season or "")])
+        + chip_html + "".join(blocks) + gap_html + _footer()
+    )
+    return _page(series_set.name, body, extra_css)
+
+
 __all__ = ["script_html", "practice_html", "call_sheet_html", "wristband_html",
-           "playbook_html", "series_html"]
+           "playbook_html", "series_html", "series_set_html"]
