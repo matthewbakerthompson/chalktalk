@@ -1,5 +1,5 @@
 """
-Passing play catalog — 16 named concepts with default formations.
+Passing play catalog — 24 named concepts with default formations.
 
 Each function returns a Play and accepts an optional Formation override.
 Use .with_route(label, route) on the returned play to create variants.
@@ -359,6 +359,191 @@ def snag(formation: Optional[Formation] = None) -> Play:
         .tag("snag", "triangle", "quick-game")
         .describe("Corner/angle/flat triangle read. Angle under the corner, "
                   "flat as hot read vs. pressure.")
+        .build()
+    )
+
+
+def shallow_cross(formation: Optional[Formation] = None) -> Play:
+    """Shallow cross - the shallow under the tight end's dig, a high-low on the Mike."""
+    f = formation or F.GUN_DOUBLES()
+    return (
+        _b(f).pass_pro()
+        .routes(
+            H=R.DRAG(depth=2, cross=18),     # shallow from the left slot
+            Y=R.DIG(stem=10, cross=7),       # sits in over the ball
+            X=R.FLY(),
+            Z=R.POST(stem=12, depth=20),
+            RB=R.SWING(),
+        )
+        .qb(Q.GUN(3, reads=["H", "Y", "Z", "RB"],
+                  rule="Mike jumps the shallow, throw the dig behind him"))
+        .name("Shallow Cross")
+        .play_type(PlayType.PASS)
+        .tag("shallow", "crossing", "hi-lo")
+        .describe("The slot runs a shallow cross under the tight end's dig so the "
+                  "Mike cannot take both, with a post over the top and the back "
+                  "swinging late.")
+        .build()
+    )
+
+
+def dagger(formation: Optional[Formation] = None) -> Play:
+    """Dagger - the seam clears the middle, the deep dig comes in under it."""
+    f = formation or F.SHOTGUN_TRIPS_RIGHT()
+    return (
+        _b(f).pass_pro(SC.max_protect(1, extras=("RB",)), "Max - 6 Man")
+        .routes(
+            H=R.SEAM(depth=20),              # clears the hash safety
+            Z=R.DIG(stem=15, cross=12),      # settles under the seam
+            Y=R.FLAT(depth=4, width=7),
+            X=R.CURL(depth=12),
+        )
+        .qb(Q.GUN(5, reads=["H", "Z", "Y"],
+                  rule="Seam if the safety sits; dig once he carries it"))
+        .name("Dagger")
+        .play_type(PlayType.PASS)
+        .tag("dagger", "vertical-stretch", "two-high-beater")
+        .describe("The slot's seam pulls the safety out of the middle and the "
+                  "outside receiver's deep dig settles into the space he leaves.")
+        .build()
+    )
+
+
+def china(formation: Optional[Formation] = None) -> Play:
+    """China - smash with a short in underneath the corner instead of a hitch."""
+    f = formation or F.GUN_SPREAD_4WR()
+    return (
+        _b(f).pass_pro()
+        .routes(
+            H=R.CORNER(stem=7, depth=13),    # the corner over the top
+            X=R.DIG(stem=5, cross=6),        # the china in underneath it
+            Y=R.SEAM(depth=16),
+            Z=R.HITCH(depth=6),
+            RB=R.ANGLE(),
+        )
+        .qb(Q.GUN(3, reads=["H", "X", "RB"],
+                  rule="Flat defender sinks with the corner, throw the in"))
+        .name("China")
+        .play_type(PlayType.PASS)
+        .tag("china", "hi-lo", "cover-2-beater")
+        .describe("The slot's corner goes over the top of the outside receiver's "
+                  "short in, a high-low on the flat defender that he cannot win.")
+        .build()
+    )
+
+
+def post_wheel(formation: Optional[Formation] = None) -> Play:
+    """Post-wheel - the post clears the corner, the slot wheels up behind it."""
+    f = formation or F.GUN_DOUBLES_LEFT()
+    return (
+        _b(f).pass_pro(SC.max_protect(1, extras=("RB",)), "Max - 6 Man")
+        .routes(
+            X=R.POST(stem=10, depth=20),
+            H=R.WHEEL(flat_width=7, flat_depth=2, total_depth=20),
+            Z=R.DIG(stem=12, cross=10),
+            Y=R.HITCH(depth=5),
+        )
+        .qb(Q.GUN(5, reads=["X", "H", "Z"],
+                  rule="Corner carries the post, throw the wheel; he sits, throw the post"))
+        .name("Post Wheel")
+        .play_type(PlayType.PASS)
+        .tag("post-wheel", "shot-play", "cover-3-beater")
+        .describe("The outside receiver's post takes the corner inside and the slot "
+                  "wheels up the sideline behind the flat defender, a two-man shot on "
+                  "one side.")
+        .build()
+    )
+
+
+def hank(formation: Optional[Formation] = None) -> Play:
+    """Hank - curls outside, a hook over the ball and a flat underneath."""
+    f = formation or F.PISTOL_DOUBLES()
+    return (
+        _b(f).pass_pro()
+        .routes(
+            X=R.CURL(depth=12),
+            H=R.FLAT(depth=3, width=6),
+            Y=R.ANGLE(depth=5),              # the hook over the ball
+            Z=R.CURL(depth=12),
+            RB=R.SWING(width=6, depth=2),    # checks wide to the other side
+        )
+        .qb(Q.GUN(3, reads=["Y", "X", "H", "RB"],
+                  rule="Hook first; if the Mike walls it, high-low the curl and flat"))
+        .name("Hank")
+        .play_type(PlayType.PASS)
+        .tag("hank", "curl-flat", "hi-lo")
+        .describe("Both outside receivers curl at twelve with a hook over the ball "
+                  "and a flat underneath, so every underneath defender has two routes "
+                  "to cover.")
+        .build()
+    )
+
+
+def double_post(formation: Optional[Formation] = None) -> Play:
+    """Double post - two posts from one side stacked on the middle safety."""
+    f = formation or F.GUN_TREY_RIGHT()
+    return (
+        _b(f).pass_pro(SC.max_protect(1, extras=("RB",)), "Max - 6 Man")
+        .routes(
+            H=R.POST(stem=10, depth=18),     # the short post, under the safety
+            Z=R.POST(stem=14, depth=24),     # the deep post, behind him
+            X=R.DIG(stem=12, cross=10),
+            Y=R.FLAT(depth=3, width=6),
+        )
+        .qb(Q.GUN(5, reads=["Z", "H", "X", "Y"],
+                  rule="Middle safety takes the first post, throw the second over him"))
+        .name("Double Post")
+        .play_type(PlayType.PASS)
+        .tag("double-post", "shot-play", "cover-3-beater")
+        .describe("Two posts from the same side stack on the lone middle safety, "
+                  "who can take the short one or the deep one but not both.")
+        .build()
+    )
+
+
+def seam_flat(formation: Optional[Formation] = None) -> Play:
+    """Seam-flat - a vertical high-low on the curl-flat defender."""
+    f = formation or F.GUN_TRIPS_TE_RIGHT()
+    return (
+        _b(f).pass_pro()
+        .routes(
+            H=R.SEAM(depth=18),
+            Y=R.FLAT(depth=3, width=7),
+            Z=R.FLY(depth=18),               # runs the corner off
+            X=R.SLANT(),
+            RB=R.FLAT(depth=2, width=5),
+        )
+        .qb(Q.GUN(3, reads=["H", "Y", "X", "RB"],
+                  rule="He sinks under the seam, throw the flat; he jumps the flat, "
+                       "throw the seam"))
+        .name("Seam / Flat")
+        .play_type(PlayType.PASS)
+        .tag("seam-flat", "hi-lo", "cover-3-beater", "quick-game")
+        .describe("The slot's seam and the tight end's flat stretch the curl-flat "
+                  "defender vertically while the outside receiver runs the corner off.")
+        .build()
+    )
+
+
+def mills(formation: Optional[Formation] = None) -> Play:
+    """Mills - post over dig from the same side, the classic quarters beater."""
+    f = formation or F.SHOTGUN_ACE()
+    return (
+        _b(f).pass_pro(SC.max_protect(-1, extras=("RB",)), "Max - 6 Man")
+        .routes(
+            X=R.POST(stem=12, depth=22),
+            TE=R.DIG(stem=12, cross=10),     # the dig underneath the post
+            Z=R.CURL(depth=12),
+            Y=R.FLAT(depth=4, width=6),
+        )
+        .qb(Q.GUN(5, reads=["X", "TE", "Z", "Y"],
+                  rule="Safety drives on the dig, throw the post over him"))
+        .name("Mills")
+        .play_type(PlayType.PASS)
+        .tag("mills", "post-dig", "shot-play", "cover-4-beater")
+        .describe("The outside receiver's post runs over the tight end's dig from "
+                  "the same side, so a quarters safety who drives on the dig leaves "
+                  "the post open behind him.")
         .build()
     )
 
