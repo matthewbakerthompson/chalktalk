@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+**A play keeps its jobs when it changes formation.**
+
+### Fixed
+- `Play.with_formation()`, and so `A.FORMATION`, carries every job across by
+  player label: blocks, the quarterback's plan, motion and notes as well as
+  routes and the ball carrier. It used to keep only routes, so Power from a new
+  formation went from nine blocks and a handoff to nothing at all.
+- Nothing is left pointing at a player who isn't there. Reads on players the
+  new formation doesn't have are dropped, and so is a mesh with a missing back.
+  The quarterback's footwork and mesh point stay as drawn.
+- Paths go across unchanged. A route is still mirrored when its player lines up
+  on the left; a block path never is.
+- Motion starts from the player's new spot. It is kept if he lines up where he
+  did, a preset (jet, orbit, ...) is run again from his new alignment, and
+  anything else (a shift, a hand-placed start) is dropped rather than drawn from
+  the old formation.
+- The designer's formation picker follows the same rules and no longer drops
+  the quarterback's plan. A node test holds it to the Python.
+
 ## 0.8.0
 
 **The game plan.** Plays tagged with their jobs, a drive planner to rehearse

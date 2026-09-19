@@ -7,6 +7,7 @@ from .block import Block
 from .formation import Formation
 from .qb import QBPlan
 from .assignment import Assignment
+from .player import Player
 from .route import Route
 from .defense import DefensiveFormation
 from .situation import Situation, Tempo
@@ -154,22 +155,39 @@ class Play(BaseModel):
 
     def with_formation(self, new_formation: Formation) -> "Play":
         """
-        Transfer route assignments to a new formation by matching player labels.
-        Players in the new formation without a matching label get no route.
+        Run the same play from a new formation. Every job goes across by player
+        label: route, block, the quarterback's plan, ball carrier, motion and
+        note. Players in the new formation without a matching label get an
+        empty assignment.
+
+        Paths are carried untouched, so the usual rules still hold on the new
+        side of the ball: a route is mirrored for a left-side player when it is
+        drawn, and a block path never is (a pull right is still a pull right).
+
+        Players the new formation doesn't have take their jobs with them: the
+        quarterback stops reading them, and stops meshing with a missing back.
+
+        Motion must start from where the player now lines up:
+        - same spot as before: the motion is kept as it was;
+        - a new spot, preset motion (jet, orbit, ...): it is run again from the
+          new alignment, exactly as `A.MOTION` would, so jet, orbit and across
+          put him at the new snap spot;
+        - a new spot, anything else (a shift, a hand-placed start): the motion
+          is dropped rather than drawn from a spot in the old formation.
         """
-        route_map = {a.player.label: a for a in self.assignments}
+        before = {a.player.label: a for a in self.assignments}
+        on_field = {p.label for p in new_formation.players}
         new_assignments = [
-            Assignment(
-                player=p,
-                route=route_map[p.label].route if p.label in route_map else None,
-                is_ball_carrier=(
-                    route_map[p.label].is_ball_carrier if p.label in route_map else False
-                ),
-            )
+            _carry(before[p.label], p, on_field) if p.label in before
+            else Assignment(player=p)
             for p in new_formation.players
         ]
+        # A re-run jet, orbit or across moves the player; the formation follows.
+        formation = new_formation.model_copy(update={
+            "players": [a.player for a in new_assignments]
+        })
         return self.model_copy(update={
-            "formation": new_formation,
+            "formation": formation,
             "assignments": new_assignments,
         })
 
@@ -301,6 +319,35 @@ class Play(BaseModel):
 
     def assignment(self, label: str) -> Optional[Assignment]:
         return next((a for a in self.assignments if a.player.label == label), None)
+
+
+_SAME_SPOT = 1e-6   # yards; closer than this is the same alignment
+
+
+def _carry(prev: Assignment, player: Player, on_field: set[str]) -> Assignment:
+    """
+    One player's job, moved onto his alignment in a new formation. The rules
+    are spelled out on `Play.with_formation`; the designer's `formationSwap`
+    does the same thing in the browser.
+    """
+    updates: dict = {"player": player}
+    moved = (abs(prev.player.x - player.x) > _SAME_SPOT
+             or abs(prev.player.y - player.y) > _SAME_SPOT)
+    if prev.motion_from is not None and moved:
+        from ..adjustments import _MOTION_PRESETS, _motion_geometry
+        if prev.motion_type in _MOTION_PRESETS:
+            origin, snap = _motion_geometry(prev.motion_type, player.x, player.y)
+            updates["player"] = player.model_copy(update={"x": snap[0], "y": snap[1]})
+            updates["motion_from"] = origin
+        else:
+            updates["motion_from"] = None
+            updates["motion_type"] = None
+    if prev.qb is not None:
+        updates["qb"] = prev.qb.model_copy(update={
+            "reads": [r for r in prev.qb.reads if r in on_field],
+            "mesh_with": prev.qb.mesh_with if prev.qb.mesh_with in on_field else None,
+        })
+    return prev.model_copy(update=updates)
 
 
 def play_slug(name: str) -> str:
