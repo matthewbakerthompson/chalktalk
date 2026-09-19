@@ -73,6 +73,7 @@ class _Palette:
 
 
 from ..models.field import field_for as _field_for
+from .svg import _ZONE_SCALE, zone_drop_target
 
 
 class PDFExporter:
@@ -727,12 +728,19 @@ class PDFExporter:
                 c.setFillColor(self.c.ZONE_FILL)
                 c.setStrokeColor(self.c.ZONE_STROKE)
                 c.setLineWidth(0.8)
-                c.ellipse(cx - half_w * scale * 0.7, cy - half_h * scale * 0.7,
-                          cx + half_w * scale * 0.7, cy + half_h * scale * 0.7,
+                c.ellipse(cx - half_w * scale * _ZONE_SCALE, cy - half_h * scale * _ZONE_SCALE,
+                          cx + half_w * scale * _ZONE_SCALE, cy + half_h * scale * _ZONE_SCALE,
                           fill=1, stroke=1)
+                # the zone says whose it is, and the drop runs to its edge
+                fs = max(4.5, min(8.0, scale * 0.45))
+                c.setFillColor(self.c.DEF_ASSIGN)
+                c.setFont("Helvetica-Bold", fs)
+                c.drawCentredString(cx, cy - fs * 0.35, d.label)
                 c.restoreState()
-                self._def_line(c, to_rl(d.x, d.y), (cx, cy), scale,
-                               max_yards=6.0)
+                end, inside = zone_drop_target((d.x, d.y), spot, half_w, half_h)
+                self._def_line(c, to_rl(d.x, d.y), to_rl(*end), scale,
+                               min_yards=1.2 if inside else 0.0,
+                               end_gap=None if inside else 0.0)
             elif call.role is DefensiveRole.MAN and call.covers in offense:
                 target = offense[call.covers]
                 self._def_line(c, to_rl(d.x, d.y), to_rl(target.x, target.y),
@@ -762,7 +770,8 @@ class PDFExporter:
 
     def _def_line(self, c, start, end, scale: float,
                   max_yards: float | None = None,
-                  min_yards: float = 0.0) -> None:
+                  min_yards: float = 0.0,
+                  end_gap: float | None = None) -> None:
         sx, sy = start
         ex, ey = end
         dx, dy = ex - sx, ey - sy
@@ -773,7 +782,8 @@ class PDFExporter:
         if max_yards is not None:
             dist = min(dist, max_yards * scale)
         trim = scale * 0.5
-        visible = max(dist - 2 * trim, min_yards * scale)
+        trim_end = trim if end_gap is None else scale * end_gap
+        visible = max(dist - trim - trim_end, min_yards * scale)
         sx += ux * trim
         sy += uy * trim
         ex, ey = sx + ux * visible, sy + uy * visible

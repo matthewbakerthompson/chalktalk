@@ -397,3 +397,26 @@ def test_designer_mirrors_the_rush_formulas():
     assert "-0.3*d.x" in src         # blitz lean
     assert "s*1.4,-1.2" in src       # contain
     assert C.rush(D.FOUR_THREE_OVER().player("LDE")).path[-1].y == -3.6
+
+
+@pytest.mark.parametrize("coverage", ["cover_2", "cover_3", "cover_4", "tampa_2"])
+def test_zone_drops_reach_the_zones_they_own(coverage):
+    """Every drop arrow ends on (or inside) its own zone, and the zone is labelled."""
+    import re
+    from chalktalk.renderer.theme import TURF
+    play = passing.mesh_concept().vs(D.NICKEL_425(), C.COVERAGES[coverage])
+    svg = play.render().render()
+    num = r"([\d.]+)"
+    zones = re.findall(rf'<ellipse cx="{num}" cy="{num}" rx="{num}" ry="{num}" '
+                       rf'fill="{re.escape(TURF.zone_fill)}"', svg)
+    drops = re.findall(rf'<line x1="{num}" y1="{num}" x2="{num}" y2="{num}" '
+                       rf'stroke="{re.escape(TURF.def_assign)}" stroke-width="2" '
+                       rf'stroke-dasharray', svg)
+    owners = [p.label for p in play.defense.players
+              if p.assignment and p.assignment.zone is not None]
+    assert len(zones) == len(drops) == len(owners) > 0
+    for (cx, cy, rx, ry), (_, _, x, y) in zip(zones, drops):
+        k = ((float(x) - float(cx)) / float(rx)) ** 2 + ((float(y) - float(cy)) / float(ry)) ** 2
+        assert k <= 1.05, f"{coverage}: a drop stops short of its zone"
+    for label in owners:
+        assert f'opacity="0.9">{label}</text>' in svg, label

@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.7.0
+
+**The designer goes to the sideline.** An installable web app that opens with
+no connection, keeps every play on the coach's own device, and prints the paper
+a game needs.
+
+### Web app
+- Published at https://matthewbakerthompson.github.io/chalktalk/ by a GitHub Pages workflow. Only
+  the built site is public; the repository can stay private.
+- `chalk site` (and `chalktalk.designer.site.build_site`) wraps the designer with
+  a manifest, generated icons and a service worker for any static host. The
+  designer file itself is unchanged and still self-contained.
+- Installs from Chrome, Edge, Chromebooks and the iPad home screen, and opens
+  offline. A new deploy replaces the cached version from the next launch.
+
+### Your files
+- Open and Save work with real files: `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S`, a copy
+  of one play, or a file dropped on the window. In Chrome, Edge and on
+  Chromebooks, Save writes back to the same file, even after a restart. On an
+  iPad, Save opens the share sheet; elsewhere it downloads.
+- The playbook panel names the file the book belongs to and says whether it
+  has unsaved changes; the Save button carries a dot until it's written.
+
+### Paper
+- Print (`Ctrl+P`): playbook, call sheet, wristband, practice script and install
+  book, built in the browser with Python's stylesheet and call-sheet buckets. A
+  test runs the browser's builders in node against `CallSheet`, `Wristband` and
+  `Script`.
+- The play sheet sets install day, call number and a call-sheet bucket, and the
+  situation line names the section the play lands in. Call numbers can be
+  written into the plays so every printed sheet agrees.
+
+### Fixed
+- Zone drops run to the edge of the zone they own, and each zone carries its
+  defender's label, in the SVG, the PDF and the designer. Drops used to stop
+  after six yards, which left deep zones floating with no visible owner.
+
+### Licence
+- The designer file carries the PolyForm Noncommercial notice, so every copy of
+  it carries the terms.
+
 ## 0.6.0
 
 **The designer, redrawn.** A canvas-first workspace, playbooks, one theme

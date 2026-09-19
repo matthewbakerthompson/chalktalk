@@ -1,4 +1,12 @@
 <!doctype html>
+<!--
+  chalktalk designer
+  Required Notice: Copyright Matthew Baker Thompson (https://github.com/matthewbakerthompson/chalktalk)
+  Licensed under the PolyForm Noncommercial License 1.0.0:
+  https://polyformproject.org/licenses/noncommercial/1.0.0
+  Free for any noncommercial purpose. Selling it, or a product built on it or on a
+  modified copy of it, needs a commercial licence: matthewbakerthompson@gmail.com
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -310,6 +318,22 @@ svg *{-webkit-user-select:none;user-select:none}
 .fieldinfo{white-space:nowrap;font-variant-numeric:tabular-nums}
 .fieldinfo b{color:var(--ink-2);font-weight:500}
 
+/* ─── files and printing ─────────────────────────────────────────────── */
+button.primary.dirty::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent-ink);opacity:.7}
+dialog.printdlg{max-width:min(660px,94vw)}
+.pkinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.pkind{display:flex;flex-direction:column;align-items:flex-start;gap:2px;height:auto;padding:10px 12px;
+  border-color:var(--hair);text-align:left;white-space:normal}
+.pkind .nm{font-size:13px;font-weight:600;color:var(--ink)}
+.pkind .sub{font-size:11.5px;font-weight:400;color:var(--muted)}
+.pkind.on{background:var(--accent-soft);border-color:var(--accent-line)}
+.pkind.on .nm{color:var(--accent)}
+.popts{display:flex;flex-direction:column;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--hair)}
+.popt{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.popt label{margin:0;min-width:120px}
+.popt .pnote{color:var(--muted);font-size:12px;flex:1;min-width:160px}
+.phint{margin:12px 0 0;padding:8px 10px;border-radius:6px;background:var(--panel-2);color:var(--ink-2);font-size:12px;line-height:1.45}
+
 /* ─── start screen ─────────────────────────────────────────────────── */
 .welcome{
   position:absolute;left:50%;top:50%;z-index:var(--z-pop);
@@ -340,7 +364,9 @@ svg *{-webkit-user-select:none;user-select:none}
 #app.book-open .book{display:flex}
 .book-head{display:flex;align-items:center;gap:4px;padding:8px 8px 2px 8px}
 .book-head .title{width:auto;flex:1;min-width:0;font-size:14px}
-.book-meta{display:flex;align-items:center;gap:6px;padding:0 12px 10px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--hair)}
+.book-meta{display:flex;align-items:center;gap:6px;padding:0 12px 4px;color:var(--muted);font-size:12px}
+.book-file{padding:2px 16px 10px;font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--hair);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book-file.warn{color:var(--ink-2)}
 .book-meta .inline{width:11ch}
 .book-meta .inline.pers{width:6ch}
 .book-meta .count{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -454,6 +480,7 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
         inputmode="numeric">
       <span class="count" id="bookCount"></span>
     </div>
+    <div class="book-file" id="bookFile"></div>
     <div class="book-list" id="bookList" role="listbox" aria-label="Plays"></div>
     <div class="book-undo" id="bookUndo" hidden>
       <span>Deleted <b id="bookUndoName"></b></span><button id="btnUndelete">Undo</button>
@@ -503,21 +530,22 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg>Play sheet</button>
           <div class="sep"></div>
-          <button id="btnImport" title="Paste a play or a playbook JSON">Import</button>
+          <button id="btnOpen" title="Open a play or playbook file (Ctrl+O)">Open</button>
+          <button id="btnPrint" title="Playbook, call sheet, wristband, practice script, install book (Ctrl+P)">Print</button>
           <div class="menu-wrap">
-            <button id="btnExport" title="Export the play" aria-haspopup="menu">Export
+            <button id="btnExport" title="Save as, copies and exports" aria-haspopup="menu">More
               <svg class="chev" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"
                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
             <div class="card menu" id="exportMenu" role="menu" hidden>
-              <button id="btnSavePlay" role="menuitem">This play (.json)</button>
-              <button id="btnSaveBook" role="menuitem">Whole playbook (.json)</button>
-              <button id="btnPrintBook" role="menuitem">Print playbook</button>
+              <button id="btnSaveAs" role="menuitem">Save as…</button>
+              <button id="btnSavePlay" role="menuitem">Save a copy of this play…</button>
               <button id="btnSvg" role="menuitem">Download SVG</button>
               <button id="btnPng" role="menuitem">Download PNG</button>
               <button id="btnJson" role="menuitem">View JSON</button>
+              <button id="btnPaste" role="menuitem">Paste JSON…</button>
             </div>
           </div>
-          <button class="primary" id="btnSave" title="Download this play as .json">Save</button>
+          <button class="primary" id="btnSave" title="Save to a file on this device (Ctrl+S)">Save</button>
         </div>
       </div>
 
@@ -556,7 +584,7 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
       <div class="card welcome" id="welcome" role="dialog" aria-labelledby="welcomeTitle" hidden>
         <h2 id="welcomeTitle">Start a play</h2>
         <p class="lede">Take a concept and make it yours, or start from a blank formation.
-          Everything you draw is the same file Python reads.</p>
+          Your plays stay on this device: save them to a file on your computer or your drive.</p>
         <div class="welcome-grid" id="welcomeGrid"></div>
         <div class="welcome-foot">
           <button id="welcomeLib">Browse all <span id="welcomeCount"></span> concepts</button>
@@ -609,6 +637,12 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
         <textarea id="alerts" style="min-height:52px"></textarea></div>
       <div class="field"><label for="tags">Tags <span class="sub">comma separated</span></label>
         <input id="tags" autocomplete="off"></div>
+      <div class="grid2">
+        <div><label for="installDay">Install day</label><input id="installDay" type="number" min="1" max="30"
+          placeholder="1"></div>
+        <div><label for="callNumber">Call number <span class="sub">wristband</span></label>
+          <input id="callNumber" type="number" min="1" max="999" placeholder="Auto"></div>
+      </div>
 
       <h3>Situation</h3>
       <div class="grid3">
@@ -620,6 +654,7 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
         <label for="sitYard">Ball on <span class="sub">yards to opponent goal</span></label>
         <input id="sitYard" type="number" min="1" max="99" placeholder="32 = Opp 32">
       </div>
+      <div class="field"><label for="sitLabel">Call-sheet bucket</label><select id="sitLabel"></select></div>
       <p class="note" id="sitOut"></p>
 
       <h3>Notes</h3>
@@ -647,6 +682,24 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
 </dialog>
 
 <input type="file" id="fileInput" accept=".json,application/json" hidden>
+
+<dialog id="printDialog" class="printdlg" aria-labelledby="printTitle">
+  <div class="dlg-head">
+    <h2 id="printTitle">Print</h2>
+    <button class="ghost icon" id="printClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="dlg-body">
+    <div class="pkinds" id="printKinds" role="radiogroup" aria-label="What to print"></div>
+    <div class="popts" id="printOpts"></div>
+    <p class="phint" id="printHint" hidden></p>
+  </div>
+  <div class="dlg-foot">
+    <span class="note" id="printSummary"></span>
+    <button class="primary" id="printGo">Print</button>
+  </div>
+</dialog>
 
 <dialog id="palette" class="palette" aria-label="Commands">
   <input id="palInput" class="pal-input" placeholder="Type a command, a concept, a formation, a coverage"
@@ -1234,7 +1287,15 @@ function zoneLandmark(call){
   return [x, z.depth];
 }
 
-function defArrow(g, from, to, dashed, maxYards, minYards){
+// Mirrors svg.py's zone_drop_target: the drop ends on its area's edge.
+function zoneDropTarget(start, spot, halfW, halfH){
+  const aw = halfW * ZONE_SCALE, ah = halfH * ZONE_SCALE;
+  const dx = start[0] - spot[0], dy = start[1] - spot[1];
+  const k = Math.sqrt((dx / aw) ** 2 + (dy / ah) ** 2);
+  return k <= 1 ? [spot, true] : [[spot[0] + dx / k, spot[1] + dy / k], false];
+}
+
+function defArrow(g, from, to, dashed, maxYards, minYards, endGap){
   let [sx, sy] = [sx0(from), sy0(from)];
   let ex = sx0(to), ey = sy0(to);
   let dx = ex - sx, dy = ey - sy;
@@ -1242,8 +1303,8 @@ function defArrow(g, from, to, dashed, maxYards, minYards){
   if (dist < 1e-6){ dx = 0; dy = -SCALE; dist = SCALE; }
   const ux = dx/dist, uy = dy/dist;
   if (maxYards) dist = Math.min(dist, maxYards*SCALE);
-  const trim = SCALE*0.5;
-  const visible = Math.max(dist - 2*trim, (minYards||0)*SCALE);
+  const trim = SCALE*0.5, trimEnd = SCALE*(endGap ?? 0.5);
+  const visible = Math.max(dist - trim - trimEnd, (minYards||0)*SCALE);
   sx += ux*trim; sy += uy*trim;
   ex = sx + ux*visible; ey = sy + uy*visible;
   g.appendChild(el("line", {x1:sx, y1:sy, x2:ex, y2:ey, stroke:T().def_assign,
@@ -1267,10 +1328,18 @@ function drawDefenseAssignments(g){
       const spot = zoneLandmark(call);
       if (!spot) continue;
       const z = CATALOG.zones[call.zone];
-      if (layers.zones) g.appendChild(el("ellipse", {cx:sx(spot[0]), cy:sy(spot[1]),
-        rx:z.half_w*SCALE*ZONE_SCALE, ry:z.half_h*SCALE*ZONE_SCALE,
-        fill:t.zone_fill, stroke:t.zone_stroke, "stroke-width":1}));
-      if (layers.coverage) defArrow(g, [d.x, d.y], spot, true, 6.0, 0);
+      if (layers.zones){
+        g.appendChild(el("ellipse", {cx:sx(spot[0]), cy:sy(spot[1]),
+          rx:z.half_w*SCALE*ZONE_SCALE, ry:z.half_h*SCALE*ZONE_SCALE,
+          fill:t.zone_fill, stroke:t.zone_stroke, "stroke-width":1}));
+        // the zone says whose it is, even where the drops cross
+        txt(g, sx(spot[0]), sy(spot[1]) + 3.5, d.label, t.def_assign, 9, 700, "middle", 0.9);
+      }
+      if (layers.coverage && layers.zones){
+        // the drop runs all the way to the area it owns
+        const [end, inside] = zoneDropTarget([d.x, d.y], spot, z.half_w, z.half_h);
+        defArrow(g, [d.x, d.y], end, true, null, inside ? 1.2 : 0, inside ? null : 0);
+      } else if (layers.coverage) defArrow(g, [d.x, d.y], spot, true, 6.0, 0);
     } else if (call.role === "man" && offense[call.covers]){
       const tg = offense[call.covers];
       if (layers.coverage) defArrow(g, [d.x, d.y], [tg.x, tg.y], false, null, 2.2);
@@ -2146,6 +2215,9 @@ function renderMeta(){
   $("sitDist").value = s.distance ?? "";
   $("sitYard").value = s.yard_line ?? "";
   $("sitHash").value = s.hash_mark ?? "";
+  $("sitLabel").value = s.label || "";
+  $("installDay").value = play.install_day ?? "";
+  $("callNumber").value = play.call_number ?? "";
   $("sitOut").textContent = describeSituation(play.situation);
   const plan = (qbAssignment() || {}).qb;
   if (plan){
@@ -2161,26 +2233,21 @@ function renderMeta(){
 }
 
 function describeSituation(s){
-  if (!s) return "No situation set — the play lands in “Base” on a call sheet.";
-  const ord = {1:"1st",2:"2nd",3:"3rd",4:"4th"};
-  const bits = [];
-  if (s.down) bits.push(`${ord[s.down]}${s.distance != null ? " & " + (s.yard_line != null && s.distance >= s.yard_line ? "Goal" : s.distance) : ""}`);
-  if (s.yard_line != null)
-    bits.push(s.yard_line === 50 ? "50" : (s.yard_line > 50 ? `Own ${100-s.yard_line}` : `Opp ${s.yard_line}`));
-  if (s.hash_mark) bits.push(`${s.hash_mark} Hash`);
-  return bits.join(", ") || "No situation set";
+  const where = bucketFor(play);
+  if (!s) return `No situation set, so it lands in ${where} on the call sheet.`;
+  return `${sitDescribe(s)} · lands in ${where} on the call sheet`;
 }
 
 function readSituation(){
   const down = $("sitDown").value, dist = $("sitDist").value,
-        yard = $("sitYard").value, hash = $("sitHash").value;
-  if (!down && !dist && !yard && !hash){ play.situation = null; }
+        yard = $("sitYard").value, hash = $("sitHash").value, label = $("sitLabel").value;
+  if (!down && !dist && !yard && !hash && !label){ play.situation = null; }
   else {
     play.situation = {
       down: down ? +down : null, distance: dist ? +dist : null,
       yard_line: yard ? +yard : null, hash_mark: hash || null,
       tempo: play.tempo || "normal", personnel: null, clock: null,
-      score_diff: null, label: null, notes: null,
+      score_diff: null, label: label || null, notes: null,
     };
   }
   $("sitOut").textContent = describeSituation(play.situation);
@@ -2324,15 +2391,18 @@ function bookJson(){ return JSON.stringify(exportBook(), null, 2); }
 
 function save(){
   commit();
-  try { localStorage.setItem(LS_BOOK, JSON.stringify({book: exportBook(), index: bookIndex})); }
+  try { localStorage.setItem(LS_BOOK, JSON.stringify({book: exportBook(), index: bookIndex,
+                                                     linkId: fileLink ? fileLink.id : null})); }
   catch(e){}
+  renderFileState();
 }
 function restore(){
   try {
     const raw = localStorage.getItem(LS_BOOK);
     if (raw){
       const got = JSON.parse(raw);
-      if (got && got.book) return {book: normalizeBook(got.book), index: got.index | 0};
+      if (got && got.book) return {book: normalizeBook(got.book), index: got.index | 0,
+                                   linkId: got.linkId || null};
     }
     const old = localStorage.getItem(LS_KEY);       // a play saved by an older build
     if (old) return {book: normalizeBook({plays: [JSON.parse(old)]}), index: 0};
@@ -2349,6 +2419,7 @@ function restorePrevious(){
     if (!raw) return toast("No previous working copy");
     const got = JSON.parse(raw);
     stashWorkingCopy({book: exportBook(), index: bookIndex});
+    unlinkFile();
     book = normalizeBook(got.book); bookIndex = clampIndex(got.index); play = book.plays[bookIndex];
     undoStack.length = 0; sel = null; selDef = null; selWp = -1;
     renderAll(); toast(`Restored ${book.name}`);
@@ -2364,7 +2435,7 @@ function startBook(){
     book = incoming; bookIndex = 0;
   } else if (INITIAL_PLAY && stored){
     // Opened on one play with a book already in progress: it joins the book.
-    book = stored.book;
+    book = stored.book; restoredLinkId = stored.linkId;
     const at = book.plays.findIndex(p => p.name === INITIAL_PLAY.name);
     if (at >= 0) bookIndex = at;
     else { bookIndex = Math.min(book.plays.length, (stored.index | 0) + 1);
@@ -2372,7 +2443,7 @@ function startBook(){
   } else if (INITIAL_PLAY){
     book = normalizeBook({plays: [clone(INITIAL_PLAY)]}); bookIndex = 0;
   } else if (stored){
-    book = stored.book; bookIndex = stored.index;
+    book = stored.book; bookIndex = stored.index; restoredLinkId = stored.linkId;
   } else {
     book = normalizeBook(null); bookIndex = 0;
     bootedFresh = true;
@@ -2418,6 +2489,7 @@ function openPlay(obj){
 }
 function loadBook(obj){
   stashWorkingCopy({book: exportBook(), index: bookIndex});
+  unlinkFile();
   book = normalizeBook(obj); bookIndex = 0; play = book.plays[0];
   undoStack.length = 0; sel = null; selDef = null; selWp = -1;
   if (book.plays.length > 1) setBook(true, true);
@@ -2607,48 +2679,565 @@ function focusRow(i){
   if (row) row.focus();
 }
 
-/* ─── saving and printing a book ────────────────────────────────────────── */
-function saveSmart(){
-  if (book.plays.length > 1) download(slug(book.name) + ".json", bookJson());
-  else download(slug(play.name) + ".json", playJson());
+/* ─── paper: playbooks, call sheets, wristbands, scripts, install books ─────
+   The sheets Python prints (renderer/sheets.py), built here so a coach without
+   Python gets them. The stylesheet and the call-sheet buckets arrive from
+   Python in the catalog, and a test runs these builders in node against
+   CallSheet, Wristband and Script so the numbers on a wristband printed here
+   match the ones Python would print. */
+
+// ── situation, ported from models/situation.py ─────────────────────────────
+const ORD = {1:"1st", 2:"2nd", 3:"3rd", 4:"4th"};
+const numOr = v => (v === null || v === undefined || v === "") ? null : +v;
+const fmtG = v => String(+v);                         // Python's format(x, "g")
+const titleWords = s => s.replace(/[A-Za-z]+/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
+// Python rounds half to even; percentages on a script must agree with it.
+function pyRound(x){
+  const r = Math.round(x);
+  return Math.abs(x % 1) === 0.5 && r % 2 !== 0 ? r - 1 : r;
+}
+function zoneFor(y){
+  if (y >= 90) return "backed_up"; if (y >= 60) return "own"; if (y >= 41) return "midfield";
+  if (y >= 21) return "fringe"; if (y >= 11) return "red_zone"; if (y >= 4) return "low_red";
+  return "goal_line";
+}
+function distanceFor(d){ return d <= 3 ? "short" : d <= 6 ? "medium" : d <= 10 ? "long" : "xlong"; }
+const sitZone = s => numOr(s.yard_line) === null ? null : zoneFor(numOr(s.yard_line));
+const sitDistance = s => numOr(s.distance) === null ? null : distanceFor(numOr(s.distance));
+function isWildcard(s){
+  return numOr(s.down) === null && numOr(s.distance) === null
+      && numOr(s.yard_line) === null && !s.hash_mark;
+}
+function sitMatches(bucket, other){
+  if (isWildcard(bucket)) return !!bucket.label && other.label === bucket.label;
+  if (numOr(bucket.down) !== null && numOr(other.down) !== numOr(bucket.down)) return false;
+  if (sitDistance(bucket) !== null && sitDistance(other) !== sitDistance(bucket)) return false;
+  if (sitZone(bucket) !== null && sitZone(other) !== sitZone(bucket)) return false;
+  if (bucket.hash_mark && (other.hash_mark || null) !== bucket.hash_mark) return false;
+  return true;
+}
+function downDistance(s){
+  const d = numOr(s.down);
+  if (d === null) return null;
+  const o = ORD[d] || `${d}th`, dist = numOr(s.distance), y = numOr(s.yard_line);
+  if (dist === null) return o;
+  return `${o} & ${y !== null && dist >= y ? "Goal" : fmtG(dist)}`;
+}
+function fieldPosition(s){
+  const y = numOr(s.yard_line);
+  if (y === null) return null;
+  return y === 50 ? "50" : y > 50 ? `Own ${100 - y}` : `Opp ${y}`;
+}
+function sitDescribe(s){
+  if (s.label) return s.label;
+  const bits = [downDistance(s), fieldPosition(s)].filter(Boolean);
+  if (s.hash_mark) bits.push(`${s.hash_mark} Hash`);
+  const tempo = s.tempo || "normal";
+  if (tempo !== "normal") bits.push(titleWords(tempo.replace(/_/g, "-")));
+  if (s.clock) bits.push(s.clock);
+  return bits.length ? bits.join(", ") : "Any";
+}
+function sitShort(s){
+  const d = numOr(s.down), y = numOr(s.yard_line), dist = numOr(s.distance);
+  if (s.label && d === null && y === null) return s.label;
+  const bits = [];
+  if (d !== null) bits.push(dist !== null ? `${d}&${fmtG(dist)}` : String(d));
+  if (y !== null) bits.push(y <= 50 ? `O${y}` : `-${100 - y}`);
+  if (s.hash_mark) bits.push(s.hash_mark);
+  return bits.join(" ");
+}
+// The full verbal call, as Play.call builds it.
+function playCall(p){
+  const bits = [p.formation && p.formation.name, p.name];
+  if (p.protection) bits.push(p.protection);
+  bits.push(...(p.adjustments || []));
+  const tempo = p.tempo || "normal";
+  if (tempo !== "normal") bits.push(titleWords(tempo.replace(/_/g, "-")));
+  return bits.filter(Boolean).join(" ");
+}
+// Which call-sheet section a play lands in.
+function bucketFor(p){
+  if (!p.situation) return "Base";
+  const hit = (CATALOG.call_sheet_buckets || []).find(([, sit]) => sitMatches(sit, p.situation));
+  return hit ? hit[0] : "Base";
 }
 
-// Every page in the paper look, laid out to print — built here, no server involved.
-function printBook(){
-  commit();
-  const keep = {play, look, scale: SCALE, sel, selDef, selWp};
-  look = "paper"; SCALE = 14; sel = null; selDef = null; selWp = -1;
-  const pages = book.plays.map((p, i) => {
-    play = p;
+// ── data: the same shapes Python builds ────────────────────────────────────
+// CallSheet.from_playbook, numbered unless the book already carries numbers.
+function callSheetData(b){
+  const placed = new Set(), sections = [];
+  for (const [title, sit] of CATALOG.call_sheet_buckets || []){
+    const hits = [];
+    b.plays.forEach((p, i) => {
+      if (placed.has(i) || !p.situation) return;
+      if (sitMatches(sit, p.situation)){ hits.push(p); placed.add(i); }
+    });
+    if (hits.length) sections.push({title, situation: sit, plays: hits});
+  }
+  const leftover = b.plays.filter((p, i) => !placed.has(i));
+  if (leftover.length) sections.push({title: "Base", situation: null, plays: leftover});
+  const numbered = b.plays.some(p => p.call_number);
+  let n = 1;
+  for (const sec of sections)
+    sec.rows = sec.plays.map(p => ({
+      number: numbered ? (p.call_number || null) : n++,
+      call: playCall(p), alerts: p.alerts || [],
+    }));
+  return {name: b.name || "Playbook", team: b.team || null, sections};
+}
+// Wristband.from_call_sheet.
+function wristbandData(sheet, columns){
+  const entries = [];
+  let n = 1;
+  for (const sec of sheet.sections) for (const r of sec.rows){
+    const number = r.number || n;
+    entries.push({number, call: r.call, group: sec.title, note: r.alerts.join("; ") || null});
+    n = number + 1;
+  }
+  return {name: sheet.name, team: sheet.team, columns: columns || 3, entries};
+}
+// Script().add_all(plays, reps=...), optionally .alternate_hashes().
+function scriptData(b, reps, alternate){
+  reps = reps || 1;
+  const hashes = ["L", "R", "M"];
+  const entries = b.plays.map((p, i) => {
+    const look = p.defense ? p.defense.name + (p.defense.coverage ? ` ${p.defense.coverage}` : "") : "";
+    return {number: i + 1, sit: p.situation ? sitShort(p.situation) : "",
+            hash: alternate ? hashes[i % 3] : "", call: playCall(p), look, reps,
+            alerts: p.alerts || [], type: p.play_type || "pass",
+            personnel: (p.formation && p.formation.personnel) || ""};
+  });
+  const total = entries.reduce((t, e) => t + e.reps, 0);
+  const byType = {}, personnel = {};
+  for (const e of entries){
+    byType[e.type] = (byType[e.type] || 0) + e.reps;
+    personnel[e.personnel] = (personnel[e.personnel] || 0) + e.reps;
+  }
+  const denom = Math.max(total, 1);
+  const runs = byType.run || 0, passes = (byType.pass || 0) + (byType.screen || 0);
+  return {name: b.name || "Playbook", entries,
+          balance: {total_reps: total, run_pct: pyRound(100 * runs / denom),
+                    pass_pct: pyRound(100 * passes / denom), personnel}};
+}
+
+// ── pages: renderer/sheets.py's _header, _footer, _page and _play_card ─────
+const sheetHeader = (title, left, right) =>
+  `<header><div><h1>${esc(title)}</h1>`
+  + left.filter(Boolean).map(b => `<div class="sub">${esc(b)}</div>`).join("")
+  + `</div><div class="meta">${right.filter(Boolean).map(b => esc(b)).join("<br>")}</div></header>`;
+const sheetFooter = note =>
+  `<div class="foot"><span>${esc(note || "")}</span><span>generated with chalktalk</span></div>`;
+const sheetPage = (title, body, extraCss) =>
+  `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>${esc(title)}</title>\n`
+  + `<style>${CATALOG.sheet_css || ""}${extraCss || ""}</style>\n</head>\n<body>\n${body}\n</body>\n</html>\n`;
+const chipRow = items => `<div class="chips">${items.filter(Boolean)
+  .map(c => `<span class="chip">${esc(c)}</span>`).join("")}</div>`;
+
+// One diagram in the paper look, with the layers the coach has on.
+function paperSvg(p){
+  const keep = {play, look, scale: SCALE, sel, selDef, selWp, hover};
+  play = p; look = "paper"; SCALE = 14; sel = null; selDef = null; selWp = -1; hover = null;
+  try {
     const svg = renderSvg();
     svg.querySelector("#ui").remove(); svg.querySelector("#preview").remove();
     svg.removeAttribute("width"); svg.removeAttribute("height");
-    const notes = [p.protection, ...(p.alerts || []).map(a => "! " + a)].filter(Boolean).map(esc).join(" · ");
-    return `<figure><figcaption><b>${i + 1}.</b> ${esc(p.name || "Untitled")}</figcaption>${svg.outerHTML}`
-         + (p.description ? `<p>${esc(p.description)}</p>` : "")
-         + (notes ? `<p class="notes">${notes}</p>` : "") + `</figure>`;
+    return svg.outerHTML;
+  } finally {
+    ({play, look, sel, selDef, selWp, hover} = keep); SCALE = keep.scale;
+  }
+}
+function paperCard(p, extra){
+  const meta = [p.situation ? sitDescribe(p.situation) : null, p.protection, ...(p.tags || []).slice(0, 4)];
+  const alerts = (p.alerts || []).map(a => `<div class="alert">! ${esc(a)}</div>`).join("");
+  const desc = p.description ? `<div class="note">${esc(p.description)}</div>` : "";
+  const num = p.call_number ? `${p.call_number}. ` : "";
+  return `<div class="card"><div class="title">${esc(num + playCall(p))}</div>${paperSvg(p)}`
+       + `${extra || ""}${desc}${alerts}${chipRow(meta)}</div>`;
+}
+const cardGrid = (cards, columns) =>
+  `<div class="cards" style="grid-template-columns:repeat(${columns},1fr)">${cards.join("")}</div>`;
+const bookMeta = b => [b.team, b.season ? String(b.season) : null, `${b.plays.length} plays`];
+
+function playbookHtml(b, columns){
+  const body = sheetHeader(b.name, [], bookMeta(b))
+             + cardGrid(b.plays.map(p => paperCard(p)), columns || 2) + sheetFooter();
+  return sheetPage(b.name, body);
+}
+function callSheetHtml(d, columns){
+  const count = d.sections.reduce((n, s) => n + s.rows.length, 0);
+  const sections = d.sections.map(sec => {
+    const items = sec.rows.map(r =>
+      `<li><span class="num">${r.number || "•"}</span><span>${esc(r.call)}`
+      + r.alerts.map(a => `<div class="alert">! ${esc(a)}</div>`).join("") + `</span></li>`).join("");
+    const sub = sec.situation && !isWildcard(sec.situation)
+      ? `<div class="note">${esc(sitDescribe(sec.situation))}</div>` : "";
+    return `<div class="section"><h2>${esc(sec.title)}</h2>${sub}<ol>${items}</ol></div>`;
+  }).join("");
+  const body = sheetHeader(d.name, [d.team], [`${count} calls`])
+             + `<div class="cols" style="column-count:${columns || 2}">${sections}</div>` + sheetFooter();
+  return sheetPage(d.name, body);
+}
+function wristbandHtml(w){
+  const groups = new Map();
+  for (const e of w.entries){
+    const g = e.group || "Plays";
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(e);
+  }
+  const blocks = [...groups].map(([group, entries]) =>
+    `<div class="grp">${esc(group)}</div>`
+    + `<div class="band" style="grid-template-columns:repeat(${w.columns},1fr);grid-auto-rows:minmax(34px,auto)">`
+    + entries.map(e => `<div class="cell"><span class="num">${e.number}</span><span class="txt">${esc(e.call)}</span>`
+        + (e.note ? `<div class="note">${esc(e.note)}</div>` : "") + `</div>`).join("")
+    + `</div>`).join("");
+  const body = sheetHeader(w.name, [w.team], [`${w.entries.length} calls`])
+             + blocks + sheetFooter("cut along the outer border");
+  return sheetPage(`${w.name} — Wristband`, body);
+}
+function scriptHtml(s, subtitle){
+  const rows = s.entries.map(e =>
+    `<tr><td class="n">${e.number}</td><td class="sit">${esc(e.sit)}</td><td class="sit">${esc(e.hash)}</td>`
+    + `<td class="call">${esc(e.call)}` + e.alerts.map(a => `<div class="alert">! ${esc(a)}</div>`).join("")
+    + `</td><td class="look">${esc(e.look)}</td><td class="n">${e.reps}</td>`
+    + `<td style="width:70px;border-bottom:1px solid #94a3b8"></td></tr>`).join("");
+  const b = s.balance;
+  const chips = s.entries.length ? chipRow([`${b.total_reps} reps`, `${b.run_pct}% run`, `${b.pass_pct}% pass`,
+    ...Object.keys(b.personnel).sort().map(k => `${k} pers: ${b.personnel[k]}`)]) : "";
+  const body = sheetHeader(s.name, [subtitle], [])
+    + `<table><thead><tr><th>#</th><th>Sit</th><th>Ha</th><th>Call</th><th>Look</th><th>Rep</th><th>Result</th>`
+    + `</tr></thead><tbody>${rows}</tbody></table>${chips}${sheetFooter()}`;
+  return sheetPage(s.name, body);
+}
+// Plays grouped by install day — the designer's install book.
+function installDays(b){
+  const days = new Map();
+  for (const p of b.plays){
+    const d = numOr(p.install_day);
+    const key = d === null ? "later" : d;
+    if (!days.has(key)) days.set(key, []);
+    days.get(key).push(p);
+  }
+  const order = [...days.keys()].filter(k => k !== "later").sort((a, c) => a - c);
+  if (days.has("later")) order.push("later");
+  return order.map(k => ({day: k, plays: days.get(k)}));
+}
+function installBookHtml(b, columns){
+  const blocks = installDays(b).map(({day, plays}) =>
+    `<div class="week"><h2>${day === "later" ? "Not scheduled" : `Day ${day}`}</h2></div>`
+    + cardGrid(plays.map(p => paperCard(p)), columns || 2)).join("");
+  const css = ".week h2{background:var(--ink);color:var(--paper);padding:4px 8px;"
+            + "border-left:none;margin:18px 0 10px;border-radius:3px}";
+  return sheetPage(b.name, sheetHeader(b.name, ["Install book"], bookMeta(b)) + blocks + sheetFooter(), css);
+}
+
+// Write the call-sheet numbers into the plays, so later prints keep them.
+function numberCalls(){
+  commit();
+  const had = book.plays.some(p => p.call_number);
+  if (had) book.plays.forEach(p => { p.call_number = null; });
+  const sheet = callSheetData(book);
+  const order = sheet.sections.flatMap(s => s.plays);
+  order.forEach((p, i) => { p.call_number = i + 1; });
+  save(); renderAll();
+  toast(`Numbered ${order.length} calls in call-sheet order`);
+}
+function clearCallNumbers(){
+  commit();
+  book.plays.forEach(p => { p.call_number = null; });
+  save(); renderAll(); toast("Call numbers cleared");
+}
+
+// ── printing: a hidden frame, so no pop-up blocker and it works installed ──
+function printDocument(doc){
+  const old = $("printFrame");
+  if (old) old.remove();
+  const frame = document.createElement("iframe");
+  frame.id = "printFrame"; frame.tabIndex = -1;
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;left:-10000px;top:0;width:900px;height:700px;border:0";
+  frame.onload = () => {
+    try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+    catch(e){
+      const url = URL.createObjectURL(new Blob([doc], {type: "text/html"}));
+      if (!window.open(url, "_blank")) toast("Allow pop-ups to print from this browser");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+  };
+  frame.srcdoc = doc;
+  document.body.appendChild(frame);
+}
+
+const PRINT_KINDS = [
+  ["playbook", "Playbook", "Every play with its diagram"],
+  ["callsheet", "Call sheet", "Calls grouped by situation and numbered"],
+  ["wristband", "Wristband", "The numbered grid for the forearm"],
+  ["script", "Practice script", "The book as a script with looks and reps"],
+  ["install", "Install book", "Plays grouped by install day"],
+];
+const LS_PRINT = "chalktalk.designer.print";
+const printOpts = {kind: "playbook", perRow: 2, sheetCols: 2, bandCols: 3, reps: 1, hashes: false};
+try { Object.assign(printOpts, JSON.parse(localStorage.getItem(LS_PRINT) || "{}")); } catch(e){}
+const savePrintOpts = () => { try { localStorage.setItem(LS_PRINT, JSON.stringify(printOpts)); } catch(e){} };
+
+function openPrint(kind){
+  commit();
+  if (kind) printOpts.kind = kind;
+  renderPrint();
+  $("printDialog").showModal();
+}
+function renderPrint(){
+  const kinds = $("printKinds"); kinds.innerHTML = "";
+  for (const [key, name, desc] of PRINT_KINDS){
+    const b = pick("pkind" + (printOpts.kind === key ? " on" : ""),
+      `<span class="nm">${name}</span><span class="sub">${desc}</span>`,
+      () => { printOpts.kind = key; savePrintOpts(); renderPrint(); });
+    b.setAttribute("role", "radio"); b.setAttribute("aria-checked", String(printOpts.kind === key));
+    kinds.appendChild(b);
+  }
+  const opts = $("printOpts"); opts.innerHTML = "";
+  const addSeg = (label, entries, current, onPick) => {
+    const row = document.createElement("div"); row.className = "popt";
+    row.innerHTML = `<label>${label}</label>`;
+    const seg = document.createElement("div"); seg.className = "seg";
+    segment(seg, entries.map(([v, l]) => [String(v), l]), String(current), v => { onPick(v); savePrintOpts(); renderPrint(); });
+    row.appendChild(seg); opts.appendChild(row);
+  };
+  const k = printOpts.kind, n = book.plays.length;
+  let summary = `${n} ${n === 1 ? "play" : "plays"}`, hint = "";
+  if (k === "playbook" || k === "install")
+    addSeg("Diagrams per row", [[1, "One"], [2, "Two"]], printOpts.perRow, v => { printOpts.perRow = +v; });
+  if (k === "callsheet" || k === "wristband"){
+    const sheet = callSheetData(book);
+    const calls = sheet.sections.reduce((t, s) => t + s.rows.length, 0);
+    summary = `${calls} calls in ${sheet.sections.length} ${sheet.sections.length === 1 ? "section" : "sections"}`;
+    if (sheet.sections.length === 1 && sheet.sections[0].title === "Base")
+      hint = "No play has a situation yet, so every call lands in Base. Set down, distance and the ball in the play sheet.";
+    if (k === "callsheet") addSeg("Columns", [[1, "One"], [2, "Two"], [3, "Three"]], printOpts.sheetCols, v => { printOpts.sheetCols = +v; });
+    else addSeg("Columns", [[2, "Two"], [3, "Three"], [4, "Four"]], printOpts.bandCols, v => { printOpts.bandCols = +v; });
+    const row = document.createElement("div"); row.className = "popt";
+    const locked = book.plays.some(p => p.call_number);
+    row.innerHTML = `<label>Call numbers</label><span class="pnote">${locked
+      ? "Kept from the plays, so every sheet agrees." : "Counted in call-sheet order when printed."}</span>`;
+    row.appendChild(pick("", locked ? "Renumber" : "Write into the plays", numberCalls,
+      "Save these numbers with the plays so the call sheet and wristband always agree"));
+    opts.appendChild(row);
+  }
+  if (k === "script"){
+    addSeg("Reps per play", [[1, "1"], [2, "2"], [3, "3"]], printOpts.reps, v => { printOpts.reps = +v; });
+    addSeg("Hashes", [["off", "As set"], ["on", "Alternate L, R, M"]], printOpts.hashes ? "on" : "off",
+      v => { printOpts.hashes = v === "on"; });
+    const s = scriptData(book, printOpts.reps, printOpts.hashes);
+    summary = `${s.balance.total_reps} reps · ${s.balance.run_pct}% run · ${s.balance.pass_pct}% pass`;
+  }
+  if (k === "install"){
+    const days = installDays(book), later = days.find(d => d.day === "later");
+    const count = days.filter(d => d.day !== "later").length;
+    summary = `${count} ${count === 1 ? "day" : "days"}` + (later ? ` · ${later.plays.length} not scheduled` : "");
+    if (!count) hint = "No play has an install day yet. Set it in the play sheet.";
+  }
+  $("printSummary").textContent = summary;
+  $("printHint").textContent = hint;
+  $("printHint").hidden = !hint;
+}
+function printNow(){
+  commit();
+  const k = printOpts.kind;
+  let doc;
+  if (k === "playbook") doc = playbookHtml(book, printOpts.perRow);
+  else if (k === "callsheet") doc = callSheetHtml(callSheetData(book), printOpts.sheetCols);
+  else if (k === "wristband") doc = wristbandHtml(wristbandData(callSheetData(book), printOpts.bandCols));
+  else if (k === "script") doc = scriptHtml(scriptData(book, printOpts.reps, printOpts.hashes), "Practice script");
+  else doc = installBookHtml(book, printOpts.perRow);
+  $("printDialog").close();
+  printDocument(doc);
+}
+
+/* ─── files: the coach's own disk or drive ──────────────────────────────────
+   Nothing leaves the device. The browser keeps a working copy so a closed tab
+   loses nothing; the real copy is a file the coach saves wherever they keep
+   their work: a folder on the laptop, a synced Google Drive or OneDrive folder,
+   iCloud Drive on an iPad. Where the browser allows it (Chrome, Edge,
+   Chromebooks) Save writes back to that same file, even after the app is
+   closed and reopened. Elsewhere Save hands the file over: the share sheet on
+   an iPad ("Save to Files"), a download everywhere else. */
+const CAN_PICK = typeof window !== "undefined" && "showSaveFilePicker" in window;
+const JSON_TYPES = [{description: "chalktalk play or playbook", accept: {"application/json": [".json"]}}];
+let fileLink = null;         // {id, handle?, name, kind: "play" | "book"}
+let fileSaved = null;        // the text last written to, or read from, that file
+let restoredLinkId = null;   // the working copy's file, from the last session
+
+// What Save writes: the book, or a single play when that is all there is.
+function fileContent(){
+  const asBook = book.plays.length > 1 || (fileLink && fileLink.kind === "book");
+  return {kind: asBook ? "book" : "play", text: asBook ? bookJson() : playJson()};
+}
+function fileUnsaved(){
+  if (fileLink) return fileContent().text !== fileSaved;
+  return book.plays.length > 1 || !isPristine(play);
+}
+
+// ── IndexedDB: remembers which file the working copy belongs to ────────────
+function idbOpen(){
+  return new Promise((ok, fail) => {
+    const r = indexedDB.open("chalktalk", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("files");
+    r.onsuccess = () => ok(r.result);
+    r.onerror = () => fail(r.error);
   });
-  ({play, look, sel, selDef, selWp} = keep); SCALE = keep.scale;
-  const meta = [book.team, book.season, `${book.plays.length} plays`].filter(Boolean).map(esc).join(" · ");
-  const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(book.name)}</title><style>
-    @page{margin:12mm}
-    body{margin:0;padding:16px 20px;color:#111;font:13px/1.4 Inter,"Segoe UI",Helvetica,Arial,sans-serif}
-    header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:14px}
-    h1{font-size:20px;margin:0;letter-spacing:-.01em}.meta{color:#6b6b66;font-size:12px}
-    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-    figure{margin:0;padding:10px;border:1px solid #d4d4d0;border-radius:6px;break-inside:avoid}
-    figcaption{font-weight:600;margin-bottom:6px}figcaption b{color:#6b6b66;font-weight:600}
-    svg{width:100%;height:auto;display:block;border:1px solid #e4e4e0;border-radius:4px}
-    p{margin:6px 0 0;color:#444;font-size:11.5px}.notes{color:#b45309;font-weight:600}
-    .foot{margin-top:14px;color:#6b6b66;font-size:10px;text-align:right}
-    @media print{body{padding:0}}
-  </style></head><body><header><h1>${esc(book.name)}</h1><div class="meta">${meta}</div></header>
-  <div class="grid">${pages.join("")}</div><div class="foot">made with chalktalk</div>
-  <script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script></body></html>`;
-  const url = URL.createObjectURL(new Blob([doc], {type:"text/html"}));
-  const win = window.open(url, "_blank");
-  if (!win) toast("The browser blocked the print window — allow pop-ups for this page");
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+async function idbPut(key, value){
+  try {
+    const db = await idbOpen();
+    await new Promise((ok, fail) => {
+      const tx = db.transaction("files", "readwrite");
+      if (value === undefined) tx.objectStore("files").delete(key);
+      else tx.objectStore("files").put(value, key);
+      tx.oncomplete = ok; tx.onerror = () => fail(tx.error);
+    });
+    db.close();
+  } catch(e){}
+}
+async function idbGet(key){
+  try {
+    const db = await idbOpen();
+    const v = await new Promise((ok, fail) => {
+      const r = db.transaction("files").objectStore("files").get(key);
+      r.onsuccess = () => ok(r.result); r.onerror = () => fail(r.error);
+    });
+    db.close();
+    return v;
+  } catch(e){ return undefined; }
+}
+function linkFile(link, text){
+  fileLink = Object.assign({id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`}, link);
+  fileSaved = text;
+  idbPut("link", {id: fileLink.id, handle: fileLink.handle || null, name: fileLink.name,
+                  kind: fileLink.kind, saved: text});
+  save();
+}
+function unlinkFile(){
+  if (!fileLink) return;
+  fileLink = null; fileSaved = null;
+  idbPut("link", undefined);
+}
+// On start: if the working copy came from a file, reattach it.
+async function restoreLink(){
+  if (!restoredLinkId) return;
+  const got = await idbGet("link");
+  if (!got || got.id !== restoredLinkId) return;
+  fileLink = {id: got.id, handle: got.handle || null, name: got.name, kind: got.kind};
+  fileSaved = got.saved;
+  renderFileState();
+}
+
+// ── saving ─────────────────────────────────────────────────────────────────
+async function canWrite(handle){
+  try {
+    const mode = {mode: "readwrite"};
+    if ((await handle.queryPermission(mode)) === "granted") return true;
+    return (await handle.requestPermission(mode)) === "granted";
+  } catch(e){ return false; }
+}
+async function writeHandle(handle, text){
+  const w = await handle.createWritable();
+  await w.write(text); await w.close();
+}
+// Without a file picker: the share sheet on an iPad or iPhone, a download elsewhere.
+async function handOver(name, text){
+  const touchApple = navigator.maxTouchPoints > 1 && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+  if (touchApple && navigator.canShare){
+    const f = new File([text], name, {type: "application/json"});
+    if (navigator.canShare({files: [f]})){
+      try { await navigator.share({files: [f], title: name}); return "shared"; }
+      catch(e){ if (e && e.name === "AbortError") return "cancelled"; }
+    }
+  }
+  download(name, text);
+  return "downloaded";
+}
+async function saveFile(saveAs){
+  commit();
+  const {kind, text} = fileContent();
+  const suggested = (kind === "book" ? slug(book.name) : slug(play.name)) + ".json";
+  try {
+    if (CAN_PICK){
+      let handle = !saveAs && fileLink && fileLink.handle;
+      if (handle && !(await canWrite(handle))) handle = null;
+      if (!handle) handle = await window.showSaveFilePicker(
+        {suggestedName: (!saveAs && fileLink && fileLink.name) || suggested, types: JSON_TYPES});
+      await writeHandle(handle, text);
+      linkFile({handle, name: handle.name, kind}, text);
+      toast(`Saved to ${handle.name}`);
+    } else {
+      const name = (!saveAs && fileLink && fileLink.name) || suggested;
+      const how = await handOver(name, text);
+      if (how === "cancelled") return;
+      linkFile({handle: null, name, kind}, text);
+      toast(how === "shared" ? `${name} is ready to save` : `Downloaded ${name}`);
+    }
+    persistStorage();
+  } catch(e){
+    if (e && e.name === "AbortError") return;
+    toast("Couldn't save there. Try Save as.");
+  }
+}
+// A copy of the play on the field, without changing which file the book saves to.
+async function savePlayCopy(){
+  const text = playJson(), name = slug(play.name) + ".json";
+  try {
+    if (CAN_PICK){
+      const handle = await window.showSaveFilePicker({suggestedName: name, types: JSON_TYPES});
+      await writeHandle(handle, text);
+      toast(`Saved a copy to ${handle.name}`);
+    } else if ((await handOver(name, text)) !== "cancelled") toast(`Saved a copy of ${play.name}`);
+  } catch(e){ if (!e || e.name !== "AbortError") toast("Couldn't save the copy"); }
+}
+
+// ── opening ────────────────────────────────────────────────────────────────
+async function openFileDialog(){
+  if (!("showOpenFilePicker" in window)) return $("fileInput").click();
+  try {
+    const [handle] = await window.showOpenFilePicker({types: JSON_TYPES, multiple: false});
+    await openFile(await handle.getFile(), handle);
+  } catch(e){ if (!e || e.name !== "AbortError") toast("Couldn't open that file"); }
+}
+// A file is the document: a book opens as the book, a play as a book of one.
+async function openFile(file, handle){
+  if (!file) return;
+  let obj;
+  try { obj = JSON.parse(await file.text()); }
+  catch(err){ return toast("That file isn't a play or a playbook"); }
+  const kind = obj && Array.isArray(obj.plays) ? "book"
+             : obj && obj.assignments && obj.formation ? "play" : null;
+  if (!kind) return toast("That file isn't a play or a playbook");
+  dismissWelcome();
+  loadBook(kind === "book" ? obj : {name: obj.name || "Playbook", plays: [obj]});
+  linkFile({handle: handle || null, name: file.name, kind}, fileContent().text);
+  renderFileState();
+}
+
+// Installed apps ask the browser to keep the working copy through clean-ups.
+function persistStorage(){
+  try {
+    if (navigator.storage && navigator.storage.persist &&
+        window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
+      navigator.storage.persist();
+  } catch(e){}
+}
+
+function renderFileState(){
+  const btn = $("btnSave");
+  if (!btn || !book) return;
+  const unsaved = fileUnsaved();
+  btn.classList.toggle("dirty", unsaved);
+  btn.title = fileLink ? `Save to ${fileLink.name} (Ctrl+S)` : "Save to a file on this device (Ctrl+S)";
+  const line = $("bookFile");
+  if (line){
+    line.textContent = fileLink ? `${fileLink.name} · ${unsaved ? "unsaved changes" : "saved"}`
+                                : "Not saved to a file yet";
+    line.classList.toggle("warn", unsaved);
+  }
+  document.title = (unsaved ? "• " : "") + (play && play.name ? play.name + " · " : "") + "Chalktalk";
 }
 
 /* ─── start screen: the first open, and on request ───────────────────── */
@@ -2681,12 +3270,6 @@ function dismissWelcome(){
   $("welcome").hidden = true;
   $("canvas").classList.remove("welcoming");
   try { localStorage.setItem(LS_WELCOMED, "1"); } catch(e){}
-}
-
-async function openFile(file){
-  if (!file) return;
-  try { openAny(JSON.parse(await file.text())); }
-  catch(err){ toast("That file isn't a play or a playbook"); }
 }
 
 /* ─── boot ──────────────────────────────────────────────────────────────── */
@@ -2744,11 +3327,15 @@ function commands(){
   add("Book", "Delete this play", () => deletePlay(bookIndex));
   add("Book", "Next play", () => gotoPlay(bookIndex + 1), "]");
   add("Book", "Previous play", () => gotoPlay(bookIndex - 1), "[");
-  add("File", "Save play (.json)", () => download(slug(play.name) + ".json", playJson()));
-  add("File", "Save playbook (.json)", () => download(slug(book.name) + ".json", bookJson()));
-  add("File", "Print playbook", printBook);
+  add("File", fileLink ? `Save to ${fileLink.name}` : "Save to a file", () => saveFile(false), "Ctrl+S");
+  add("File", "Save as…", () => saveFile(true), "Ctrl+Shift+S");
+  add("File", "Save a copy of this play", savePlayCopy);
+  add("File", "Print…", () => openPrint(), "Ctrl+P");
+  for (const [key, name] of PRINT_KINDS) add("Print", name, () => openPrint(key));
+  add("Print", "Write call numbers into the plays", numberCalls);
+  add("Print", "Clear call numbers", clearCallNumbers);
   add("File", "Restore the previous working copy", restorePrevious);
-  add("File", "Open a file", () => $("fileInput").click());
+  add("File", "Open a file", openFileDialog, "Ctrl+O");
   add("Help", "Show the start screen", showWelcome);
   if (play.defense) add("View", benchDefOpen ? "Fold the defenders on the bench"
                                              : "Show each defender on the bench",
@@ -2756,7 +3343,7 @@ function commands(){
   add("File", "Download SVG", () => download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml"));
   add("File", "Download PNG", () => exportPng(2));
   add("File", "View JSON", () => openIo("JSON", playJson()));
-  add("File", "Import a play or a playbook", () => openIo("Paste a play or a playbook JSON", ""));
+  add("File", "Paste a play or a playbook", () => openIo("Paste a play or a playbook JSON", ""));
   book.plays.forEach((p, i) => { if (i !== bookIndex) add("Go to", `${i + 1}. ${p.name}`, () => gotoPlay(i)); });
   for (const v of Object.values(CATALOG.plays)) add("Load", v.name, () => openPlay(clone(v)));
   for (const [k, v] of Object.entries(CATALOG.formations))
@@ -2825,6 +3412,8 @@ function boot(){
   $("tempo").onchange = e => { play.tempo = e.target.value; save(); };
   fillSelect($("sitHash"), [["L","Left"],["M","Middle"],["R","Right"]],
     play.situation?.hash_mark, "Any");
+  fillSelect($("sitLabel"), (CATALOG.call_sheet_buckets || []).filter(([, sit]) => isWildcard(sit) && sit.label)
+    .map(([title, sit]) => [sit.label, title]), play.situation?.label, "Auto, from down, distance and the ball");
 
   $("playName").oninput = e => { play.name = e.target.value; renderStage(); save(); renderBook();
     document.title = (play.name ? play.name + " · " : "") + "Chalktalk"; };
@@ -2839,7 +3428,11 @@ function boot(){
     play.tags = e.target.value.split(",").map(s=>s.trim()).filter(Boolean); save();
   };
   $("description").oninput = e => { play.description = e.target.value || null; save(); };
-  for (const id of ["sitDown","sitDist","sitYard","sitHash"])
+  $("installDay").onchange = e => { const v = parseInt(e.target.value, 10);
+    play.install_day = Number.isFinite(v) && v > 0 ? v : null; save(); renderBook(); };
+  $("callNumber").onchange = e => { const v = parseInt(e.target.value, 10);
+    play.call_number = Number.isFinite(v) && v > 0 ? v : null; save(); };
+  for (const id of ["sitDown","sitDist","sitYard","sitHash","sitLabel"])
     $(id).onchange = () => { readSituation(); renderStage(); save(); };
 
   fillSelect($("qbAction"),
@@ -2882,21 +3475,25 @@ function boot(){
   $("btnUndo").onclick = undo;
   $("btnSheet").onclick = () => setSheet(!sheetOpen);
   $("btnSheetClose").onclick = () => setSheet(false);
-  $("btnSave").onclick = saveSmart;
+  $("btnSave").onclick = () => saveFile(false);
+  $("btnOpen").onclick = openFileDialog;
+  $("btnPrint").onclick = () => openPrint();
+  $("printClose").onclick = () => $("printDialog").close();
+  $("printGo").onclick = printNow;
   const closeMenu = () => { $("exportMenu").hidden = true; };
-  $("btnSavePlay").onclick = () => { closeMenu(); download(slug(play.name) + ".json", playJson()); };
-  $("btnSaveBook").onclick = () => { closeMenu(); download(slug(book.name) + ".json", bookJson()); };
-  $("btnPrintBook").onclick = () => { closeMenu(); printBook(); };
+  $("btnSaveAs").onclick = () => { closeMenu(); saveFile(true); };
+  $("btnSavePlay").onclick = () => { closeMenu(); savePlayCopy(); };
+  $("btnPaste").onclick = () => { closeMenu(); openIo("Paste a play or a playbook JSON", ""); };
   $("btnBook").onclick = () => setBook(!bookOpen);
   $("btnBookClose").onclick = () => setBook(false);
   $("btnNewPlay").onclick = newPagePlay;
   $("btnBookLib").onclick = () => openPop("library");
   $("btnUndelete").onclick = undeletePlay;
   $("welcomeLib").onclick = () => { dismissWelcome(); openPop("library"); };
-  $("welcomeFile").onclick = () => { dismissWelcome(); $("fileInput").click(); };
+  $("welcomeFile").onclick = () => { dismissWelcome(); openFileDialog(); };
   $("welcomeBlank").onclick = () => { dismissWelcome();
     toast("Pick a player, then click the field to draw a route"); };
-  $("ioFile").onclick = () => { $("ioDialog").close(); $("fileInput").click(); };
+  $("ioFile").onclick = () => { $("ioDialog").close(); openFileDialog(); };
   $("fileInput").onchange = e => { const f = e.target.files && e.target.files[0];
     openFile(f); e.target.value = ""; };
   // Drop a .json anywhere to open it. Row drags in the playbook carry text, not files.
@@ -2906,7 +3503,12 @@ function boot(){
   window.addEventListener("drop", e => {
     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (!f) return;
-    e.preventDefault(); dismissWelcome(); openFile(f);
+    e.preventDefault(); dismissWelcome();
+    // Chromium hands over the file itself, so Save can write back to it.
+    const item = e.dataTransfer.items && e.dataTransfer.items[0];
+    const pending = item && item.getAsFileSystemHandle ? item.getAsFileSystemHandle() : null;
+    Promise.resolve(pending).catch(() => null)
+      .then(h => openFile(f, h && h.kind === "file" ? h : null));
   });
   $("bookName").oninput = e => { book.name = e.target.value; save(); renderBook(); };
   $("bookTeam").oninput = e => { book.team = e.target.value || null; save(); };
@@ -2914,7 +3516,6 @@ function boot(){
   $("btnSvg").onclick = () => { $("exportMenu").hidden = true; download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml"); };
   $("btnJson").onclick = () => { $("exportMenu").hidden = true; openIo("JSON", playJson()); };
   $("btnPng").onclick = () => { $("exportMenu").hidden = true; exportPng(2); };
-  $("btnImport").onclick = () => openIo("Paste a play or a playbook JSON", "");
   $("btnExport").onclick = () => { $("exportMenu").hidden = !$("exportMenu").hidden; };
 
   for (const b of $("rail").querySelectorAll("button[data-pop]"))
@@ -2945,6 +3546,12 @@ function boot(){
 
   document.addEventListener("keydown", e => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){ e.preventDefault(); openPalette(); return; }
+    if (e.ctrlKey || e.metaKey){
+      const k = e.key.toLowerCase();
+      if (k === "s"){ e.preventDefault(); saveFile(e.shiftKey); return; }
+      if (k === "o"){ e.preventDefault(); openFileDialog(); return; }
+      if (k === "p"){ e.preventDefault(); if (!$("printDialog").open) openPrint(); return; }
+    }
     if (e.target && e.target.matches && e.target.matches("input,textarea,select")) return;
     if (e.target && e.target.closest && e.target.closest(".brow")) return;   // the list has its own keys
     if ((e.ctrlKey||e.metaKey) && e.key === "z"){ e.preventDefault(); undo(); }
@@ -2977,6 +3584,8 @@ function boot(){
   try { setBook(localStorage.getItem(LS_BOOKPANEL) === "1" || (INITIAL_BOOK && book.plays.length > 1), true); } catch(e){}
   renderAll();
   if (bootedFresh && !welcomed()) showWelcome();
+  restoreLink();
+  persistStorage();
 }
 
 function openIo(title, text){
