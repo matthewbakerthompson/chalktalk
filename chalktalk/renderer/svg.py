@@ -17,6 +17,7 @@ be left out:
 """
 from __future__ import annotations
 import html
+import math
 import os
 from typing import TYPE_CHECKING, Iterable, Optional, Union
 
@@ -30,6 +31,23 @@ if TYPE_CHECKING:
 _ZONE_SCALE = 0.7
 
 _PLAY_TYPE_LABELS = {"rpo": "RPO"}
+
+
+def zone_drop_target(start: tuple[float, float], spot: tuple[float, float],
+                     half_w: float, half_h: float,
+                     scale: float = _ZONE_SCALE) -> tuple[tuple[float, float], bool]:
+    """
+    Where a zone drop's arrow ends, in field yards: on the edge of the drawn
+    area, on the line from its landmark to the defender, so the arrow meets
+    the zone he owns. A defender already standing inside his area points at
+    the landmark instead. Returns (point, inside).
+    """
+    aw, ah = half_w * scale, half_h * scale
+    dx, dy = start[0] - spot[0], start[1] - spot[1]
+    k = math.sqrt((dx / aw) ** 2 + (dy / ah) ** 2)
+    if k <= 1.0:
+        return spot, True
+    return (spot[0] + dx / k, spot[1] + dy / k), False
 
 
 class SVGRenderer:
@@ -534,8 +552,8 @@ class SVGRenderer:
                 spot = call.landmark(self.field, self._ball_x)
                 if spot is None:
                     continue
+                half_w, half_h = zone_size(call.zone)
                 if draw_zones:
-                    half_w, half_h = zone_size(call.zone)
                     cx, cy = self._s(*spot)
                     els.append(
                         f'<ellipse cx="{cx:.1f}" cy="{cy:.1f}" '
@@ -544,7 +562,17 @@ class SVGRenderer:
                         f'fill="{T.zone_fill}" stroke="{T.zone_stroke}" '
                         f'stroke-width="1"/>'
                     )
-                if draw_calls:
+                    # the zone says whose it is, even where the drops cross
+                    els.append(self._text(cx, cy + 3.5, d.label, T.def_assign, 9,
+                                          weight=700, anchor="middle", opacity=0.9))
+                if draw_calls and draw_zones:
+                    # the drop runs all the way to the area it owns
+                    end, inside = zone_drop_target((d.x, d.y), spot, half_w, half_h)
+                    els.append(self._def_arrow((d.x, d.y), end, dashed=True,
+                                               end_gap=None if inside else 0.0,
+                                               min_yards=1.2 if inside else 0.0))
+                elif draw_calls:
+                    # no areas drawn: a short arrow says which way he drops
                     els.append(self._def_arrow((d.x, d.y), spot, dashed=True,
                                                max_yards=6.0))
 
@@ -572,11 +600,14 @@ class SVGRenderer:
     def _def_arrow(self, start: tuple[float, float], end: tuple[float, float],
                    dashed: bool, gap: float = 0.5,
                    max_yards: Optional[float] = None,
-                   min_yards: float = 0.0) -> str:
+                   min_yards: float = 0.0,
+                   end_gap: Optional[float] = None) -> str:
         """
-        A drop is drawn as a short arrow toward the landmark rather than a line
-        all the way across the field. A press corner standing on his receiver
-        still gets a visible mark, which is what `min_yards` is for.
+        An assignment arrow, trimmed clear of the defender at the start and,
+        by `end_gap` (default: the same as `gap`), clear of its target. A zone
+        drop ends exactly on its area's edge, so it passes `end_gap=0`. A press
+        corner standing on his receiver still gets a visible mark, which is
+        what `min_yards` is for.
         """
         sx, sy = self._s(*start)
         ex, ey = self._s(*end)
@@ -590,7 +621,8 @@ class SVGRenderer:
             dist = min(dist, max_yards * self.scale)
 
         trim = self.scale * gap
-        visible = dist - 2 * trim
+        trim_end = self.scale * (gap if end_gap is None else end_gap)
+        visible = dist - trim - trim_end
         floor = min_yards * self.scale
         if visible < floor:
             visible = floor
