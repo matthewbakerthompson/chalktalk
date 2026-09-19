@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 
 _CSS = """
 :root {
-  --ink: #0f172a; --muted: #64748b; --line: #cbd5e1; --accent: #1d4ed8;
-  --band: #e2e8f0; --paper: #ffffff;
+  --ink: #111111; --muted: #6b6b66; --line: #d4d4d0; --accent: #111111;
+  --band: #efefec; --paper: #ffffff;
 }
 * { box-sizing: border-box; }
 body {
@@ -239,8 +239,8 @@ def wristband_html(band: "Wristband", cell_height: int = 34) -> str:
 # ── Playbook / series pages with diagrams ─────────────────────────────────────
 
 def _play_card(play: "Play", scale: float, extra: str = "",
-               level: Optional[str] = None) -> str:
-    svg = play.render(scale=scale, level=level).render()
+               level: Optional[str] = None, theme: str = "paper") -> str:
+    svg = play.render(scale=scale, level=level, theme=theme).render()
     meta = []
     if play.situation:
         meta.append(play.situation.describe())
@@ -257,8 +257,9 @@ def _play_card(play: "Play", scale: float, extra: str = "",
 
 def playbook_html(playbook: "Playbook", columns: int = 2, scale: float = 9.0,
                   subtitle: Optional[str] = None,
-                  level: Optional[str] = None) -> str:
-    cards = "".join(_play_card(p, scale, level=level) for p in playbook.plays)
+                  level: Optional[str] = None, theme: str = "paper") -> str:
+    cards = "".join(_play_card(p, scale, level=level, theme=theme)
+                    for p in playbook.plays)
     body = (
         _header(playbook.name, [subtitle or ""],
                 [playbook.team or "", str(playbook.season or ""),
@@ -270,13 +271,14 @@ def playbook_html(playbook: "Playbook", columns: int = 2, scale: float = 9.0,
 
 
 def series_html(series: "Series", columns: int = 2, scale: float = 9.0,
-                level: Optional[str] = None) -> str:
+                level: Optional[str] = None, theme: str = "paper") -> str:
     cards = []
     for entry in series.sorted().entries:
         tell = (f"<div class=\"note\"><b>{_e(entry.role.display)}</b>"
                 + (f" — {_e(entry.tell or entry.note)}"
                    if (entry.tell or entry.note) else "") + "</div>")
-        cards.append(_play_card(entry.play, scale, extra=tell, level=level))
+        cards.append(_play_card(entry.play, scale, extra=tell, level=level,
+                                theme=theme))
     body = (
         _header(series.name, [series.description or ""],
                 [f"{len(series)} plays"])
@@ -289,7 +291,8 @@ def series_html(series: "Series", columns: int = 2, scale: float = 9.0,
 
 
 def series_set_html(series_set: "SeriesSet", columns: int = 2,
-                    scale: float = 9.0, level: Optional[str] = None) -> str:
+                    scale: float = 9.0, level: Optional[str] = None,
+                    theme: str = "paper") -> str:
     """
     The install book: every series in the set, week by week, base play first
     with its answers underneath — and the gaps listed at the end, because the
@@ -307,7 +310,7 @@ def series_set_html(series_set: "SeriesSet", columns: int = 2,
                         + (f' &mdash; {_e(entry.tell or entry.note)}'
                            if (entry.tell or entry.note) else "") + "</div>")
                 cards.append(_play_card(entry.play, scale, extra=tell,
-                                        level=level))
+                                        level=level, theme=theme))
             head = (f'<div class="series-head"><h3>{_e(series.name)}</h3>'
                     f'<span class="tag">{len(series)} plays</span></div>')
             sub = (f'<div class="note">{_e(series.description)}</div>'

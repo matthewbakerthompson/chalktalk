@@ -165,27 +165,110 @@ def match_man(defenders: list[DefensePlayer],
 
 
 # ── Zone coverages ────────────────────────────────────────────────────────────
+#
+# Landmarks are handed out by rank, not by which side of the ball a defender
+# happens to stand on. The underneath droppers are sorted left to right and
+# spread across the slots the coverage owns; the two deep safeties take the
+# left and right halves. Sorting by sign put the Mike and the Sam in the same
+# hook, and both safeties in the same half, whenever one of them lined up on
+# the ball — two defenders drawn on top of each other and a hole where the
+# other one belonged.
+
+def _by_x(players: list[DefensePlayer]) -> list[DefensePlayer]:
+    return sorted(players, key=lambda p: p.x)
+
+
+def _outer_two(players: list[DefensePlayer]
+               ) -> tuple[list[DefensePlayer], list[DefensePlayer]]:
+    """The two widest players, left then right, and whoever is left over."""
+    if len(players) <= 2:
+        return _by_x(players), []
+    wide = sorted(players, key=lambda p: -abs(p.x))[:2]
+    return _by_x(wide), [p for p in players if p not in wide]
+
+
+def _deepest_two(players: list[DefensePlayer]
+                 ) -> tuple[list[DefensePlayer], list[DefensePlayer]]:
+    """The two deepest players, left then right, and whoever is left over."""
+    if len(players) <= 2:
+        return _by_x(players), []
+    deep = sorted(players, key=lambda p: -p.y)[:2]
+    return _by_x(deep), [p for p in players if p not in deep]
+
+
+def _pair_sides(pair: list[DefensePlayer]) -> list[float]:
+    """Left and right for a pair; a lone player keeps his own side."""
+    if len(pair) == 2:
+        return [-1.0, 1.0]
+    return [_side(p) for p in pair]
+
+
+def _spread(count: int) -> list[float]:
+    """Evenly spaced sides for the inside droppers, -0.6 to 0.6."""
+    if count <= 0:
+        return []
+    if count == 1:
+        return [0.0]
+    return [round(-0.6 + 1.2 * i / (count - 1), 2) for i in range(count)]
+
+
+def _hooks(sides: list[float]) -> list[tuple[Zone, float]]:
+    return [(Zone.HOOK if abs(s) < 1e-9 else Zone.HOOK_CURL, s) for s in sides]
+
+
+def _under_slots(n: int) -> list[tuple[Zone, float]]:
+    """
+    Underneath landmarks for `n` droppers behind three deep, left to right:
+    curl/flat on each edge, hook/curl inside, and a hook in the middle when
+    the count is odd.
+    """
+    if n <= 0:
+        return []
+    if n == 1:
+        return [(Zone.HOOK, 0.0)]
+    if n == 2:
+        return [(Zone.HOOK_CURL, -0.6), (Zone.HOOK_CURL, 0.6)]
+    return [(Zone.CURL_FLAT, -1.0), *_hooks(_spread(n - 2)), (Zone.CURL_FLAT, 1.0)]
+
+
+def _two_deep_slots(n: int) -> list[tuple[Zone, float]]:
+    """
+    Underneath landmarks behind two deep, where the corners already own the
+    flats: hook/curl either side of a middle hook, seams for any extras.
+    """
+    if n < 3:
+        return _under_slots(n)
+    if n == 3:
+        return [(Zone.HOOK_CURL, -0.6), (Zone.HOOK, 0.0), (Zone.HOOK_CURL, 0.6)]
+    return [(Zone.SEAM, -1.0), *_hooks(_spread(n - 2)), (Zone.SEAM, 1.0)]
+
+
+def _assign_slots(calls: dict[str, DefensiveAssignment],
+                  players: list[DefensePlayer],
+                  slots: list[tuple[Zone, float]]) -> None:
+    for p, (z, side) in zip(_by_x(players), slots):
+        calls[p.label] = zone(z, side)
+
+
+def _droppers(defense: DefensiveFormation, taken: set[str]) -> list[DefensePlayer]:
+    """Everyone off the line who has not already been given a deep job."""
+    return [p for p in defense.players if not p.is_dl and p.label not in taken]
+
 
 def cover_3(defense: DefensiveFormation, offense: Optional[Formation] = None,
             strength: int = 1) -> DefensiveFormation:
-    """Three deep, four under. The strong safety or nickel rolls to the flat."""
+    """Three deep, four under. The widest dropper on each side takes the curl/flat."""
     calls = _rush_front(defense)
-    for cb in defense.corners:
-        calls[cb.label] = zone(Zone.DEEP_THIRD, _side(cb))
-
+    corners, _ = _outer_two(defense.corners)
+    for cb, side in zip(corners, _pair_sides(corners)):
+        calls[cb.label] = zone(Zone.DEEP_THIRD, side)
+    taken = {p.label for p in corners}
     fs = _free_safety(defense)
     if fs:
         calls[fs.label] = zone(Zone.MIDDLE_THIRD, 0.0)
-
-    underneath = [p for p in defense.players
-                  if p.is_lb or p.position in _SLOT_POSITIONS
-                  or (p.is_safety and (fs is None or p.label != fs.label))]
-    underneath.sort(key=lambda p: p.x)
-    for i, p in enumerate(underneath):
-        if abs(p.x) > 5.0:
-            calls[p.label] = zone(Zone.CURL_FLAT, _side(p))
-        else:
-            calls[p.label] = zone(Zone.HOOK_CURL, _side(p) * 0.6)
+        taken.add(fs.label)
+    under = _droppers(defense, taken)
+    _assign_slots(calls, under, _under_slots(len(under)))
     return defense.with_assignments(calls, coverage="Cover 3")
 
 
@@ -193,17 +276,15 @@ def cover_2(defense: DefensiveFormation, offense: Optional[Formation] = None,
             strength: int = 1) -> DefensiveFormation:
     """Two deep halves, five under. Corners jam and sink to the flat."""
     calls = _rush_front(defense)
-    for cb in defense.corners:
-        calls[cb.label] = zone(Zone.FLAT, _side(cb))
-    for s in defense.safeties:
-        calls[s.label] = zone(Zone.DEEP_HALF, _side(s))
-
-    underneath = sorted([p for p in defense.players
-                         if p.is_lb or p.position in _SLOT_POSITIONS],
-                        key=lambda p: p.x)
-    for p in underneath:
-        calls[p.label] = (zone(Zone.CURL_FLAT, _side(p)) if abs(p.x) > 6.0
-                          else zone(Zone.HOOK_CURL, _side(p) * 0.6))
+    corners, _ = _outer_two(defense.corners)
+    for cb, side in zip(corners, _pair_sides(corners)):
+        calls[cb.label] = zone(Zone.FLAT, side)
+    deep, _ = _deepest_two(defense.safeties)
+    for s, side in zip(deep, _pair_sides(deep)):
+        calls[s.label] = zone(Zone.DEEP_HALF, side)
+    taken = {p.label for p in corners} | {p.label for p in deep}
+    under = _droppers(defense, taken)
+    _assign_slots(calls, under, _two_deep_slots(len(under)))
     return defense.with_assignments(calls, coverage="Cover 2")
 
 
@@ -224,17 +305,15 @@ def cover_4(defense: DefensiveFormation, offense: Optional[Formation] = None,
             strength: int = 1) -> DefensiveFormation:
     """Quarters — four deep, three under, safeties read the number two."""
     calls = _rush_front(defense)
-    for cb in defense.corners:
-        calls[cb.label] = zone(Zone.DEEP_QUARTER, _side(cb))
-    for s in defense.safeties:
-        calls[s.label] = zone(Zone.DEEP_QUARTER, _side(s) * 0.38)
-
-    underneath = sorted([p for p in defense.players
-                         if p.is_lb or p.position in _SLOT_POSITIONS],
-                        key=lambda p: p.x)
-    for p in underneath:
-        calls[p.label] = (zone(Zone.CURL_FLAT, _side(p)) if abs(p.x) > 6.0
-                          else zone(Zone.HOOK, _side(p) * 0.5))
+    corners, _ = _outer_two(defense.corners)
+    for cb, side in zip(corners, _pair_sides(corners)):
+        calls[cb.label] = zone(Zone.DEEP_QUARTER, side)
+    deep, _ = _deepest_two(defense.safeties)
+    for s, side in zip(deep, _pair_sides(deep)):
+        calls[s.label] = zone(Zone.DEEP_QUARTER, side * 0.38)
+    taken = {p.label for p in corners} | {p.label for p in deep}
+    under = _droppers(defense, taken)
+    _assign_slots(calls, under, _under_slots(len(under)))
     return defense.with_assignments(calls, coverage="Cover 4")
 
 
@@ -243,23 +322,17 @@ def cover_6(defense: DefensiveFormation, offense: Optional[Formation] = None,
     """Quarter-quarter-half: quarters to the field, cover 2 to the boundary."""
     d = 1.0 if strength >= 0 else -1.0
     calls = _rush_front(defense)
-    for cb in defense.corners:
-        if _side(cb) == d:
-            calls[cb.label] = zone(Zone.DEEP_QUARTER, _side(cb))
-        else:
-            calls[cb.label] = zone(Zone.FLAT, _side(cb))
-    for s in defense.safeties:
-        if _side(s) == d:
-            calls[s.label] = zone(Zone.DEEP_QUARTER, _side(s) * 0.38)
-        else:
-            calls[s.label] = zone(Zone.DEEP_HALF, _side(s))
-
-    underneath = sorted([p for p in defense.players
-                         if p.is_lb or p.position in _SLOT_POSITIONS],
-                        key=lambda p: p.x)
-    for p in underneath:
-        calls[p.label] = (zone(Zone.CURL_FLAT, _side(p)) if abs(p.x) > 6.0
-                          else zone(Zone.HOOK, _side(p) * 0.5))
+    corners, _ = _outer_two(defense.corners)
+    for cb, side in zip(corners, _pair_sides(corners)):
+        calls[cb.label] = (zone(Zone.DEEP_QUARTER, side) if side == d
+                           else zone(Zone.FLAT, side))
+    deep, _ = _deepest_two(defense.safeties)
+    for s, side in zip(deep, _pair_sides(deep)):
+        calls[s.label] = (zone(Zone.DEEP_QUARTER, side * 0.38) if side == d
+                          else zone(Zone.DEEP_HALF, side))
+    taken = {p.label for p in corners} | {p.label for p in deep}
+    under = _droppers(defense, taken)
+    _assign_slots(calls, under, _under_slots(len(under)))
     return defense.with_assignments(calls, coverage="Cover 6")
 
 
@@ -300,9 +373,10 @@ def cover_2_man(defense: DefensiveFormation, offense: Optional[Formation] = None
                 strength: int = 1) -> DefensiveFormation:
     """Two deep, man underneath."""
     calls = _rush_front(defense)
-    exclude = {s.label for s in defense.safeties}
-    for s in defense.safeties:
-        calls[s.label] = zone(Zone.DEEP_HALF, _side(s))
+    deep, _ = _deepest_two(defense.safeties)
+    exclude = {s.label for s in deep}
+    for s, side in zip(deep, _pair_sides(deep)):
+        calls[s.label] = zone(Zone.DEEP_HALF, side)
     for label, target in match_man(_man_defenders(defense, exclude), offense).items():
         calls[label] = man(target)
     return defense.with_assignments(calls, coverage="Cover 2 Man")
@@ -343,30 +417,33 @@ def fire_zone(defense: DefensiveFormation, offense: Optional[Formation] = None,
 
     # A defensive end to the call side drops to the curl/flat.
     ends = [p for p in defense.dl if p.position is DefensePosition.DE]
-    dropper = None
-    if ends:
-        dropper = max(ends, key=lambda p: p.x * d)
-        calls[dropper.label] = zone(Zone.CURL_FLAT, _side(dropper))
+    dropper = max(ends, key=lambda p: p.x * d) if ends else None
+    if dropper:
+        calls[dropper.label] = zone(Zone.CURL_FLAT, d)
 
     # Three deep behind it.
-    for cb in defense.corners:
-        calls[cb.label] = zone(Zone.DEEP_THIRD, _side(cb))
+    corners, _ = _outer_two(defense.corners)
+    for cb, side in zip(corners, _pair_sides(corners)):
+        calls[cb.label] = zone(Zone.DEEP_THIRD, side)
+    taken = {p.label for p in corners}
     fs = _free_safety(defense)
     if fs:
         calls[fs.label] = zone(Zone.MIDDLE_THIRD, 0.0)
+        taken.add(fs.label)
 
-    # The rest: one more rusher off the edge, the others underneath.
-    others = [p for p in defense.players
-              if not p.is_dl and (fs is None or p.label != fs.label)
-              and p.position is not DefensePosition.CB]
-    others.sort(key=lambda p: p.x * d, reverse=True)
-    for i, p in enumerate(others):
-        if i == 0:
-            calls[p.label] = blitz(p, "B")
-        elif abs(p.x) > 6.0 and (dropper is None or _side(p) != d):
-            calls[p.label] = zone(Zone.CURL_FLAT, _side(p))
-        else:
-            calls[p.label] = zone(Zone.HOOK, _side(p) * 0.5)
+    # Five come: the linemen still rushing plus enough second-level players
+    # from the call side to make five. Everyone else fills in underneath,
+    # around the curl/flat the end already owns.
+    others = sorted(_droppers(defense, taken), key=lambda p: p.x * d, reverse=True)
+    rushing = len(defense.dl) - (1 if dropper else 0)
+    count = max(1, min(len(others) - 2, 5 - rushing))
+    blitzers, rest = others[:count], others[count:]
+    for i, p in enumerate(blitzers):
+        calls[p.label] = blitz(p, "B" if i == 0 else "A")
+    slots = _under_slots(len(rest) + (1 if dropper else 0))
+    if dropper:
+        slots = [s for s in slots if s != (Zone.CURL_FLAT, d)]
+    _assign_slots(calls, rest, slots)
     return defense.with_assignments(
         calls, coverage="3 Under 3 Deep",
         pressure=f"Fire Zone {'Rt' if d > 0 else 'Lt'}")

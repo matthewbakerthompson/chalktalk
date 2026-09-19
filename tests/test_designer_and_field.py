@@ -4,6 +4,7 @@ the contract between the two — anything that drifts here puts a drawn route in
 a different place than the coach put it.
 """
 import json
+import os
 import re
 
 import pytest
@@ -188,6 +189,7 @@ def test_app_template_keeps_both_placeholders():
         src = fh.read()
     assert src.count("/*__CATALOG__*/{}") == 1
     assert src.count("/*__PLAY__*/null") == 1
+    assert src.count("/*__BOOK__*/null") == 1
 
 
 def test_designer_mirrors_the_python_motion_geometry():
@@ -202,3 +204,139 @@ def test_designer_mirrors_the_python_motion_geometry():
     assert _motion_geometry("orbit", 12.0, -1.0) == ((12.0, -1.0), (-5.0, -5.0))
     assert 'cl(-side*2.0), y-0.5' in src
     assert 'cl(-side*5.0), y-4.0' in src
+
+
+# ── Themes and layers ─────────────────────────────────────────────────────────
+
+def test_the_two_themes_draw_the_same_play_in_different_ink():
+    from chalktalk.renderer.theme import PAPER, TURF
+    play = passing.mesh_concept()
+    turf = play.render().render()
+    paper = play.render(theme="paper").render()
+    assert f'fill="{TURF.field}"' in turf
+    assert f'fill="{PAPER.field}"' in paper
+    assert TURF.field not in paper
+    assert turf.count("<circle") == paper.count("<circle")
+
+
+def test_layers_can_be_left_out():
+    from chalktalk.templates import defense as D
+    play = passing.mesh_concept().vs(D.NICKEL_425())
+    full = play.render().render()
+    bare = play.render(hide=["defense", "title", "routes"]).render()
+    assert full.count("<rect") > bare.count("<rect")
+    assert play.name in full and play.name not in bare
+    assert "url(#arr-route)" in full and "url(#arr-route)" not in bare
+    with pytest.raises(ValueError):
+        play.render(hide=["defence"])
+
+
+def test_unknown_theme_is_refused():
+    with pytest.raises(ValueError):
+        passing.mesh_concept().render(theme="chalkboard")
+
+
+def test_yard_numbers_and_the_end_zone_appear_once_the_ball_is_spotted():
+    from chalktalk.models import situation as S
+    from chalktalk.renderer.theme import TURF
+    play = passing.mesh_concept()
+    plain = play.render().render()
+    spotted = play.at(S.Situation(down=1, distance=10, yard_line=12)).render().render()
+    assert f'fill="{TURF.endzone}"' not in plain
+    assert f'fill="{TURF.endzone}"' in spotted          # goal line 12 yards away
+    assert ">10<" in spotted and ">10<" not in plain    # the ten-yard line is labelled
+
+
+def test_designer_receives_the_theme_table():
+    cat = designer.catalog()
+    assert set(cat["themes"]) == {"turf", "paper"}
+    assert cat["themes"]["turf"]["qb"] == "#fbbf24"
+    assert "defense" in cat["layers"]
+
+
+def test_designer_only_uses_ink_the_theme_defines():
+    """Every `t.key` / `T().key` the browser draws with must be a Theme field."""
+    from chalktalk.renderer.theme import theme_keys
+    with open(designer._TEMPLATE, encoding="utf-8") as fh:
+        src = fh.read()
+    used = set(re.findall(r"\bT\(\)\.([a-z_]+)", src)) | set(re.findall(r"\bt\.([a-z_]+)", src))
+    used -= {"text", "class", "dataset", "_t"}   # `t` is also a DOM node in the toast and pointer code
+    unknown = used - set(theme_keys())
+    assert not unknown, unknown
+    assert "CATALOG.themes" in src
+
+
+def test_designer_script_parses():
+    """The suite pins strings in the JS; make sure the JS is at least JavaScript."""
+    import shutil, subprocess, tempfile
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not installed")
+    with open(designer._TEMPLATE, encoding="utf-8") as fh:
+        src = fh.read()
+    script = src[src.index("<script>") + len("<script>"):src.rindex("</script>")]
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "designer.js")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(script)
+        result = subprocess.run([node, "--check", path], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+# ── Playbooks ─────────────────────────────────────────────────────────────────
+
+def _book():
+    from chalktalk.catalog import running
+    from chalktalk.models import Playbook
+    return Playbook(name="Week 3", team="Owls", season=2026,
+                    plays=[passing.mesh_concept(), running.power_right()])
+
+
+def test_build_can_open_a_whole_playbook():
+    html = designer.build(playbook=_book())
+    assert "/*__BOOK__*/null" not in html
+    assert "/*__PLAY__*/null" in html              # the single-play slot stays empty
+    assert "Week 3" in html and "Power Right" in html
+    assert html.count("</script>") == 1
+
+
+def test_a_designer_book_is_a_python_playbook(tmp_path):
+    """The file the designer saves is `Playbook` JSON, nothing more."""
+    from chalktalk.models import Playbook
+    path = tmp_path / "book.json"
+    _book().save(str(path))
+    again = Playbook.load(str(path))
+    assert [p.name for p in again.plays] == ["Mesh Concept", "Power Right"]
+    assert again.team == "Owls" and again.season == 2026
+
+
+def test_cli_opens_a_playbook_in_the_designer(tmp_path, capsys):
+    from chalktalk import cli
+    book = tmp_path / "book.json"
+    _book().save(str(book))
+    out = tmp_path / "designer.html"
+    assert cli.main(["design", str(book), "--out", str(out), "--no-open"]) == 0
+    assert "Week 3 (2 plays)" in capsys.readouterr().out
+    assert "/*__BOOK__*/null" not in out.read_text(encoding="utf-8")
+
+
+def test_cli_prints_a_playbook(tmp_path):
+    from chalktalk import cli
+    book = tmp_path / "book.json"
+    _book().save(str(book))
+    assert cli.main(["book", str(book), "-o", str(tmp_path / "book.pdf")]) == 0
+    assert (tmp_path / "book.pdf").stat().st_size > 1500
+    assert cli.main(["book", str(book), "-o", str(tmp_path / "book.html")]) == 0
+    page = (tmp_path / "book.html").read_text(encoding="utf-8")
+    assert "Week 3" in page and page.count("<svg") == 2
+
+
+def test_the_start_screen_and_the_preview_stay_out_of_exports():
+    """Both are interface: neither may leak into an exported SVG or the printed book."""
+    with open(designer._TEMPLATE, encoding="utf-8") as fh:
+        src = fh.read()
+    assert 'id="welcome"' in src and "showWelcome" in src
+    assert 'id="fileInput"' in src
+    # every place that strips the UI layer strips the preview layer too
+    assert src.count('svg.querySelector("#ui").remove()') == \
+        src.count('svg.querySelector("#preview").remove()') == 2

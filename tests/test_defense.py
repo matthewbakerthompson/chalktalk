@@ -230,6 +230,38 @@ def test_cover_2_man_keeps_two_deep():
     assert len(_deep(look)) == 2
 
 
+@pytest.mark.parametrize("name", sorted(C.COVERAGES))
+@pytest.mark.parametrize("fn", ALL_DEFENSES, ids=lambda f: f.__name__)
+def test_zone_defenders_never_share_a_landmark(fn, name):
+    """Two defenders dropping to the same spot is a bust, not a coverage."""
+    look = C.COVERAGES[name](fn(), F.SHOTGUN_TRIPS_RIGHT())
+    spots: dict[tuple, str] = {}
+    for p in look.players:
+        a = p.assignment
+        if not (a and a.zone):
+            continue
+        key = (a.zone, zone_landmark(a.zone, a.side))
+        assert key not in spots, \
+            f"{name}: {p.label} and {spots[key]} both drop to {a.zone.display}"
+        spots[key] = p.label
+
+
+def test_cover_3_has_a_curl_flat_player_on_each_side():
+    look = C.cover_3(D.FOUR_THREE_OVER())
+    sides = sorted(p.assignment.side for p in look.players
+                   if p.assignment and p.assignment.zone is Zone.CURL_FLAT)
+    assert sides == [-1.0, 1.0]
+
+
+@pytest.mark.parametrize("fn", ALL_DEFENSES, ids=lambda f: f.__name__)
+def test_two_deep_safeties_split_the_field(fn):
+    look = C.cover_2(fn())
+    halves = sorted(p.assignment.side for p in look.players
+                    if p.assignment and p.assignment.zone is Zone.DEEP_HALF)
+    if len(look.safeties) >= 2:
+        assert halves == [-1.0, 1.0]
+
+
 # ── Attaching to a play ───────────────────────────────────────────────────────
 
 def test_vs_accepts_a_coverage():
@@ -274,14 +306,17 @@ def test_describe_lists_the_call():
 # ── Rendering ─────────────────────────────────────────────────────────────────
 
 def test_zone_drops_draw_areas_and_arrows():
+    from chalktalk.renderer.theme import TURF
     svg = passing.mesh_concept().vs(D.NICKEL_425(), C.cover_3).render().render()
-    assert svg.count('fill="rgba(248,113,113,0.07)"') == 7   # every zone dropper
+    assert svg.count(f'fill="{TURF.zone_fill}"') == 7        # every zone dropper
     assert "url(#arr-def)" in svg
 
 
 def test_zone_shading_can_be_turned_off():
     play = passing.mesh_concept().vs(D.NICKEL_425(), C.cover_3)
-    assert 'fill="rgba(248,113,113,0.07)"' not in play.render(zones=False).render()
+    from chalktalk.renderer.theme import TURF
+    assert f'fill="{TURF.zone_fill}"' in play.render().render()
+    assert f'fill="{TURF.zone_fill}"' not in play.render(zones=False).render()
     assert "url(#arr-def)" in play.render(zones=False).render()
 
 
@@ -299,13 +334,14 @@ def test_the_arrowheads_the_renderer_asks_for_actually_exist():
 def test_press_coverage_still_shows_the_matchup():
     """A corner standing on his receiver must not draw a zero-length arrow."""
     import re
+    from chalktalk.renderer.theme import TURF
     play = passing.mesh_concept().vs(D.NICKEL_425(), C.cover_1)
     svg = play.render().render()
     lengths = [
         ((float(x2) - float(x1)) ** 2 + (float(y2) - float(y1)) ** 2) ** 0.5
         for x1, y1, x2, y2 in re.findall(
             r'<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" '
-            r'stroke="#f87171"', svg)
+            r'stroke="' + TURF.def_assign + '"', svg)
     ]
     assert lengths and min(lengths) > 8.0
 

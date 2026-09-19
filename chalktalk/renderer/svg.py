@@ -8,58 +8,28 @@ Field coordinate system → SVG pixel system:
 Resulting transform:
   svg_x = (field_x - x_min) * scale + pad
   svg_y = (y_max  - field_y) * scale + pad
+
+Colours come from a theme (see `theme.py`) so the SVG, the PDF and the browser
+designer draw the same diagram. Every part of the drawing is a layer that can
+be left out:
+
+    play.render(theme="paper", hide=["defense", "zones"]).save("mesh.svg")
 """
 from __future__ import annotations
+import html
 import os
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Iterable, Optional, Union
+
+from .theme import FONT, Theme, layer_set, theme_for
 
 if TYPE_CHECKING:
     from ..models.play import Play
 
-# ── Visual constants ──────────────────────────────────────────────────────────
-_FIELD_GREEN      = "#1e5c2e"
-_FIELD_GREEN_ALT  = "#1a5229"   # alternating stripe (subtle)
-_LINE_COLOR       = "rgba(255,255,255,0.30)"
-_LOS_COLOR        = "rgba(255,255,255,0.85)"
-_HASH_COLOR       = "rgba(255,255,255,0.20)"
-_PLAYER_FILL      = "#1d4ed8"   # offense blue
-_PLAYER_STROKE    = "#93c5fd"
-_LABEL_COLOR      = "#ffffff"
-_TITLE_COLOR      = "#f1f5f9"
+# The zone areas are drawn smaller than they really are, or five overlapping
+# bubbles hide the play.
+_ZONE_SCALE = 0.7
 
-# Route colors  (RouteType.value → hex)
-_ROUTE_COLORS: dict[str, str] = {
-    "block":  "#6b7280",   # gray  – blockers
-    "run":    "#f59e0b",   # amber – ball carrier
-    "default":"#ffffff",   # white – all pass routes
-}
-
-# Defensive player colors (by role)
-_DEF_DL_FILL    = "#374151"
-_DEF_LB_FILL    = "#4b5563"
-_DEF_DB_FILL    = "#6b7280"
-_DEF_STROKE     = "#d1d5db"
-_DEF_LABEL      = "#ffffff"
-
-# Pre-snap motion
-_MOTION_COLOR   = "#7dd3fc"   # light cyan — clearly not a route
-
-# Blocking
-_BLOCK_COLOR    = "#e5e7eb"
-_BLOCK_WIDTH    = 2.2
-
-# Quarterback
-_QB_COLOR       = "#fbbf24"   # amber — he has the ball on every snap
-_READ_FILL      = "#0f172a"
-_READ_TEXT      = "#fde68a"
-
-# Defensive assignments
-_DEF_ASSIGN     = "#f87171"   # red — the defense's side of the ink
-_ZONE_FILL      = "rgba(248,113,113,0.07)"
-_ZONE_SCALE     = 0.7    # draw the area smaller than it really is,
-                         # or five overlapping bubbles hide the play
-
-# Hash positions come from the field spec — they differ by level.
+_PLAY_TYPE_LABELS = {"rpo": "RPO"}
 
 
 class SVGRenderer:
@@ -72,6 +42,9 @@ class SVGRenderer:
         padding: int = 28,
         level=None,
         zones: bool = True,
+        theme: Union[Theme, str, None] = None,
+        layers: Optional[Iterable[str]] = None,
+        hide: Optional[Iterable[str]] = None,
     ):
         from ..models.field import field_for
         self.play    = play
@@ -80,25 +53,29 @@ class SVGRenderer:
         self.y_range = y_range
         self.pad     = padding
         self.field   = field_for(level)
-        self.zones   = zones
+        self.theme   = theme_for(theme)
+        self.layers  = layer_set(layers, hide)
+        if not zones:
+            self.layers = self.layers - {"zones"}
 
     # ── Public API ────────────────────────────────────────────────────────────
 
     def render(self) -> str:
+        on = self.layers
         parts = [
             self._defs(),
             self._field(),
-            self._motions(),
-            self._blocks(),
-            self._qb(),
-            self._routes(),
-            self._reads(),
-            self._defense_assignments(),
-            self._defense_players(),
+            self._motions() if "motion" in on else "",
+            self._blocks() if "blocks" in on else "",
+            self._qb() if "qb" in on else "",
+            self._routes() if "routes" in on else "",
+            self._reads() if "reads" in on else "",
+            self._defense_assignments() if "defense" in on else "",
+            self._defense_players() if "defense" in on else "",
             self._players(),
-            self._title(),
+            self._title() if "title" in on else "",
         ]
-        return self._wrap("\n".join(parts))
+        return self._wrap("\n".join(p for p in parts if p))
 
     def save(self, path: str) -> None:
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
@@ -125,6 +102,20 @@ class SVGRenderer:
     def _s(self, field_x: float, field_y: float) -> tuple[float, float]:
         return self._sx(field_x), self._sy(field_y)
 
+    def _text(self, x: float, y: float, text: str, fill: str, size: float,
+              weight: Optional[int] = None, anchor: Optional[str] = None,
+              opacity: Optional[float] = None) -> str:
+        attrs = [f'x="{x:.1f}"', f'y="{y:.1f}"']
+        if anchor:
+            attrs.append(f'text-anchor="{anchor}"')
+        attrs += [f'fill="{fill}"', f'font-family="{FONT}"',
+                  f'font-size="{size:g}"']
+        if weight:
+            attrs.append(f'font-weight="{weight}"')
+        if opacity is not None:
+            attrs.append(f'opacity="{opacity:g}"')
+        return f'<text {" ".join(attrs)}>{html.escape(str(text))}</text>'
+
     # ── SVG structure ─────────────────────────────────────────────────────────
 
     def _wrap(self, content: str) -> str:
@@ -136,106 +127,170 @@ class SVGRenderer:
         )
 
     def _defs(self) -> str:
+        T = self.theme
+
         def arrowhead(id_: str, color: str) -> str:
             return (
-                f'<marker id="{id_}" markerWidth="10" markerHeight="7" '
-                f'refX="9" refY="3.5" orient="auto">'
-                f'<polygon points="0 0, 10 3.5, 0 7" fill="{color}"/>'
+                f'<marker id="{id_}" markerWidth="9" markerHeight="7" '
+                f'refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">'
+                f'<polygon points="0 0.5, 9 3.5, 0 6.5" fill="{color}"/>'
                 f'</marker>'
             )
         return (
             "<defs>\n"
-            + "  " + arrowhead("arr-white",  "#ffffff") + "\n"
-            + "  " + arrowhead("arr-amber",  "#f59e0b") + "\n"
-            + "  " + arrowhead("arr-gray",   "#9ca3af") + "\n"
-            + "  " + arrowhead("arr-motion", _MOTION_COLOR) + "\n"
-            + "  " + arrowhead("arr-def",    _DEF_ASSIGN) + "\n"
-            + "  " + arrowhead("arr-qb",     _QB_COLOR) + "\n"
+            + "  " + arrowhead("arr-route",  T.route) + "\n"
+            + "  " + arrowhead("arr-run",    T.run) + "\n"
+            + "  " + arrowhead("arr-motion", T.motion) + "\n"
+            + "  " + arrowhead("arr-def",    T.def_assign) + "\n"
+            + "  " + arrowhead("arr-qb",     T.qb) + "\n"
             + "</defs>"
         )
 
     # ── Field background ──────────────────────────────────────────────────────
 
+    def _spot(self) -> Optional[int]:
+        """Yards from the line of scrimmage to the opponent's goal, if known."""
+        sit = self.play.situation
+        if sit is None or sit.yard_line is None:
+            return None
+        return int(round(sit.yard_line))
+
+    def _goal_y(self) -> Optional[float]:
+        """Where the goal line is, in yards past the line of scrimmage."""
+        spot = self._spot()
+        return None if spot is None else float(spot)
+
+    def _phase(self) -> int:
+        """
+        Which yards carry the five-yard lines. Without a ball spot the
+        scrimmage line sits on one; with a spot, the grid is the real one
+        and the ball is wherever it was placed.
+        """
+        spot = self._spot()
+        return 0 if spot is None else spot % 5
+
     def _field(self) -> str:
+        T = self.theme
         els: list[str] = []
         w, h = self._width, self._height
+        side = self.field.sideline
+        x_lo, x_hi = self.x_range
+        y_lo, y_hi = self.y_range
 
-        # Base green
-        els.append(f'<rect width="{w}" height="{h}" fill="{_FIELD_GREEN}"/>')
-
-        # 5-yard horizontal stripes (alternating shade)
-        for y_yd in range(-5, int(self.y_range[1]) + 5, 10):
-            y0 = self._sy(y_yd + 5)
-            y1 = self._sy(y_yd)
-            band_h = abs(y1 - y0)
+        # The surface, with the mowing pattern on the five-yard grid
+        phase = self._phase()
+        els.append(f'<rect width="{w}" height="{h}" fill="{T.field}"/>')
+        for y_yd in range(phase - 5, int(y_hi) + 5, 10):
+            y0, y1 = self._sy(y_yd + 5), self._sy(y_yd)
             els.append(
-                f'<rect x="0" y="{min(y0,y1):.1f}" width="{w}" height="{band_h:.1f}" '
-                f'fill="{_FIELD_GREEN_ALT}" opacity="0.4"/>'
+                f'<rect x="0" y="{min(y0, y1):.1f}" width="{w}" '
+                f'height="{abs(y1 - y0):.1f}" fill="{T.field_alt}"/>'
             )
 
-        # Subtle yard lines
-        for y_yd in range(int(self.y_range[0]), int(self.y_range[1]) + 1, 5):
-            x0, y_s = self._s(self.x_range[0], y_yd)
-            x1, _   = self._s(self.x_range[1], y_yd)
+        # The end zone, when the ball spot says it is in view
+        goal = self._goal_y()
+        if goal is not None and y_lo < goal < y_hi:
+            top, gy = self._sy(y_hi), self._sy(goal)
+            els.append(
+                f'<rect x="0" y="{top:.1f}" width="{w}" height="{gy - top:.1f}" '
+                f'fill="{T.endzone}"/>'
+            )
+
+        # Out of bounds, past the real sidelines (53 1/3 yards apart)
+        if x_lo < -side:
+            els.append(f'<rect x="0" y="0" width="{self._sx(-side):.1f}" '
+                       f'height="{h}" fill="{T.oob}"/>')
+        if x_hi > side:
+            sx = self._sx(side)
+            els.append(f'<rect x="{sx:.1f}" y="0" width="{w - sx:.1f}" '
+                       f'height="{h}" fill="{T.oob}"/>')
+
+        # Yard lines between the sidelines; the line of scrimmage is solid ink
+        lx0, lx1 = self._sx(max(x_lo, -side)), self._sx(min(x_hi, side))
+        for y_yd in range(int(y_lo), int(y_hi) + 1):
+            if y_yd != 0 and y_yd % 5 != phase:
+                continue
+            y_s = self._sy(y_yd)
             if y_yd == 0:
-                # Line of scrimmage — solid, bright
                 els.append(
-                    f'<line x1="{x0:.1f}" y1="{y_s:.1f}" x2="{x1:.1f}" y2="{y_s:.1f}" '
-                    f'stroke="{_LOS_COLOR}" stroke-width="2.5" stroke-dasharray="10,6"/>'
+                    f'<line x1="{lx0:.1f}" y1="{y_s:.1f}" x2="{lx1:.1f}" y2="{y_s:.1f}" '
+                    f'stroke="{T.los}" stroke-width="2.2"/>'
                 )
             else:
                 els.append(
-                    f'<line x1="{x0:.1f}" y1="{y_s:.1f}" x2="{x1:.1f}" y2="{y_s:.1f}" '
-                    f'stroke="{_LINE_COLOR}" stroke-width="0.8"/>'
+                    f'<line x1="{lx0:.1f}" y1="{y_s:.1f}" x2="{lx1:.1f}" y2="{y_s:.1f}" '
+                    f'stroke="{T.line}" stroke-width="1"/>'
                 )
+        if goal is not None and y_lo < goal < y_hi and goal != 0:
+            gy = self._sy(goal)
+            els.append(
+                f'<line x1="{lx0:.1f}" y1="{gy:.1f}" x2="{lx1:.1f}" y2="{gy:.1f}" '
+                f'stroke="{T.los}" stroke-width="2"/>'
+            )
 
         # Hash marks (short ticks)
         hash_x = self.field.hash_from_center
         for hx in (-hash_x, hash_x):
             sx = self._sx(hx)
-            for y_yd in range(int(self.y_range[0]), int(self.y_range[1]) + 1):
+            for y_yd in range(int(y_lo), int(y_hi) + 1):
                 sy = self._sy(y_yd)
                 tick = self.scale * 0.25
                 els.append(
                     f'<line x1="{sx - tick:.1f}" y1="{sy:.1f}" x2="{sx + tick:.1f}" y2="{sy:.1f}" '
-                    f'stroke="{_HASH_COLOR}" stroke-width="1.5"/>'
+                    f'stroke="{T.hash}" stroke-width="1.5"/>'
                 )
 
-        # Sidelines — the real ones, 53 1/3 yards apart, not the edge of the view
-        for field_x in (-self.field.sideline, self.field.sideline):
-            if not (self.x_range[0] <= field_x <= self.x_range[1]):
+        # Sidelines
+        for field_x in (-side, side):
+            if not (x_lo <= field_x <= x_hi):
                 continue
             sx = self._sx(field_x)
-            y_top = self._sy(self.y_range[1])
-            y_bot = self._sy(self.y_range[0])
             els.append(
-                f'<line x1="{sx:.1f}" y1="{y_top:.1f}" x2="{sx:.1f}" y2="{y_bot:.1f}" '
-                f'stroke="rgba(255,255,255,0.55)" stroke-width="1.5"/>'
+                f'<line x1="{sx:.1f}" y1="{self._sy(y_hi):.1f}" '
+                f'x2="{sx:.1f}" y2="{self._sy(y_lo):.1f}" '
+                f'stroke="{T.sideline}" stroke-width="2"/>'
             )
+
+        els.extend(self._numbers())
 
         # Ball spot on the hash this play is run from
         if self.play.situation is not None and self.play.situation.hash_mark:
             bx, by = self._s(self.field.hash_x(self.play.situation.hash_mark), 0)
             els.append(
                 f'<ellipse cx="{bx:.1f}" cy="{by:.1f}" rx="{self.scale * 0.3:.1f}" '
-                f'ry="{self.scale * 0.18:.1f}" fill="#c2703a" '
-                f'stroke="rgba(255,255,255,0.85)" stroke-width="1"/>'
+                f'ry="{self.scale * 0.18:.1f}" fill="{T.ball}" '
+                f'stroke="{T.los}" stroke-width="1"/>'
             )
-
-        # LOS label
-        los_x, los_y = self._s(self.x_range[0] + 0.8, 0)
-        els.append(
-            f'<text x="{los_x:.1f}" y="{los_y - 5:.1f}" '
-            f'fill="rgba(255,255,255,0.65)" font-family="Arial,sans-serif" '
-            f'font-size="11" font-weight="bold">LOS</text>'
-        )
-
         return "\n".join(els)
+
+    def _numbers(self) -> list[str]:
+        """Yard numbers on the tens, once the ball spot pins the field down."""
+        sit = self.play.situation
+        if sit is None or sit.yard_line is None:
+            return []
+        T = self.theme
+        els: list[str] = []
+        fs = self.scale * 0.95
+        nx = self.field.sideline - self.field.numbers_from_sideline
+        spot = self._spot()
+        for y_yd in range(int(self.y_range[0]), int(self.y_range[1]) + 1):
+            to_goal = spot - y_yd
+            if to_goal % 10 or not (0 < to_goal < 100):
+                continue
+            label = str(to_goal if to_goal <= 50 else 100 - to_goal)
+            ys = self._sy(y_yd) + fs * 0.36
+            for fx in (-nx, nx):
+                if not (self.x_range[0] < fx < self.x_range[1]):
+                    continue
+                els.append(self._text(self._sx(fx), ys, label, T.number, fs,
+                                      weight=700, anchor="middle"))
+        return els
 
     # ── Pre-snap motion ───────────────────────────────────────────────────────
 
     def _motions(self) -> str:
         """Dashed trail from the pre-snap alignment to where the ball is snapped."""
+        T = self.theme
         els: list[str] = []
         for a in self.play.assignments:
             if a.motion_from is None:
@@ -256,7 +311,7 @@ class SVGRenderer:
             mx, my = (sx + ex) / 2, (sy + ey) / 2 - self.scale * 0.55
             els.append(
                 f'<path d="M {sx:.1f} {sy:.1f} Q {mx:.1f} {my:.1f} {ex:.1f} {ey:.1f}" '
-                f'fill="none" stroke="{_MOTION_COLOR}" stroke-width="1.8" '
+                f'fill="none" stroke="{T.motion}" stroke-width="1.8" '
                 f'stroke-dasharray="5,4" stroke-linecap="round" '
                 f'marker-end="url(#arr-motion)" opacity="0.9"/>'
             )
@@ -265,16 +320,13 @@ class SVGRenderer:
             r = self.scale * 0.42
             els.append(
                 f'<circle cx="{gsx:.1f}" cy="{gsy:.1f}" r="{r:.1f}" fill="none" '
-                f'stroke="{_MOTION_COLOR}" stroke-width="1.4" stroke-dasharray="3,3" '
+                f'stroke="{T.motion}" stroke-width="1.4" stroke-dasharray="3,3" '
                 f'opacity="0.75"/>'
             )
             if a.motion_type:
-                els.append(
-                    f'<text x="{gsx:.1f}" y="{gsy - r - 4:.1f}" text-anchor="middle" '
-                    f'fill="{_MOTION_COLOR}" font-family="Arial,sans-serif" '
-                    f'font-size="9" font-weight="bold" opacity="0.9">'
-                    f'{a.motion_type.upper()}</text>'
-                )
+                els.append(self._text(gsx, gsy - r - 4, a.motion_type.upper(),
+                                      T.motion, 9, weight=700, anchor="middle",
+                                      opacity=0.9))
         return "\n".join(els)
 
     # ── Blocking ──────────────────────────────────────────────────────────────
@@ -288,6 +340,7 @@ class SVGRenderer:
         from ..models.block import BlockKind
         from ..templates.blocking import BASE
 
+        T = self.theme
         els: list[str] = []
         combos: set[frozenset] = set()
 
@@ -308,10 +361,11 @@ class SVGRenderer:
                                  self.scale * 0.42)
             els.append(
                 f'<path d="{_smooth_path(svg_pts)}" fill="none" '
-                f'stroke="{_BLOCK_COLOR}" stroke-width="{_BLOCK_WIDTH}" '
-                f'stroke-linecap="round" stroke-linejoin="round" opacity="0.88"/>'
+                f'stroke="{T.block}" stroke-width="2.4" '
+                f'stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>'
             )
-            els.append(_block_cap(svg_pts, self.scale, block.kind is BlockKind.CUT))
+            els.append(_block_cap(svg_pts, self.scale, T.block,
+                                  block.kind is BlockKind.CUT))
 
             if block.combo_with:
                 pair = frozenset((a.player.label, block.combo_with))
@@ -332,7 +386,7 @@ class SVGRenderer:
         return (
             f'<path d="M {x1:.1f} {y1 + self.scale * 0.5:.1f} '
             f'Q {mx:.1f} {my:.1f} {x2:.1f} {y2 + self.scale * 0.5:.1f}" '
-            f'fill="none" stroke="{_BLOCK_COLOR}" stroke-width="1.4" '
+            f'fill="none" stroke="{self.theme.block}" stroke-width="1.4" '
             f'stroke-dasharray="4,3" opacity="0.65"/>'
         )
 
@@ -340,6 +394,7 @@ class SVGRenderer:
 
     def _qb(self) -> str:
         """His footwork, and the mesh point where the play gets decided."""
+        T = self.theme
         els: list[str] = []
         for a in self.play.assignments:
             plan = a.qb
@@ -349,7 +404,7 @@ class SVGRenderer:
                    for x, y in plan.absolute_path(a.player.x, a.player.y)]
             pts = _trim_start(pts, self.scale * 0.5)
             els.append(
-                f'<path d="{_smooth_path(pts)}" fill="none" stroke="{_QB_COLOR}" '
+                f'<path d="{_smooth_path(pts)}" fill="none" stroke="{T.qb}" '
                 f'stroke-width="2.2" stroke-linecap="round" '
                 f'stroke-linejoin="round" marker-end="url(#arr-qb)" '
                 f'opacity="0.95"/>'
@@ -360,7 +415,7 @@ class SVGRenderer:
                 r = self.scale * 0.28
                 els.append(
                     f'<circle cx="{mx:.1f}" cy="{my:.1f}" r="{r:.1f}" '
-                    f'fill="none" stroke="{_QB_COLOR}" stroke-width="1.8" '
+                    f'fill="none" stroke="{T.qb}" stroke-width="1.8" '
                     f'opacity="0.95"/>'
                 )
         return "\n".join(els)
@@ -370,6 +425,7 @@ class SVGRenderer:
         plan = self.play.qb
         if plan is None or not plan.reads:
             return ""
+        T = self.theme
         els: list[str] = []
         for a in self.play.assignments:
             order = plan.read_order(a.player.label)
@@ -387,52 +443,43 @@ class SVGRenderer:
             r = max(6.0, self.scale * 0.36)
             els.append(
                 f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{r:.1f}" '
-                f'fill="{_READ_FILL}" stroke="{_QB_COLOR}" stroke-width="1.4" '
-                f'opacity="0.92"/>'
+                f'fill="{T.read_fill}" stroke="{T.qb}" stroke-width="1.4" '
+                f'opacity="0.95"/>'
             )
-            els.append(
-                f'<text x="{cx:.1f}" y="{cy + r * 0.36:.1f}" text-anchor="middle" '
-                f'fill="{_READ_TEXT}" font-family="Arial,sans-serif" '
-                f'font-size="{r * 1.05:.0f}" font-weight="bold">{order}</text>'
-            )
+            els.append(self._text(cx, cy + r * 0.36, order, T.read_text,
+                                  round(r * 1.05), weight=700, anchor="middle"))
         return "\n".join(els)
 
     # ── Routes ────────────────────────────────────────────────────────────────
 
     def _routes(self) -> str:
+        T = self.theme
         els: list[str] = []
         for a in self.play.assignments:
             if a.route is None:
                 continue
             rt = a.route.route_type.value
             if rt == "block":
-                continue   # OL blocking — skip route lines for now
+                continue   # linemen are drawn by the blocking layer
 
             abs_pts = a.absolute_waypoints()
-
-            # Determine color and marker
             if a.is_ball_carrier or rt == "run":
-                color, marker = "#f59e0b", "url(#arr-amber)"
-                stroke_w = 2.8
+                color, marker, stroke_w = T.run, "url(#arr-run)", 2.8
             else:
-                color, marker = "#ffffff", "url(#arr-white)"
-                stroke_w = 2.2
+                color, marker, stroke_w = T.route, "url(#arr-route)", 2.4
 
-            # Build smooth SVG path
             svg_pts = [self._s(x, y) for x, y in abs_pts]
-            path_d  = _smooth_path(svg_pts)
-
             els.append(
-                f'<path d="{path_d}" fill="none" stroke="{color}" '
+                f'<path d="{_smooth_path(svg_pts)}" fill="none" stroke="{color}" '
                 f'stroke-width="{stroke_w}" stroke-linecap="round" '
-                f'stroke-linejoin="round" marker-end="{marker}" opacity="0.92"/>'
+                f'stroke-linejoin="round" marker-end="{marker}" opacity="0.94"/>'
             )
-
         return "\n".join(els)
 
     # ── Players ───────────────────────────────────────────────────────────────
 
     def _players(self) -> str:
+        T = self.theme
         els: list[str] = []
         seen: set[str] = set()
         for a in self.play.assignments:
@@ -444,22 +491,16 @@ class SVGRenderer:
 
             sx, sy = self._s(p.x, p.y)
             r = 9 if p.is_ol else 11
-
-            # Circle
+            has_ball = a.is_ball_carrier or p.position.value == "QB"
+            stroke = T.ball_ring if has_ball else T.offense_stroke
+            width = 2.2 if has_ball else 1.4
             els.append(
                 f'<circle cx="{sx:.1f}" cy="{sy:.1f}" r="{r}" '
-                f'fill="{_PLAYER_FILL}" stroke="{_PLAYER_STROKE}" stroke-width="1.5"/>'
+                f'fill="{T.offense_fill}" stroke="{stroke}" stroke-width="{width}"/>'
             )
-
-            # Label
             fs = 9 if len(p.label) > 2 else 10
-            els.append(
-                f'<text x="{sx:.1f}" y="{sy + fs * 0.37:.1f}" '
-                f'text-anchor="middle" fill="{_LABEL_COLOR}" '
-                f'font-family="Arial,sans-serif" font-size="{fs}" font-weight="bold">'
-                f'{p.label}</text>'
-            )
-
+            els.append(self._text(sx, sy + fs * 0.37, p.label, T.offense_text,
+                                  fs, weight=700, anchor="middle"))
         return "\n".join(els)
 
     # ── Defensive assignments ─────────────────────────────────────────────────
@@ -477,6 +518,9 @@ class SVGRenderer:
 
         if not self.play.defense:
             return ""
+        T = self.theme
+        draw_zones = "zones" in self.layers
+        draw_calls = "coverage" in self.layers
         els: list[str] = []
         offense = {a.player.label: a.player for a in self.play.assignments}
 
@@ -490,18 +534,22 @@ class SVGRenderer:
                 spot = call.landmark(self.field, self._ball_x)
                 if spot is None:
                     continue
-                if self.zones:
+                if draw_zones:
                     half_w, half_h = zone_size(call.zone)
                     cx, cy = self._s(*spot)
                     els.append(
                         f'<ellipse cx="{cx:.1f}" cy="{cy:.1f}" '
                         f'rx="{half_w * self.scale * _ZONE_SCALE:.1f}" '
                         f'ry="{half_h * self.scale * _ZONE_SCALE:.1f}" '
-                        f'fill="{_ZONE_FILL}" stroke="{_DEF_ASSIGN}" '
-                        f'stroke-width="1" stroke-dasharray="5,6" opacity="0.45"/>'
+                        f'fill="{T.zone_fill}" stroke="{T.zone_stroke}" '
+                        f'stroke-width="1"/>'
                     )
-                els.append(self._def_arrow((d.x, d.y), spot, dashed=True,
-                                           max_yards=6.0))
+                if draw_calls:
+                    els.append(self._def_arrow((d.x, d.y), spot, dashed=True,
+                                               max_yards=6.0))
+
+            elif not draw_calls:
+                continue
 
             elif call.role is DefensiveRole.MAN and call.covers in offense:
                 target = offense[call.covers]
@@ -514,7 +562,7 @@ class SVGRenderer:
                 pts = _trim_start(pts, self.scale * 0.5)
                 els.append(
                     f'<path d="{_smooth_path(pts)}" fill="none" '
-                    f'stroke="{_DEF_ASSIGN}" stroke-width="2.2" '
+                    f'stroke="{T.def_assign}" stroke-width="2.2" '
                     f'stroke-linecap="round" marker-end="url(#arr-def)" '
                     f'opacity="0.9"/>'
                 )
@@ -553,7 +601,7 @@ class SVGRenderer:
         dash = ' stroke-dasharray="7,5"' if dashed else ""
         return (
             f'<line x1="{sx:.1f}" y1="{sy:.1f}" x2="{ex:.1f}" y2="{ey:.1f}" '
-            f'stroke="{_DEF_ASSIGN}" stroke-width="2"{dash} '
+            f'stroke="{self.theme.def_assign}" stroke-width="2"{dash} '
             f'marker-end="url(#arr-def)" opacity="0.85"/>'
         )
 
@@ -562,52 +610,36 @@ class SVGRenderer:
     def _defense_players(self) -> str:
         if not self.play.defense:
             return ""
-        from ..models.defense import DL_POSITIONS, LB_POSITIONS
+        T = self.theme
         els: list[str] = []
         for dp in self.play.defense.players:
             sx, sy = self._sx(dp.x), self._sy(dp.y)
-            r = 10
-
-            if dp.position in DL_POSITIONS:
-                fill = _DEF_DL_FILL
-            elif dp.position in LB_POSITIONS:
-                fill = _DEF_LB_FILL
-            else:
-                fill = _DEF_DB_FILL
-
-            # Hollow square for defense (distinguishes from offense circles)
-            half = r
+            half = 10
+            # Squares for the defense, so they read differently from the offense
             els.append(
                 f'<rect x="{sx - half:.1f}" y="{sy - half:.1f}" '
-                f'width="{half * 2}" height="{half * 2}" rx="2" '
-                f'fill="{fill}" stroke="{_DEF_STROKE}" stroke-width="1.5" opacity="0.92"/>'
+                f'width="{half * 2}" height="{half * 2}" rx="2.5" '
+                f'fill="{T.defense_fill}" stroke="{T.defense_stroke}" '
+                f'stroke-width="1.3"/>'
             )
             fs = 9 if len(dp.label) > 2 else 10
-            els.append(
-                f'<text x="{sx:.1f}" y="{sy + fs * 0.37:.1f}" '
-                f'text-anchor="middle" fill="{_DEF_LABEL}" '
-                f'font-family="Arial,sans-serif" font-size="{fs}" font-weight="bold">'
-                f'{dp.label}</text>'
-            )
+            els.append(self._text(sx, sy + fs * 0.37, dp.label, T.defense_text,
+                                  fs, weight=700, anchor="middle"))
         return "\n".join(els)
 
     # ── Title ─────────────────────────────────────────────────────────────────
 
     def _title(self) -> str:
-        w = self._width
+        """A name plate in the corner nothing else needs — the backfield's left."""
+        T = self.theme
         play = self.play
-        title   = play.name
-        sub     = f"{play.formation.name}  ·  {play.formation.personnel} personnel  ·  {play.play_type.value.upper()}"
-        title_y = self._height - 10
-        sub_y   = self.pad - 8
-
+        kind = play.play_type.value
+        kind = _PLAY_TYPE_LABELS.get(kind, kind.capitalize())
+        sub = f"{play.formation.name}  ·  {play.formation.personnel} personnel  ·  {kind}"
+        x, h = 14.0, self._height
         return (
-            f'<text x="{w / 2:.1f}" y="{title_y}" text-anchor="middle" '
-            f'fill="{_TITLE_COLOR}" font-family="Arial,sans-serif" '
-            f'font-size="15" font-weight="bold">{title}</text>\n'
-            f'<text x="{w / 2:.1f}" y="{sub_y}" text-anchor="middle" '
-            f'fill="rgba(255,255,255,0.55)" font-family="Arial,sans-serif" '
-            f'font-size="11">{sub}</text>'
+            self._text(x, h - 26, play.name, T.title, 14, weight=700) + "\n"
+            + self._text(x, h - 10, sub, T.subtitle, 10.5)
         )
 
 
@@ -626,7 +658,7 @@ def _trim_start(pts: list[tuple[float, float]], amount: float
     return [(x0 + dx / length * amount, y0 + dy / length * amount), *pts[1:]]
 
 
-def _block_cap(svg_pts: list[tuple[float, float]], scale: float,
+def _block_cap(svg_pts: list[tuple[float, float]], scale: float, color: str,
                is_cut: bool = False) -> str:
     """
     The bar across the end of a block path — the mark that says "engaged",
@@ -644,14 +676,14 @@ def _block_cap(svg_pts: list[tuple[float, float]], scale: float,
         return (
             f'<line x1="{x1 - ux - nx * half:.1f}" y1="{y1 - uy - ny * half:.1f}" '
             f'x2="{x1 + ux + nx * half:.1f}" y2="{y1 + uy + ny * half:.1f}" '
-            f'stroke="{_BLOCK_COLOR}" stroke-width="{_BLOCK_WIDTH}" '
-            f'stroke-linecap="round" opacity="0.88"/>'
+            f'stroke="{color}" stroke-width="2.4" '
+            f'stroke-linecap="round" opacity="0.9"/>'
         )
     return (
         f'<line x1="{x1 - nx * half:.1f}" y1="{y1 - ny * half:.1f}" '
         f'x2="{x1 + nx * half:.1f}" y2="{y1 + ny * half:.1f}" '
-        f'stroke="{_BLOCK_COLOR}" stroke-width="{_BLOCK_WIDTH}" '
-        f'stroke-linecap="round" opacity="0.88"/>'
+        f'stroke="{color}" stroke-width="2.4" '
+        f'stroke-linecap="round" opacity="0.9"/>'
     )
 
 

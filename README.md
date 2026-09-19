@@ -375,29 +375,64 @@ Two things worth knowing:
 chalk design                          # a blank formation
 chalk design mesh_concept             # start from a catalog concept
 chalk design my_play.json             # keep editing a saved play
+chalk design week3.json               # or a whole playbook
 chalk design --level hs --out designer.html --no-open
 ```
 
 It writes one self-contained HTML file — the whole catalog inlined, no server,
-no CDN, no build step — and opens it. Inside:
+no CDN, no build step — and opens it. The field is the window and the tools float over it. The first time it opens,
+a start screen offers four concepts, the whole library, a file, or a blank
+formation. Drop a play or playbook `.json` anywhere on the window to open it.
 
-- **click a player** to select, **drag** to move (snapped to half yards)
-- **click the field** to add route points, **drag** the yellow handles to shape
-  the route, **double-click** one to delete it
-- pick a stock route from the tree, or draw your own
-- apply **motion** (jet, orbit, across, return, short, out, in) and watch the
-  pre-snap trail and snap position update
-- drop a **blocking scheme** on the whole line and flip it left or right, or set
-  one blocker's assignment, direction and target by hand
-- pick a **defensive look and a coverage**, then click any defender to change his
-  role, zone, match-up or gap — man assignments are recomputed against whoever
-  is actually on the field
-- give the **quarterback** an action and build the progression by clicking
-  receivers in the order he works them
-- drop in any of the 23 defensive looks
-- **Flip** the whole play, **Undo** with <kbd>Ctrl</kbd>+<kbd>Z</kbd>
-- fill in protection, tempo, alerts, tags and the situation it is called in
-- **Save .json** and open it right back up in Python
+- **Formation, Line, Defense, Library, Layers** sit on the rail at the left.
+  Formations and defensive looks are picked from thumbnails, schemes and
+  coverages from a list, concepts from a searchable library.
+- **The bench** under the field lists the offense: the five linemen as one
+  group captioned with their scheme, then a token per skill player. The
+  defense folds into one chip naming the look and the call; open it to reach
+  each defender.
+- **Click a player** on the field or on the bench to select it, **drag** to
+  move (snapped to half yards). The strip above the bench edits the selection:
+  route, block, target, direction, motion, ball carrier, note.
+- **Click the field** to add route points, **drag** the yellow handles to shape
+  the route, **double-click** one to delete it. Or pick a stock route. While a
+  player is selected a faint line runs from the end of his route to the cursor,
+  with the depth of the next point.
+- **Arrow keys** nudge the selected player, defender or route point by half a
+  yard; hold <kbd>Shift</kbd> for a full yard.
+- **Layers** hide whatever you are not working on: routes, blocks, motion, the
+  quarterback, reads, the defense, its assignments, zone landmarks, the title.
+  Exports follow the toggles.
+- The **play sheet** drawer holds the quarterback action and progression
+  (click receivers in the order he works them), protection, tempo, alerts,
+  tags, the situation and notes.
+- <kbd>Ctrl</kbd>+<kbd>K</kbd> opens a command palette: every concept,
+  formation, look, coverage and scheme is two keystrokes away. <kbd>F</kbd>
+  flips the play, <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.
+- **Plays** opens the playbook: every page with a live thumbnail. Add a blank
+  play or one from the library, duplicate, delete (with undo), drag to reorder,
+  <kbd>[</kbd> and <kbd>]</kbd> to turn pages. A concept from the library fills a
+  blank page or joins the book as a new one.
+- **Save** writes the playbook once it has more than one play, otherwise the
+  play; **Export** offers either, plus the SVG, a 2x PNG, and **Print playbook**,
+  which lays every page out in the paper look and opens the print dialog.
+
+The file the designer saves is the same JSON Python reads, so a book drawn in
+the browser prints from the command line and loads in a script:
+
+```python
+book = Playbook.load("week3.json")
+book.save_pdf("week3.pdf", plays_per_page=4, theme="paper")
+```
+
+```bash
+chalk book week3.json                       # week3.pdf, two to a page, paper
+chalk book week3.json -o week3.html
+```
+
+The browser keeps a working copy of the book, not a document store — save the
+file. Opening a different book stashes the old working copy; the command
+palette can bring it back.
 
 Routes are authored as if the player is on the right side of the ball and
 mirrored for left-side players. The designer and the Python renderer share that
@@ -433,13 +468,50 @@ chalk design --level ncaa
 
 ---
 
+## Themes and layers
+
+Every diagram is ink on a surface, and the ink comes from one table —
+`chalktalk/renderer/theme.py` — that the SVG renderer, the PDF exporter and the
+designer all draw from. Two themes ship:
+
+| Theme | For | Field | Ink |
+|---|---|---|---|
+| `turf` (default) | the screen | a field under lights | chalk white, defense in coral |
+| `paper` | the printer | white | black, defense in red |
+
+The offense is drawn as open circles with a ring on whoever has the ball, the
+defense as squares, zone drops as soft areas. Once a play has a situation with
+a yard line, the five-yard grid becomes the real one, the tens get numbers, and
+the end zone shows up when it is in view.
+
+Each part of the drawing is a layer — `motion`, `blocks`, `qb`, `routes`,
+`reads`, `defense`, `coverage`, `zones`, `title` — and any of them can be left
+out. The designer's Layers control is the same list, and its exports follow
+the toggles.
+
+```python
+play.render(theme="paper").save("mesh.svg")
+play.render(hide=["defense", "zones"]).save("offense_only.svg")
+playbook.save_pdf("book.pdf", theme="paper")      # PDFs default to turf
+playbook.save_html("book.html")                   # HTML pages are paper already
+```
+
+```bash
+chalk render mesh_concept --theme paper -o mesh.svg
+chalk render mesh_concept -d NICKEL_425 --coverage cover_3 --hide zones,title
+chalk design --theme paper
+```
+
+---
+
 ## Command line
 
 ```bash
 chalk design                         # visual play designer
+chalk book week3.json                # a designer playbook to PDF or HTML
 chalk list plays                     # or formations | defenses | routes | series | systems | schemes | blocks | coverages | qb
 chalk system base_offense --out out/install   # the whole install book
-chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs
+chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs --theme paper
 chalk show mesh_concept              # assignments as text
 chalk series mesh --out out/mesh_series
 chalk script inside_zone --reps 2 --looks NICKEL_425 FIRE_ZONE --hashes
@@ -456,7 +528,7 @@ without installing the console script.
 
 | Format | How |
 |---|---|
-| SVG diagram | `play.render().save("play.svg")` |
+| SVG diagram | `play.render(theme="turf", hide=[]).save("play.svg")` |
 | PDF playbook (1/2/4-up) | `playbook.save_pdf("book.pdf", plays_per_page=4)` |
 | HTML playbook page | `playbook.save_html("book.html")` |
 | Call sheet / wristband | `sheet.save_html(...)`, `band.save_html(...)` |
@@ -494,13 +566,11 @@ a clean SVG render, and every adjustment for immutability and JSON round-trippin
 
 ## Roadmap
 
-- Playbook mode in the designer: open a whole book, reorder it, export it
 - Self-scout: tendency reports by down, distance, hash, personnel and formation
 - A concept taxonomy for the pass game, so a call sheet can be checked for the
   answers it is missing
 - Coverage *checks* against trips and bunch, the way modern two-high defenses
   actually adjust, rather than one call for every formation
-- Playbook-level editing in the designer (multiple plays, drag to reorder)
 - A concept taxonomy for the pass game — horizontal, vertical and three-level
   stretches, isolation concepts — so plays are classified by what they attack
 - Pressure checks and hot answers as first-class objects next to alerts
@@ -517,4 +587,12 @@ Contributions welcome — the catalog especially. Adding a play is one function.
 
 ## License
 
-MIT. Your playbook is yours.
+[PolyForm Noncommercial 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0).
+
+Free to use, study, change and share for any noncommercial purpose — a coach,
+a team, a school, a club, a hobbyist, a researcher. What it does not allow is
+selling chalktalk, or a product built on it or on a modified copy of it. If
+that is what you want to do, ask: matthewbakerthompson@gmail.com.
+
+Your playbook is yours. The licence covers the software, not the plays you
+draw with it.

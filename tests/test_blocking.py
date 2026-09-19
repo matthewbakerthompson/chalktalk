@@ -218,8 +218,9 @@ def test_play_action_keeps_the_protection():
 def test_every_block_gets_a_path_and_a_cap():
     play = running.power_right()
     svg = play.render().render()
+    from chalktalk.renderer.theme import TURF
     n_blocks = len([a for a in play.assignments if a.block])
-    assert svg.count('stroke="#e5e7eb"') >= n_blocks * 2      # path + cap each
+    assert svg.count(f'stroke="{TURF.block}"') >= n_blocks * 2   # path + cap each
 
 
 def test_a_double_team_draws_one_bracket_not_two():
@@ -236,8 +237,9 @@ def test_pullers_and_base_blocks_look_different():
 def test_legacy_block_routes_still_draw():
     """A play saved before blocks existed says 'block' with a route."""
     play = passing.mesh_concept().with_route("LT", R.BLOCK())
+    from chalktalk.renderer.theme import TURF
     assert play.assignment("LT").block is None
-    assert 'stroke="#e5e7eb"' in play.render().render()
+    assert play.render().render().count(f'stroke="{TURF.block}"') >= 2
 
 
 def test_blocks_survive_a_json_round_trip():

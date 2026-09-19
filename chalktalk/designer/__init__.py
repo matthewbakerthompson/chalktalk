@@ -10,6 +10,7 @@ a play drawn in the browser loads straight back:
 
     chalk design                       # open the designer
     chalk design mesh.json             # open it on an existing play
+    chalk design book.json             # or on a whole playbook
     chalk design --out docs/index.html --no-open
 
     >>> Play.from_json(open("mesh.json").read())
@@ -21,7 +22,7 @@ import json
 import os
 from typing import Optional
 
-from ..models.play import Play
+from ..models.play import Play, Playbook
 from ..models.situation import Hash
 
 _TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.html")
@@ -45,6 +46,7 @@ def catalog() -> dict:
                              schemes as SC)
     from ..models.defense import DefensiveRole, Zone, _ZONE_GEOMETRY
     from ..adjustments import _MOTION_PRESETS
+    from ..renderer.theme import LAYERS, themes_json
 
     plays = {name: play.model_dump(mode="json")
              for name, play in play_catalog.all_plays().items()}
@@ -107,6 +109,8 @@ def catalog() -> dict:
             for name, fn in QB.ACTIONS.items()
         },
         "default_formation": DEFAULT_FORMATION,
+        "themes": themes_json(),
+        "layers": list(LAYERS),
     }
 
 
@@ -197,25 +201,37 @@ def _json_for_script(obj) -> str:
             .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
 
 
-def build(play: Optional[Play] = None, level: str = "nfl") -> str:
-    """Return the designer as one self-contained HTML string."""
+def build(play: Optional[Play] = None, level: str = "nfl",
+          theme: str = "turf",
+          playbook: Optional[Playbook] = None) -> str:
+    """
+    Return the designer as one self-contained HTML string, optionally opened
+    on a play or on a whole playbook.
+    """
     with open(_TEMPLATE, encoding="utf-8") as fh:
         html = fh.read()
     html = html.replace("/*__CATALOG__*/{}", _json_for_script(catalog()), 1)
     if play is not None:
         html = html.replace("/*__PLAY__*/null",
                             _json_for_script(play.model_dump(mode="json")), 1)
+    if playbook is not None:
+        html = html.replace("/*__BOOK__*/null",
+                            _json_for_script(playbook.model_dump(mode="json")), 1)
     if level != "nfl":
         html = html.replace('let level = "nfl";', f'let level = "{level}";', 1)
+    if theme != "turf":
+        html = html.replace('let look = "turf";', f'let look = "{theme}";', 1)
     return html
 
 
-def write(path: str, play: Optional[Play] = None, level: str = "nfl") -> str:
+def write(path: str, play: Optional[Play] = None, level: str = "nfl",
+          theme: str = "turf",
+          playbook: Optional[Playbook] = None) -> str:
     """Write the designer to `path` and return the absolute path."""
     path = os.path.abspath(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
-        fh.write(build(play=play, level=level))
+        fh.write(build(play=play, level=level, theme=theme, playbook=playbook))
     return path
 
 
