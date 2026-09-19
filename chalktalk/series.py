@@ -31,25 +31,12 @@ from typing import TYPE_CHECKING, Optional
 from pydantic import BaseModel
 
 from .models.play import Play, Playbook, PlayType
+from .models.gameplan import Role
 from .models.situation import Situation
 
 if TYPE_CHECKING:
     from .callsheet import CallSheet
     from .script import PracticeScript, Script
-
-
-class Role(str, Enum):
-    BASE        = "base"          # the play the series is built on
-    COMPLEMENT  = "complement"    # same picture, different answer
-    CONSTRAINT  = "constraint"    # punishes over-reaction to the base
-    PLAY_ACTION = "play_action"   # sells the base, throws off it
-    SHOT        = "shot"          # explosive off the same look
-    TRICK       = "trick"         # once-a-game gadget off the series
-    ANSWER      = "answer"        # answer to a specific coverage/pressure
-
-    @property
-    def display(self) -> str:
-        return self.value.replace("_", " ").title()
 
 
 _ROLE_ORDER = {r: i for i, r in enumerate(

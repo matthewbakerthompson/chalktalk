@@ -49,6 +49,8 @@ def catalog() -> dict:
     from ..renderer.theme import LAYERS, themes_json
     from ..renderer.sheets import _CSS as SHEET_CSS
     from ..callsheet import STANDARD_BUCKETS
+    from .. import codes as K, difficulty as DF, planner as PL
+    from ..models import gameplan as GP
 
     plays = {name: play.model_dump(mode="json")
              for name, play in play_catalog.all_plays().items()}
@@ -117,6 +119,25 @@ def catalog() -> dict:
         "sheet_css": SHEET_CSS,
         "call_sheet_buckets": [[title, sit.model_dump(mode="json")]
                                for title, sit in STANDARD_BUCKETS.items()],
+        # The drive planner's tables, so the browser ranks plays by the same rules.
+        "plan": {
+            "defaults": GP.GamePlan().model_dump(mode="json"),
+            "sections": [s.model_dump(mode="json") for s in GP.DEFAULT_SECTIONS],
+            "zones_with_downs": sorted(GP.ZONES_WITH_DOWNS),
+            "mode_labels": {k: v.value for k, v in GP.MODE_LABELS.items()},
+            "openers_label": GP.OPENERS_LABEL,
+            "success_by_level": {k.value: list(v) for k, v in GP.SUCCESS_BY_LEVEL.items()},
+            "kind_points": PL.KIND_POINTS,
+            "card_starts": [[t, st.model_dump(mode="json")] for t, st in PL.DRIVE_CARD_STARTS],
+            "roles": [r.value for r in GP.Role],
+        },
+        "difficulty": {"rubric": DF.RUBRIC, "tiers": list(DF.TIERS),
+                       "tier_names": DF.TIER_NAMES, "team_levels": DF.TEAM_LEVELS},
+        "codes": {"alphabet": K.KEY_ALPHABET, "salt": K.SALT.decode(),
+                  "iterations": K.ITERATIONS, "periods": K.PERIODS,
+                  "board_shapes": K.BOARD_SHAPES, "board_colors": K.BOARD_COLORS,
+                  "board_memory": K.BOARD_MEMORY, "live_colors": K.LIVE_COLORS,
+                  "words": K.WORDS},
         "layers": list(LAYERS),
     }
 

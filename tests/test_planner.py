@@ -1,0 +1,411 @@
+"""
+The drive planner: the arithmetic of a drive, where plays sit in the plan, the
+rules behind every suggestion, and the coded wristband.
+"""
+import json
+from collections import Counter
+
+import pytest
+
+from chalktalk import codes as K
+from chalktalk import planner as P
+from chalktalk.catalog import all_plays, passing, running
+from chalktalk.difficulty import difficulty
+from chalktalk.models import (CallSystem, DriveState, GamePlan, Mode, Outcome, Playbook,
+                              Role, Snap)
+from chalktalk.models import situation as S
+from chalktalk.models.field import Level
+from chalktalk.models.situation import Hash
+
+
+def tag(play, **kw):
+    return play.model_copy(update=kw)
+
+
+def book(**plan) -> Playbook:
+    return Playbook(name="Wk 3", game_plan=GamePlan(**plan) if plan else None, plays=[
+        tag(running.inside_zone(), series="Zone", role=Role.BASE,
+            situation=S.Situation(label="Openers")),
+        tag(passing.mesh_concept(), situation=S.Situation(label="Openers")),
+        tag(running.speed_sweep(), series="Zone", role=Role.CONSTRAINT,
+            tell="Backside LB flowing hard"),
+        tag(passing.y_cross(), series="Zone", role=Role.PLAY_ACTION),
+        tag(running.power_right(), situation=S.Situation(down=3, distance=2)),
+        tag(passing.four_verticals(), series="Zone", role=Role.SHOT,
+            situation=S.Situation(down=3, distance=9)),
+        tag(passing.stick(), situation=S.Situation(down=3, distance=5, yard_line=15)),
+    ]).with_ids()
+
+
+def snap(state, play_id, gain=0, outcome=Outcome.GAIN, tells=()):
+    return Snap(before=state, play=play_id, call=play_id, outcome=outcome, gain=gain,
+                tells=list(tells))
+
+
+# ── the arithmetic ───────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("start,outcome,gain,expect", [
+    (dict(), Outcome.GAIN, 4, dict(down=2, distance=6, yard_line=71)),
+    (dict(), Outcome.GAIN, 12, dict(down=1, distance=10, yard_line=63)),
+    (dict(yard_line=15), Outcome.GAIN, 10, dict(down=1, distance=5, yard_line=5)),      # goal to go
+    (dict(yard_line=6), Outcome.GAIN, 6, dict(over="touchdown")),
+    (dict(yard_line=97), Outcome.SACK, 5, dict(over="safety")),
+    (dict(down=4, distance=2), Outcome.GAIN, 1, dict(over="downs")),
+    (dict(), Outcome.INCOMPLETE, 0, dict(down=2, distance=10, yard_line=75)),
+    (dict(), Outcome.SACK, 7, dict(down=2, distance=17, yard_line=82)),
+    (dict(), Outcome.PENALTY_US, 5, dict(down=1, distance=15, yard_line=80)),
+    (dict(down=2, distance=4), Outcome.PENALTY_THEM, 5, dict(down=1, distance=10, yard_line=70)),
+    (dict(down=3, distance=8), Outcome.PENALTY_THEM, 5, dict(down=3, distance=3, yard_line=70)),
+    (dict(), Outcome.TURNOVER, 0, dict(over="turnover")),
+])
+def test_advance(start, outcome, gain, expect):
+    after = P.advance(DriveState(**start), outcome, gain)
+    for key, value in expect.items():
+        assert getattr(after, key) == value, (key, after)
+    assert after.snap == 1
+
+
+def test_a_finished_drive_stays_finished():
+    over = P.advance(DriveState(yard_line=3), Outcome.GAIN, 5)
+    assert P.advance(over, Outcome.GAIN, 5) == over
+
+
+@pytest.mark.parametrize("level,down,distance,gain,ok", [
+    (Level.NFL, 1, 10, 4, False),     # 45% of 10 needs 5 whole yards
+    (Level.NFL, 1, 10, 5, True),
+    (Level.NCAA, 1, 10, 4, False),    # 50%
+    (Level.NCAA, 2, 10, 6, False),    # 70%
+    (Level.NCAA, 2, 10, 7, True),
+    (Level.HS, 1, 10, 4, True),       # 4 yards on 1st & 10
+    (Level.HS, 2, 6, 3, True),        # half the distance on 2nd
+    (Level.HS, 2, 6, 2, False),
+    (Level.HS, 3, 5, 4, False),       # all of it on third down
+    (Level.HS, 3, 5, 5, True),
+])
+def test_success_scales_with_level(level, down, distance, gain, ok):
+    plan = GamePlan(level=level)
+    before = DriveState(down=down, distance=distance)
+    assert P.is_success(before, Outcome.GAIN, gain, plan.thresholds) is ok
+
+
+def test_success_edge_cases():
+    t = GamePlan().thresholds
+    assert P.is_success(DriveState(yard_line=3), Outcome.GAIN, 3, t) is True    # touchdown
+    assert P.is_success(DriveState(), Outcome.SACK, 5, t) is False
+    assert P.is_success(DriveState(), Outcome.PENALTY_THEM, 5, t) is None
+
+
+# ── the plan, read from the book ─────────────────────────────────────────────
+
+def test_plays_land_in_the_sections_their_situation_says():
+    placed = {section.title: ids for section, ids in P.sections(book())}
+    assert placed["3rd & 1-3"] == ["power-right"]
+    assert placed["3rd & 7+"] == ["four-verticals"]
+    assert placed["3rd & 4-6"] == ["stick"] and "stick" in placed["Red zone"]  # both
+    assert set(placed["Base"]) == {"inside-zone", "mesh-concept", "speed-sweep", "y-cross"}
+    assert P.openers(book()) == ["inside-zone", "mesh-concept"]
+
+
+def test_every_play_gets_one_number():
+    nums = P.numbers(book())
+    assert sorted(nums.values()) == list(range(1, len(book().plays) + 1))
+    assert list(nums)[:2] == ["inside-zone", "mesh-concept"]      # openers first
+
+
+def test_a_plan_can_carry_its_own_sections():
+    from chalktalk.models import PlanSection, When
+    custom = book(sections=[PlanSection(title="Shots", when=When(downs=[1]),
+                                         plays=["four-verticals", "missing"])])
+    assert P.sections(custom) == [(custom.game_plan.sections[0], ["four-verticals"])]
+
+
+def test_check_points_out_what_a_coordinator_would():
+    b = book(execution=1)
+    b = b.model_copy(update={"plays": b.plays + [
+        tag(passing.smash(), id="smash", role=Role.CONSTRAINT),
+        tag(running.counter_trey(), id="counter", series="Gap", role=Role.PLAY_ACTION),
+    ]})
+    notes = " ".join(P.check(b))
+    assert "belongs to no series" in notes
+    assert "\"Gap\", but that series has no base play" in notes
+    lone = Playbook(name="x", plays=[passing.mesh_concept()]).with_ids()
+    assert any("opening script" in n for n in P.check(lone))
+
+
+# ── suggestions ──────────────────────────────────────────────────────────────
+
+def test_the_script_leads_until_a_special_situation():
+    first = P.suggest(book(), DriveState())
+    assert first[0].play == "inside-zone"
+    assert "Next on the opening script (1 of 2)" in [r.text for r in first[0].reasons]
+    third = P.suggest(book(), DriveState(down=3, distance=2))
+    assert all("opening script" not in r.text for s in third for r in s.reasons)
+
+
+def test_a_constraint_waits_for_its_base_and_rises_on_its_tell():
+    start = DriveState()
+    held = next(s for s in P.suggest(book(), DriveState(), k=10) if s.play == "speed-sweep")
+    assert held.points < 0 and "Hold" in held.reasons[0].text
+    log = [snap(start, "inside-zone", 4, tells=["Backside LB flowing hard"])]
+    after = P.advance(start, Outcome.GAIN, 4)
+    lifted = next(s for s in P.suggest(book(), after, log, k=10) if s.play == "speed-sweep")
+    texts = [r.text for r in lifted.reasons]
+    assert "Inside Zone shown 1x; this is its constraint" in texts
+    assert any(t.startswith("They showed it: Backside LB flowing hard") for t in texts)
+
+
+def test_a_trick_is_once_a_game():
+    b = book()
+    b = b.model_copy(update={"plays": b.plays + [
+        tag(passing.smash(), id="trick", series="Zone", role=Role.TRICK)]})
+    start = DriveState()
+    log = [snap(start, "inside-zone", 3), snap(start, "inside-zone", 3), snap(start, "trick", 20)]
+    assert "trick" not in [s.play for s in P.suggest(b, DriveState(yard_line=40), log, k=20)]
+
+
+def test_the_same_call_twice_is_marked_down_and_a_winner_comes_back():
+    start = DriveState()
+    just = P.suggest(book(), DriveState(yard_line=40), [snap(start, "mesh-concept", 12)], k=10)
+    mesh = next(s for s in just if s.play == "mesh-concept")
+    assert any(r.text == "Just called" for r in mesh.reasons)
+    log = [snap(start, "mesh-concept", 12), snap(start, "inside-zone", 3),
+           snap(start, "inside-zone", 3)]
+    later = next(s for s in P.suggest(book(), DriveState(yard_line=40), log, k=10)
+                 if s.play == "mesh-concept")
+    assert any(r.text.startswith("Worked earlier: +12") for r in later.reasons)
+
+
+def test_plays_above_the_teams_level_are_marked_down():
+    hard = tag(passing.mesh_concept(), id="hard", difficulty=3)
+    b = Playbook(name="x", plays=[hard, tag(running.inside_zone(), id="iz")],
+                 game_plan=GamePlan(execution=1))
+    ranked = P.suggest(b, DriveState(), k=2)
+    assert ranked[-1].play == "hard"
+    assert any("above your team's level" in r.text for r in ranked[-1].reasons)
+
+
+def test_a_book_saved_without_ids_gets_them_on_load(tmp_path):
+    old = book().model_dump(mode="json")
+    for p in old["plays"]:
+        p.pop("id")                                   # as saved before ids existed
+    path = tmp_path / "old.json"
+    path.write_text(json.dumps(old), encoding="utf-8")
+    loaded = Playbook.load(str(path))
+    assert all(p.id for p in loaded.plays)
+    assert [p.id for p in loaded.plays] == [p.id for p in book().plays]
+    top = P.suggest(loaded, DriveState(), k=1)[0]
+    assert loaded.play(top.play) is not None
+    assert K.wristband(loaded, "key", "g").plays == list(P.numbers(loaded))
+
+
+def test_a_point_off_for_every_point_above_the_level():
+    from chalktalk import adjustments as A
+    orbit = running.speed_sweep().model_copy()      # jet named in the tags only
+    rpo = next(p for n, p in all_plays().items() if n == "bubble").adjust(A.MOTION("RB", "orbit"))
+    d = difficulty(rpo)
+    assert (d.score, d.name) == (8, "Advanced")
+    assert d.reasons[0] == "RB orbit motion (3)"
+    for execution, off in ((1, 5), (2, 1), (3, 0)):
+        b = Playbook(name="x", plays=[tag(rpo, id="rpo")], game_plan=GamePlan(execution=execution))
+        penalty = [r for r in P.suggest(b, DriveState(), k=1)[0].reasons
+                   if "above your team's level" in r.text]
+        assert sum(r.points for r in penalty) == -off
+    assert difficulty(orbit).reasons[0] == "jet motion (3)"
+
+
+def test_a_tier_the_coach_sets_counts_as_repped():
+    from chalktalk.difficulty import over_level
+    hard = difficulty(tag(passing.mesh_concept(), difficulty=2))
+    assert hard.coached and over_level(hard, 2) == 0
+    assert over_level(hard, 1) >= 1
+
+
+def test_the_catalog_is_mostly_basic_with_reads_and_motion_standard():
+    from collections import Counter
+    tiers = Counter(difficulty(p).name for p in all_plays().values())
+    assert tiers["Advanced"] == 0 and tiers["Basic"] > tiers["Standard"] > 0
+    assert difficulty(running.inside_zone()).name == "Basic"
+    assert difficulty(running.speed_sweep()).name == "Standard"
+
+
+def test_branches_follow_a_gain_and_no_gain():
+    top = P.suggest(book(), DriveState())[0]
+    assert [b.when for b in top.branches] == ["2nd & 4", "2nd & 10"]
+
+
+def test_two_minute_marks_runs_down():
+    ranked = P.suggest(book(), DriveState(yard_line=70, mode=Mode.TWO_MINUTE), k=10)
+    zone = next(s for s in ranked if s.play == "inside-zone")
+    assert any(r.text.startswith("Two-minute") for r in zone.reasons)
+
+
+def test_suggestions_are_deterministic_and_json():
+    a = P.suggest(book(), DriveState(hash_mark=Hash.LEFT))
+    b = P.suggest(book(), DriveState(hash_mark=Hash.LEFT))
+    assert a == b
+    json.dumps([s.model_dump(mode="json") for s in a])
+
+
+def test_drive_cards_cover_the_usual_starts():
+    cards = P.drive_cards(book())
+    assert [t for t, _, _ in cards][0] == "Drive starter · own 25"
+    assert all(len(s) <= 3 for _, _, s in cards)
+
+
+def test_the_alternation_warning():
+    start = DriveState()
+    log = []
+    for i in range(4):
+        log.append(snap(start, "inside-zone" if i % 2 == 0 else "mesh-concept", 0,
+                        Outcome.GAIN if i % 2 == 0 else Outcome.INCOMPLETE))
+    assert P.alternation_warning(book(), log)
+    assert P.alternation_warning(book(), log[:2]) is None
+
+
+def test_a_book_with_its_plan_round_trips():
+    b = book(opponent="Central", calls=CallSystem(rotate="quarter"))
+    again = Playbook.model_validate_json(b.model_dump_json())
+    assert again == b and again.game_plan.calls.rotate == "quarter"
+    assert again.plays[2].role is Role.CONSTRAINT
+
+
+# ── the coded wristband ──────────────────────────────────────────────────────
+
+def test_a_wristband_is_reproducible_from_the_key():
+    b = book(calls=CallSystem(rotate="quarter"))
+    one = K.wristband(b, "k7qm-2xra 9fpd-hw4c", "Wk 3 Central")
+    two = K.wristband(b, "K7QM2XRA9FPDHW4C", "Wk 3 Central")
+    assert one == two and len(one.cards) == 4
+    assert one != K.wristband(b, "K7QM2XRA9FPDHW4D", "Wk 3 Central")
+    assert one.fingerprint != K.wristband(b, "k7qm-2xra 9fpd-hw4c", "Wk 4 North").fingerprint
+
+
+def test_every_play_has_a_code_and_the_top_calls_have_more():
+    b = book(calls=CallSystem(top_calls=2, extra_codes=2, dead_codes=5))
+    card = K.wristband(b, "key", "g").cards[0]
+    counts = Counter(card.codes.values())
+    assert set(counts) == {p.id for p in b.plays}
+    assert counts["inside-zone"] == counts["mesh-concept"] == 3      # the two openers
+    assert len(card.dead) == 5 and not set(card.dead) & set(card.codes)
+
+
+def test_no_code_keeps_its_play_into_the_next_period():
+    b = book(calls=CallSystem(rotate="quarter", top_calls=7, extra_codes=4, dead_codes=20))
+    cards = K.wristband(b, "key", "g").cards
+    for a, c in zip(cards, cards[1:]):
+        assert not [code for code in c.codes if a.codes.get(code) == c.codes[code]]
+
+
+def test_too_many_codes_for_two_digits_says_how_to_fix_it():
+    many = Playbook(name="x", plays=[tag(passing.mesh_concept(), id=f"p{i}") for i in range(80)],
+                    game_plan=GamePlan(calls=CallSystem(dead_codes=20)))
+    with pytest.raises(ValueError, match="use 3 digits"):
+        K.wristband(many, "key", "g")
+    three = many.model_copy(update={"game_plan": GamePlan(calls=CallSystem(digits=3))})
+    assert len(K.wristband(three, "key", "g").cards[0].codes) >= 80
+
+
+def test_new_keys_are_random_and_readable():
+    a, b = K.new_key(), K.new_key()
+    assert a != b and len(a) == 19 and a.count("-") == 3
+    assert set(a.replace("-", "")) <= set(K.KEY_ALPHABET)
+
+
+def test_the_key_never_lands_in_the_book():
+    b = book()
+    K.wristband(b, "SECRETKEY123", "g")
+    assert "SECRETKEY123" not in b.model_dump_json()
+
+
+# ── line calls ───────────────────────────────────────────────────────────────
+
+def test_line_calls_give_every_play_a_word_and_a_live_colour_each_period():
+    b = book(calls=CallSystem(methods=["words"], rotate="quarter", dummy_words=5))
+    sheet = K.line_calls(b, "key", "Wk 3")
+    assert sorted(sheet.words.values()) == sorted(P.numbers(b))
+    assert len(sheet.dead) == 5 and not set(sheet.dead) & set(sheet.words)
+    assert list(sheet.live) == K.PERIODS["quarter"]
+    colours = list(sheet.live.values())
+    assert all(c in K.LIVE_COLORS for c in colours)
+    assert all(a != c for a, c in zip(colours, colours[1:]))     # never live twice running
+    assert K.line_calls(b, "key", "Wk 3") == sheet
+    assert K.line_calls(b, "key", "Wk 4").words != sheet.words     # fresh words each game
+
+
+def test_a_word_the_coach_sets_stays_and_burned_words_become_dummies():
+    plays = [tag(p, word="Ranger") if p.id == "mesh-concept" else p for p in book().plays]
+    b = Playbook(name="x", plays=plays, game_plan=GamePlan(calls=CallSystem(
+        methods=["words"], dummy_words=0, burned_words=["Tiger", " rocket ", "ranger"])))
+    sheet = K.line_calls(b, "key", "g")
+    assert sheet.words["Ranger"] == "mesh-concept"
+    assert "Tiger" not in sheet.words and "Rocket" not in sheet.words
+    assert sheet.dead == ["rocket", "Tiger"]        # burned, and "ranger" is still in use
+
+
+def test_words_are_distinct_and_shoutable():
+    assert len(K.WORDS) == len({w.lower() for w in K.WORDS}) == 64
+    colours = {c.lower() for c in K.LIVE_COLORS}
+    assert all(w.isascii() and w.isalpha() and w.lower() not in colours for w in K.WORDS)
+
+
+# ── sign boards ──────────────────────────────────────────────────────────────
+
+def _read(sheet, period, board):
+    """What a board means in a period: the unit whose symbol sits in the live cell."""
+    sym = sheet.boards[board][sheet.live[period]]
+    return next((u for u, s in sheet.symbols.items() if s == sym), None)
+
+
+@pytest.mark.parametrize("cells", [1, 2, 4])
+def test_one_rack_carries_every_call_in_every_period(cells):
+    b = book(calls=CallSystem(methods=["boards"], rotate="quarter", dummy_boards=3, board_cells=cells))
+    sheet = K.boards(b, "key", "Wk 3")
+    assert sheet.units == list(P.numbers(b)) and len(sheet.boards) == len(b.plays) + 3
+    assert all(len(row) == cells == len(set(row)) for row in sheet.boards)   # no symbol twice
+    for period in sheet.live:
+        meant = [_read(sheet, period, i) for i in range(len(sheet.boards))]
+        assert sorted(filter(None, meant)) == sorted(sheet.units)             # each call once
+        assert meant.count(None) == 3                                         # and the dummies
+    lives = list(sheet.live.values())
+    if cells > 1:
+        assert all(a != c for a, c in zip(lives, lives[1:]))
+        # a board never means the same call two periods running
+        for a, c in zip(K.PERIODS["quarter"], K.PERIODS["quarter"][1:]):
+            assert not [i for i in range(len(sheet.boards))
+                        if _read(sheet, a, i) and _read(sheet, a, i) == _read(sheet, c, i)]
+
+
+def test_decoys_mix_the_symbols_across_boards():
+    b = book(calls=CallSystem(methods=["boards"], rotate="half", board_cells=4))
+    sheet = K.boards(b, "key", "Wk 3")
+    seen = Counter(s for row in sheet.boards for s in row)
+    meaning = set(sheet.symbols.values())
+    assert sum(1 for s in meaning if seen[s] > 1) >= len(meaning) // 2   # most show up more than once
+
+
+def test_symbols_are_colour_blind_safe_shapes():
+    assert len(K.BOARD_SHAPES) * len(K.BOARD_COLORS) == 40
+    assert "hexagon" not in K.BOARD_SHAPES and "octagon" not in K.BOARD_SHAPES
+    assert set(K.BOARD_COLORS.values()) == {"#000000", "#0072B2", "#D55E00", "#F0E442", "#56B4E9"}
+
+
+def test_boards_can_go_by_series():
+    b = book(calls=CallSystem(methods=["boards"], boards_by="series"))
+    units = K.board_units(b)
+    assert "series:Zone" in units and "inside-zone" not in units and "speed-sweep" not in units
+    assert "power-right" in units                      # no series: its own symbol
+
+
+def test_too_many_boards_says_how_to_fix_it():
+    many = Playbook(name="x", plays=[tag(passing.mesh_concept(), id=f"p{i}") for i in range(60)],
+                    game_plan=GamePlan(calls=CallSystem(methods=["boards"])))
+    with pytest.raises(ValueError, match="a symbol per series"):
+        K.boards(many, "key", "g")
+
+
+def test_the_check_counts_what_players_must_remember():
+    many = Playbook(name="x", plays=[tag(passing.mesh_concept(), id=f"p{i}") for i in range(14)],
+                    game_plan=GamePlan(calls=CallSystem(methods=["boards"], dummy_boards=2)))
+    notes = P.check(many)
+    assert any("14 board symbols to learn" in n and "about 12" in n for n in notes)
+    assert any("2 dummy boards for 14 live ones: use at least 7" in n for n in notes)

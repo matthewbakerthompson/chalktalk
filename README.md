@@ -390,7 +390,7 @@ no CDN, no build step — and opens it. The field is the window and the tools fl
 a start screen offers four concepts, the whole library, a file, or a blank
 formation. Drop a play or playbook `.json` anywhere on the window to open it.
 
-- **Formation, Line, Defense, Library, Layers** sit on the rail at the left.
+- **Formation, Line, Defense, Library, Drive, Layers** sit on the rail at the left.
   Formations and defensive looks are picked from thumbnails, schemes and
   coverages from a list, concepts from a searchable library.
 - **The bench** under the field lists the offense: the five linemen as one
@@ -482,6 +482,124 @@ Routes are authored as if the player is on the right side of the ball and
 mirrored for left-side players. The designer and the Python renderer share that
 convention through one function, `Assignment.absolute_waypoints()`, and a test
 pins the two together — so a route drawn on screen lands exactly there on paper.
+
+### On a phone
+
+The same app works on a phone, for reviewing a book on the bus or sketching an
+idea. The tools move to a tab bar at the bottom, and each tool opens as a sheet
+from the bottom of the screen. The playbook, the play sheet and the drive
+planner take the whole screen. Arrows beside the play name turn the pages.
+Under the diagram are what a coach reads when reviewing: the description,
+alerts, the quarterback's reads, each player's coaching point and the tags.
+**Tap** a player, then tap the field to draw his route. **Drag** to move, and
+**double-tap** a handle to delete it. Pinch the field to zoom in on the line. On
+its side the phone gives the field the whole height. Files you export from a
+phone are drawn at desk size.
+
+---
+
+## Game plans and drives
+
+A book becomes a game plan when its plays carry their jobs. Tag each play in
+the play sheet with its **series** ("Zone"), its **role** in it (base,
+complement, constraint, play-action, shot, trick, answer) and the **tell**, which
+is what the defense does that calls for it. The plan sorts the book into call-sheet
+sections by down, distance and field zone, and puts the plays labelled "Openers"
+first.
+
+The **drive planner** (the Drive tab, or <kbd>D</kbd>) is for rehearsing during
+the week. Set the down, distance, spot, hash and clock, and it suggests the
+next three calls, each with its arithmetic: "+6 next on the opening script",
+"+4 they showed it: backside LB flowing hard", "-4 hold: Inside Zone hasn't been
+shown yet". For each suggestion it also says what to call if the play gains or
+if it doesn't. Call one, tap what happened, and the log marks each snap on or off
+schedule. Constraint plays wait until their base play has been shown, a trick
+is used once, and a play that worked earlier gets another look. **Drive cards**
+print the first calls from six common starts.
+
+```python
+from chalktalk import codes as K, planner as P
+from chalktalk.models import CallSystem, DriveState, GamePlan, Outcome, Playbook
+
+book = Playbook.load("week3.json")
+book.game_plan = GamePlan(name="Wk 3 vs Central", level="hs", execution=2,
+                          calls=CallSystem(methods=["wristband", "words", "boards"]))
+state = DriveState()                          # 1st & 10, own 25
+for s in P.suggest(book, state):
+    print(s.points, s.name, [r.text for r in s.reasons])
+state = P.advance(state, Outcome.GAIN, 4)     # 2nd & 6, own 29
+P.check(book)                                 # what a coordinator would flag
+```
+
+**On schedule** means gaining enough of the distance for the down. The bar
+depends on the level:
+
+| Level | 1st down | 2nd down | 3rd and 4th |
+|---|---|---|---|
+| High school | 40% | 50% | 100% |
+| College | 50% | 70% | 100% |
+| NFL | 45% | 60% | 100% |
+
+The high school bar is what high school staffs already chart: 4 yards on 1st &
+10, half the distance on 2nd. The college bar is the standard college
+definition, and the NFL bar is the DVOA baseline. A plan can set its own. Sacks,
+incompletions and turnovers fail. Penalties don't count either way.
+
+**Difficulty.** Every play scores what it asks of the players. Jet and orbit
+motion, a mesh or option read, the length of the progression, pullers, screen
+timing, tags, alerts and checks at the line each add points, and each group
+of points names its reason. The play sheet shows the arithmetic ("Advanced 8:
+RB orbit motion (3), mesh read (2), ..."). Plays scoring 0–3 are **Basic**, 4–7
+**Standard** and 8 or more **Advanced**. Set what your team runs (youth, varsity or college),
+and the planner takes a point off for every point a play scores above that.
+Setting a play's tier yourself marks it as repped. The weights are a judgment
+from what coaches name as hard, not a published scale; the catalog comes out
+44 Basic and 10 Standard.
+
+### Calling the plays
+
+A plan can use any mix of four ways to get the call in:
+
+- **Verbal**: the call as written.
+- **Wristband numbers**: the signal is a number, and the quarterback reads the
+  play off his card. The top calls get extra codes so no number repeats all
+  game. Dead codes mean "wait". The cards change every half, or every quarter
+  or every game, and no code keeps its play from one card to the next.
+- **Line calls**: what the quarterback can say at the line. Every play gets a
+  code word for the game, so the team learns the week's words in practice. A
+  word you set on a play stays. At the line he calls a colour, then the word,
+  twice ("Blue... Tiger, Blue... Tiger"). Only the live colour's call is real,
+  and the live colour changes every half. Dummy words fill the noise, and a
+  word heard on film goes on the burned list: it becomes a decoy and never
+  means a play again.
+- **Sign boards**: each board carries two or four symbols, and only one cell is
+  live; which one changes every half. A symbol means its play (or its whole
+  series) for the game. The other cells are decoys drawn from the same symbols,
+  so every symbol shows up on many boards and a camera sees a mix, not a code.
+  One rack serves the whole game: a board means one call while its top-left
+  cell is live, and another after the half. The symbols are eight shapes in
+  five colours, outlined in black, that stay apart for colour-blind players. A
+  four-cell board on a 22 x 28 in poster reads to about 30 yards, two cells to
+  about 40, one to about 55. The print includes the rack, the players' key
+  and the signaler's sheet, and the plan check warns when there are more
+  symbols than players can keep (about 12 in high school).
+
+Codes, words and boards come from a **key** through HMAC-SHA256, so the head
+coach and the signaler can print matching copies on different machines and
+check the fingerprint on every page. The method is public; only the key is
+secret. It's never saved in the playbook, the plan or any printout, and the
+designer forgets it unless you ask it to remember it on that device.
+
+```python
+key = K.new_key()                          # "K7QM-2XRA-9FPD-HW4C": write it down
+K.wristband(book, key, "Wk 3 vs Central")  # a card per half: code -> play, dead codes
+K.line_calls(book, key, "Wk 3 vs Central") # word -> play, dummy words, the live colour
+K.boards(book, key, "Wk 3 vs Central")     # symbols, the live cell per half, the rack
+```
+
+The designer carries a twin of the planner, the difficulty score and the codes,
+and tests run it in node against Python: same suggestions word for word, same
+scores, byte-identical cards.
 
 ---
 
