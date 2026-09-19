@@ -78,10 +78,10 @@ The designer has none — it is one HTML file with no network calls.
 | **40 formations** | Shotgun, pistol, I-form, empty, bunch, trips, quads, wildcat, jumbo, goal line |
 | **23 defensive looks** | 4-3, 3-4, nickel, dime, quarter, bear, 46, fire zone, cover-2 Tampa, goal line |
 | **30 named routes** | Full route tree plus red-zone specialties (fade, back-shoulder, sail, bubble) |
-| **54 stock plays** | Mesh, smash, flood, levels, snag, four verts, inside/outside zone, power, counter |
-| **Play action & movement** | Boot, waggle, naked, keeper, dagger, and max-protect shot plays |
-| **Screen game** | RB slip, tunnel, bubble, jailbreak, middle, TE leak |
-| **RPO family** | Bubble, glance, slant, pop, and a gap-scheme arrow — each reading a different defender |
+| **78 stock plays** | Mesh, smash, flood, levels, snag, dagger, shallow cross, mills; inside/outside zone, duo, split zone, power, counter, buck sweep, speed option |
+| **Play action & movement** | Boot, waggle, naked, keeper, dagger, post-wheel off power, and max-protect shot plays |
+| **Screen game** | RB slip, swing, double screen, tunnel, bubble, jailbreak, middle, TE leak |
+| **RPO family** | Bubble, glance, slant, pop, stick, now, and a gap-scheme arrow — each reading a different defender |
 | **9 scripted series** | Inside zone, power/counter, mesh, play action, screens, short yardage, sprint-out, red zone, two-minute |
 | **4 series sets** | Whole offenses: install order, one practice script, one call sheet, balance and gap checks |
 | **12 quarterback actions** | Drops, play action, boot, sprint, mesh, handoff, draw, pitch, option, keep, sneak — with read progressions |
@@ -591,7 +591,7 @@ RB orbit motion (3), mesh read (2), ..."). Plays scoring 0–3 are **Basic**, 4�
 and the planner takes a point off for every point a play scores above that.
 Setting a play's tier yourself marks it as repped. The weights are a judgment
 from what coaches name as hard, not a published scale; the catalog comes out
-44 Basic and 10 Standard.
+64 Basic and 14 Standard.
 
 ### Calling the plays
 

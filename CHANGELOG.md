@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.10.0
+
+**Twenty-four more plays.** The catalog goes from 54 concepts to 78, each one
+function, tagged so the plan draft puts it in the right series and on the right
+part of the call sheet.
+
+### Catalog
+- **Runs:**
+  - Duo
+  - Split Zone
+  - Buck Sweep (both guards pull)
+  - Pin Pull
+  - Power Read
+  - Speed Option, the first stock play with a pitch read
+  - QB Counter
+  - QB Draw
+  - Toss Crack
+- **Dropback:**
+  - Shallow Cross
+  - Dagger
+  - China
+  - Post Wheel
+  - Hank
+  - Double Post
+  - Seam/Flat
+  - Mills
+- **Play action:** Post Wheel off power action.
+- **Screens:** Swing and Double Screen.
+- **RPOs:** Stick and Now, both off inside zone.
+- **Scoring zone:**
+  - Goal Line Leak (a dive fake with the tight end leaking behind the flow)
+  - Fade/Out
+- Difficulty across the catalog: 64 Basic and 14 Standard.
+
 ## 0.9.0
 
 **Plan the week, call the game.** A step-by-step plan builder with scripted
