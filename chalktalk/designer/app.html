@@ -263,6 +263,7 @@ svg *{-webkit-user-select:none;user-select:none}
 .btns button{height:26px}
 .w56{width:60px}.w72{width:78px}.w104{width:110px}.w130{width:136px}.w140{width:154px}
 .wps{display:flex;align-items:center;gap:4px;height:26px}
+.readline{display:inline-flex;align-items:center;height:26px;padding:0 4px;font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap}
 .wp{height:24px;min-width:24px;padding:0 7px;border-radius:99px;font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--ink-2)}
 .wp.sel{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
 .wpxy{font-family:var(--mono);font-size:11px;color:var(--muted);margin:0 2px;white-space:nowrap}
@@ -616,6 +617,82 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
   .book,.sheet,#drive{position:fixed;top:0;bottom:0;z-index:var(--z-sheet)}
 }
 @keyframes sheet-up{from{opacity:.6;transform:translateY(24px)}}
+/* the plan builder */
+dialog.plandlg{max-width:min(1040px,96vw);height:min(88vh,800px)}
+dialog.plandlg[open]{display:flex;flex-direction:column}
+.plan-wrap{flex:1;min-height:0;display:flex}
+.plan-steps{flex:none;width:172px;padding:10px 8px;border-right:1px solid var(--hair);display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.pstep-btn{justify-content:flex-start;gap:8px;height:32px;border:0;padding:0 8px;color:var(--ink-2);background:transparent;flex:none}
+.pstep-btn .n{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--hair-2);font-size:10.5px;color:var(--muted)}
+.pstep-btn.on{background:var(--accent-soft);color:var(--accent)}
+.pstep-btn.on .n{border-color:var(--accent-line);color:var(--accent)}
+.plan-body{flex:1;min-width:0;overflow-y:auto;padding:14px 18px 18px}
+.pstep h4{font-size:12px;font-weight:600;color:var(--ink-2);margin:14px 0 6px}
+.pstep .pintro{margin:0 0 12px;max-width:70ch}
+.pstep .body{display:flex;flex-direction:column;gap:10px}
+.pdraft{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.plan-notes{margin:10px 0 0;padding-left:18px;font-size:12px;color:var(--ink-2);display:flex;flex-direction:column;gap:2px}
+.pscroll{overflow-x:auto}
+.ptable{width:100%;border-collapse:collapse;font-size:12px}
+.ptable th{text-align:left;font-size:11px;color:var(--muted);font-weight:500;padding:4px 6px;border-bottom:1px solid var(--hair);white-space:nowrap}
+.ptable td{padding:4px 6px;border-bottom:1px solid var(--hair);vertical-align:middle}
+.ptable input,.ptable select{height:26px;min-width:110px}
+.ptable .pth{width:80px}
+.ptable .pthumb{width:72px;height:38px;display:block;border-radius:4px}
+.ptable .sub{font-size:11px;color:var(--muted)}
+.pmatrix th,.pmatrix td{text-align:center;padding:3px 5px}
+.pmatrix th:first-child,.pmatrix td:first-child{text-align:left;white-space:nowrap}
+.pmatrix input{width:16px;height:16px;min-width:0;accent-color:var(--accent)}
+.tier{font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--hair-2);white-space:nowrap;color:var(--ink-2)}
+.tier.t2{color:var(--accent);border-color:var(--accent-line)}
+.tier.t3{color:var(--danger)}
+.pscript{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;max-width:560px}
+.pscript li{display:flex;align-items:center;gap:6px;padding:4px 6px;border:1px solid var(--hair);border-radius:6px}
+.pscript .n{min-width:18px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pscript .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pscript button{width:28px;height:28px;padding:0}
+.dscripts{display:grid;grid-template-columns:190px minmax(0,1fr);gap:14px;align-items:start}
+.dscript-list{display:flex;flex-direction:column;gap:4px}
+.dlist-btn{flex-direction:column;align-items:flex-start;height:auto;padding:6px 8px;gap:1px;text-align:left}
+.dlist-btn .nm{font-weight:600;font-size:12.5px}
+.dlist-btn .sub{font-size:11px;color:var(--muted)}
+.dlist-btn.on{background:var(--accent-soft);border-color:var(--accent-line)}
+.dscript-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.dscript-head input{max-width:240px;font-weight:600}
+.dscript-head .sub{font-size:12px;color:var(--muted)}
+.dtree{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto repeat(4,auto);gap:6px}
+.dtree .dcolh{grid-row:1;font-size:11px;color:var(--muted);font-weight:600}
+.dnode{border:1px solid var(--hair-2);border-radius:8px;padding:7px 8px;background:var(--well);display:flex;flex-direction:column;gap:4px;justify-content:center}
+.dnode.empty{border-style:dashed}
+.dnode.reset{opacity:.6}
+.dnode .dsitn{font-weight:650;font-size:12.5px}
+.dnode .dwhat{font-size:11px;color:var(--muted)}
+.dnode select{width:100%}
+.dnode .note{margin:0}
+.pscript-acts{margin-top:10px;max-width:560px}
+.dplan{margin-top:14px;padding-top:12px;border-top:1px solid var(--hair)}
+.dplan .note{margin:6px 0 0}
+.dscriptrow{margin:10px 0 4px}
+.dscriptrow select{flex:1}
+.dcard.scripted{border-color:var(--accent-line)}
+.dcard.scripted .drank{color:var(--accent)}
+.dscripted-off{margin:4px 0 0}
+.bigscreen{display:none}
+@media (max-width:640px){
+  dialog.plandlg{height:94dvh;max-width:calc(100vw - 8px)}
+  .plan-wrap{flex-direction:column}
+  .plan-steps{width:auto;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--hair);padding:6px;scrollbar-width:none}
+  .plan-body{padding:12px}
+  .bigscreen{display:block;margin:0 0 10px;padding:6px 8px;border-radius:6px;background:var(--panel-2);color:var(--ink-2)}
+  .dscripts{grid-template-columns:minmax(0,1fr)}
+  .dscript-edit,.dtree,.dnode{min-width:0}
+  .dscript-head{flex-wrap:wrap}
+  .dscript-list{flex-direction:row;flex-wrap:wrap}
+  /* the tree stacks: each call under the one it follows */
+  .dtree{grid-template-columns:1fr;grid-template-rows:none}
+  .dtree .dcolh{display:none}
+  .dtree .dnode{grid-column:auto!important;grid-row:auto!important;order:var(--o);margin-left:calc(var(--d) * 14px)}
+}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition:none!important;animation:none!important}
 }
@@ -741,10 +818,14 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M3 3.5h4a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 0 7 11.5H3z"/>
             <path d="M13 3.5H9A1.5 1.5 0 0 0 7.5 5v8A1.5 1.5 0 0 1 9 11.5h4z"/></svg>Library</button>
-        <button id="btnDrive" title="Drive planner (D)">
+        <button id="btnPlan" title="Build the game plan: series, call sheet, scripts, calling">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 13.5V3.5"/><path d="M3 4h7.5l-1.5 2.5L10.5 9H3"/><path d="M12.5 13.5h-9"/></svg>Drive</button>
+            <rect x="3" y="2.5" width="10" height="11.5" rx="1.5"/><path d="M6 2.5h4v2H6z"/><path d="M5.5 8h5M5.5 10.5h3.5"/></svg>Plan</button>
+        <button id="btnDrive" title="Game day: call a drive (D)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 13.5V3.5"/><path d="M3 4h7.5l-1.5 2.5L10.5 9H3"/><path d="M12.5 13.5h-9"/></svg>Game</button>
         <button data-pop="layers" title="Show or hide parts of the diagram">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -793,8 +874,10 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
           <option value="1">Right</option><option value="-1">Left</option></select></div>
       </div>
       <div class="field">
-        <label>Progression <span class="sub">click receivers in order</span></label>
+        <label for="readVs">Progression <span class="sub">tap receivers in order</span></label>
+        <select id="readVs" style="margin-bottom:6px"></select>
         <div class="chips" id="readList"></div>
+        <p class="note" id="readNote" hidden></p>
       </div>
       <div class="field"><label for="qbRule">Rule</label><input id="qbRule"
         placeholder="High-low the flat defender" autocomplete="off"></div>
@@ -848,9 +931,9 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
     </div>
   </aside>
 
-  <aside class="sheet" id="drive" aria-label="Drive planner">
+  <aside class="sheet" id="drive" aria-label="Game">
     <div class="sheet-head">
-      <h2>Drive planner</h2>
+      <h2>Game</h2>
       <button class="ghost icon" id="btnDriveClose" aria-label="Close the drive planner">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
             stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
@@ -870,7 +953,9 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
         <div class="dsit-row"><div class="seg sm" id="dMode" role="group" aria-label="Clock"></div></div>
       </div>
   
-      <h3>Suggested next</h3>
+      <div class="dopt dscriptrow" id="dScriptRow" hidden><label for="dScript">Drive script</label><select id="dScript"></select></div>
+      <div id="dScripted"></div>
+      <h3 id="dSugHead">Suggested next</h3>
       <div class="dsug" id="dSuggest"></div>
       <div class="dres" id="dResult" hidden>
         <div class="called">Called: <span id="dCalled"></span></div>
@@ -897,49 +982,11 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
   
       <details class="dsec"><summary>Plan check <span id="dCheckCount"></span></summary><ul id="dCheck"></ul></details>
   
-      <details class="dsec"><summary>Game and team</summary><div class="body">
-        <div class="dopt"><label for="dGame">Game</label><input id="dGame" style="width:180px" placeholder="Wk 3 vs Central" autocomplete="off"></div>
-        <div class="dopt"><label for="dOpp">Opponent</label><input id="dOpp" style="width:180px" autocomplete="off"></div>
-        <div class="dopt"><label>Level</label><div class="seg sm" id="dLevel"></div></div>
-        <div class="dopt"><label>Your team runs <span class="sub">youth · varsity · college</span></label><div class="seg sm" id="dExec"></div></div>
-        <p class="note" id="dSuccess" style="margin:0"></p>
-      </div></details>
-  
-      <details class="dsec"><summary>Calling the plays</summary><div class="body">
-        <div><label>How calls get in <span class="sub">any mix</span></label><div class="chips" id="dMethods"></div></div>
-        <div class="dopt" id="dRotateRow"><label>What's live changes every</label><div class="seg sm" id="dRotate"></div></div>
-        <div id="dWristOpts" class="body" style="padding:0">
-          <p class="note dhow">Wristband: the signal is a number; the QB reads the play off his card. New cards every period.</p>
-          <div class="dopt"><label>Codes</label><div class="seg sm" id="dDigits"></div></div>
-          <div class="dopt"><label>Extra codes</label><div class="seg sm" id="dExtra"></div>
-            <span class="lbl">for the top</span><input id="dTop" type="number" min="0" max="20"><span class="lbl">calls</span></div>
-          <div class="dopt"><label for="dDead">Dead codes</label><input id="dDead" type="number" min="0" max="40"></div>
-        </div>
-        <div id="dWordOpts" class="body" style="padding:0">
-          <p class="note dhow">Line calls: every play gets a code word for the game, to learn in practice. At the line the QB calls a colour, then the word, twice. Only the live colour's call is real; a word you set on a play stays.</p>
-          <div class="dopt"><label for="dDummyWords">Dummy words</label><input id="dDummyWords" type="number" min="0" max="20"></div>
-          <div class="dopt"><label for="dBurned">Burned words</label><input id="dBurned" style="width:180px" placeholder="Heard on film: Tiger, Rocket" autocomplete="off"></div>
-        </div>
-        <div id="dBoardOpts" class="body" style="padding:0">
-          <p class="note dhow" id="dBoardHow"></p>
-          <div class="dopt"><label>Symbols on a board</label><div class="seg sm" id="dCells"></div></div>
-          <div class="dopt"><label>A symbol per</label><div class="seg sm" id="dBoardsBy"></div></div>
-          <div class="dopt"><label for="dDummies">Dummy boards</label><input id="dDummies" type="number" min="0" max="20"></div>
-        </div>
-        <div id="dKeyRow" class="body" style="padding:0">
-          <div class="dkey" id="dKeyState"></div>
-          <div class="dkey" id="dKeyText" hidden></div>
-          <div class="row">
-            <button type="button" id="dKeyNew">New key</button>
-            <button type="button" id="dKeyEnter">Enter key</button>
-            <button type="button" id="dKeyShow">Show</button>
-            <button type="button" id="dKeyForget" class="danger">Forget</button>
-          </div>
-          <label class="layer" style="padding:0;height:auto"><input type="checkbox" id="dKeyRemember">
-            <span class="meta">Remember the key on this device (never in the playbook file)</span></label>
-        </div>
-      </div></details>
-  
+      <div class="dplan">
+        <button type="button" class="primary" id="btnPlanOpen">Build the game plan</button>
+        <p class="note" id="dPlanSum"></p>
+      </div>
+
       <div class="dprint">
         <button type="button" data-print="drivecards">Drive cards</button>
         <button type="button" data-print="gameplan">Game plan</button>
@@ -985,6 +1032,139 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
   <div class="dlg-foot">
     <span class="note" id="printSummary"></span>
     <button class="primary" id="printGo">Print</button>
+  </div>
+</dialog>
+
+<dialog id="planDialog" class="plandlg" aria-labelledby="planDlgTitle">
+  <div class="dlg-head">
+    <h2 id="planDlgTitle">Build the game plan</h2>
+    <button class="ghost icon" id="planClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="plan-wrap">
+    <nav class="plan-steps" id="planSteps" aria-label="Steps"></nav>
+    <div class="plan-body">
+      <section class="pstep" data-step="game">
+        <h3 class="first">The game</h3>
+        <p class="note pintro">Name the game, say who you play and what your team can run. Then let chalktalk draft the rest from the book: it fills only what is blank, and says why for each play.</p>
+        <div class="body">
+          <div class="dopt"><label for="dGame">Game</label><input id="dGame" style="width:200px" placeholder="Wk 3 vs Central" autocomplete="off"></div>
+          <div class="dopt"><label for="dOpp">Opponent</label><input id="dOpp" style="width:200px" autocomplete="off"></div>
+          <div class="dopt"><label>Level</label><div class="seg sm" id="dLevel"></div></div>
+          <div class="dopt"><label>Your team runs <span class="sub">youth · varsity · college</span></label><div class="seg sm" id="dExec"></div></div>
+          <p class="note" id="dSuccess" style="margin:0"></p>
+        </div>
+        <div class="pdraft">
+          <button type="button" class="primary" id="planDraft">Draft the plan from this book</button>
+          <button type="button" id="planUndoDraft" hidden>Undo the draft</button>
+        </div>
+        <ul class="plan-notes" id="planDraftNotes"></ul>
+      </section>
+
+      <section class="pstep" data-step="series" hidden>
+        <h3 class="first">Series and roles</h3>
+        <p class="note pintro">A series is a run and everything that looks like it: the base play, what complements it, the constraint that punishes a defense for stopping it, the play-action off it. The tell is what the defense shows that calls for the play.</p>
+        <p class="note bigscreen">This table is easier on a tablet or a laptop. It scrolls sideways here.</p>
+        <div id="planSeries"></div>
+      </section>
+
+      <section class="pstep" data-step="situations" hidden>
+        <h3 class="first">Situations</h3>
+        <p class="note pintro" id="planSitIntro"></p>
+        <p class="note bigscreen">The call-sheet grid is easier on a tablet or a laptop. It scrolls sideways here.</p>
+        <div id="planSit"></div>
+        <div class="row" style="margin-top:10px;max-width:320px"><button type="button" id="planSitReset">Back to the plays' own situations</button></div>
+      </section>
+
+      <section class="pstep" data-step="openers" hidden>
+        <h3 class="first">Opening script</h3>
+        <p class="note pintro">The first calls of the game, in order. The drive planner calls them first.</p>
+        <div id="planOpeners"></div>
+      </section>
+
+      <section class="pstep" data-step="drives" hidden>
+        <h3 class="first">Drive scripts</h3>
+        <p class="note pintro">Script how a set of downs should go: the 1st-down call, the 2nd-down call if it stays on schedule and if it doesn't, then 3rd down under each. On game day the Game panel follows the script from each result, and offers the planner's picks when the drive leaves it.</p>
+        <p class="note bigscreen">The script tree is easier on a tablet or a laptop. You can read it and change calls here.</p>
+        <div class="dscripts">
+          <div class="dscript-list" id="planDriveList"></div>
+          <div class="dscript-edit" id="planDriveEdit"></div>
+        </div>
+      </section>
+
+      <section class="pstep" data-step="calling" hidden>
+        <h3 class="first">Calling the plays</h3>
+        <div class="body">
+          <div><label>How calls get in <span class="sub">any mix</span></label><div class="chips" id="dMethods"></div></div>
+          <div class="dopt" id="dRotateRow"><label>What's live changes every</label><div class="seg sm" id="dRotate"></div></div>
+          <div class="dopt" id="dSignalsRow"><label>Signals each snap <span class="sub">the key names the live one</span></label><div class="seg sm" id="dSignals"></div></div>
+          <p class="note dhow" id="dFormatHow"></p>
+          <div id="dWristOpts" class="body" style="padding:0">
+            <h4>Wristband numbers</h4>
+            <p class="note dhow">The signal is a code; the QB reads the play off his card. New cards every period.</p>
+            <div class="dopt"><label>Codes</label><div class="seg sm" id="dDigits"></div></div>
+            <div class="dopt"><label>Code style</label><div class="seg sm" id="dStyle"></div></div>
+            <div class="dopt"><label>Dummy digit <span class="sub">in the signal, means nothing</span></label><div class="seg sm" id="dDummyDigit"></div></div>
+            <div class="dopt"><label>Extra codes</label><div class="seg sm" id="dExtra"></div>
+              <span class="lbl">for the top</span><input id="dTop" type="number" min="0" max="20"><span class="lbl">calls</span></div>
+            <div class="dopt"><label for="dDead">Dead codes</label><input id="dDead" type="number" min="0" max="40"></div>
+          </div>
+          <div id="dWordOpts" class="body" style="padding:0">
+            <h4>Line calls</h4>
+            <p class="note dhow" id="dWordHow"></p>
+            <div class="dopt"><label>Word list</label><div class="seg sm" id="dWordList"></div></div>
+            <div id="dOwnWordsRow"><label for="dOwnWords">Our words <span class="sub">one per line, or with commas</span></label>
+              <textarea id="dOwnWords" rows="3" placeholder="Ranger, Hawk, Maple, Onyx"></textarea></div>
+            <div class="dopt"><label>Live signal</label><div class="seg sm" id="dLive"></div></div>
+            <div id="dOwnLiveRow"><label for="dOwnLive">Our live words</label>
+              <input id="dOwnLive" placeholder="Rip, Liz, Omaha" autocomplete="off"></div>
+            <div class="dopt"><label for="dDummyWords">Dummy words</label><input id="dDummyWords" type="number" min="0" max="20"></div>
+            <div class="dopt"><label for="dBurned">Burned words</label><input id="dBurned" style="width:200px" placeholder="Heard on film: Tiger, Rocket" autocomplete="off"></div>
+            <label>Each play's word <span class="sub">blank: drawn from the list with the key each game</span></label>
+            <div id="dWordTable"></div>
+          </div>
+          <div id="dBoardOpts" class="body" style="padding:0">
+            <h4>Sign boards</h4>
+            <p class="note dhow" id="dBoardHow"></p>
+            <div class="dopt"><label>Symbols on a board</label><div class="seg sm" id="dCells"></div></div>
+            <div class="dopt"><label>A symbol per</label><div class="seg sm" id="dBoardsBy"></div></div>
+            <div class="dopt"><label for="dDummies">Dummy boards</label><input id="dDummies" type="number" min="0" max="20"></div>
+          </div>
+          <div id="dKeyRow" class="body" style="padding:0">
+            <h4>The key</h4>
+            <div class="dkey" id="dKeyState"></div>
+            <div class="dkey" id="dKeyText" hidden></div>
+            <div class="row">
+              <button type="button" id="dKeyNew">New key</button>
+              <button type="button" id="dKeyEnter">Enter key</button>
+              <button type="button" id="dKeyShow">Show</button>
+              <button type="button" id="dKeyForget" class="danger">Forget</button>
+            </div>
+            <label class="layer" style="padding:0;height:auto"><input type="checkbox" id="dKeyRemember">
+              <span class="meta">Remember the key on this device (never in the playbook file)</span></label>
+          </div>
+        </div>
+      </section>
+
+      <section class="pstep" data-step="check" hidden>
+        <h3 class="first">Check and print</h3>
+        <ul class="plan-notes" id="planCheckList"></ul>
+        <p class="note bigscreen">Print from a computer or a tablet: wristband inserts and boards print at their real size.</p>
+        <div class="dprint">
+          <button type="button" data-print="drivecards">Drive cards</button>
+          <button type="button" data-print="gameplan">Game plan</button>
+          <button type="button" data-print="qbcard">QB card</button>
+          <button type="button" data-print="boards">Sign boards</button>
+        </div>
+        <div class="row" style="margin-top:10px;max-width:320px"><button type="button" id="planToDrive">Rehearse a drive</button></div>
+      </section>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <span class="note" id="planFoot"></span>
+    <button type="button" id="planBack">Back</button>
+    <button type="button" class="primary" id="planNext">Next</button>
   </div>
 </dialog>
 
@@ -1533,12 +1713,56 @@ function drawQB(g){
   }
 }
 
+// The order he works changes with the look (QBPlan.reads_vs): the field
+// numbers the reads against the coverage on it, or the base order.
+const fieldCoverage = () => layers.defense && play.defense && play.defense.coverage ? play.defense.coverage : null;
+const sameCoverage = (x, y) => String(x || "").trim().toLowerCase() === String(y || "").trim().toLowerCase();
+function ownReads(plan, coverage){
+  const k = Object.keys(plan.reads_vs || {}).find(k => sameCoverage(k, coverage));
+  return k ? plan.reads_vs[k].slice() : [];
+}
+function readsAgainst(plan, coverage){
+  const own = coverage ? ownReads(plan, coverage) : [];
+  return own.length ? own : (plan.reads || []).slice();
+}
+function setReads(plan, coverage, order){
+  if (!coverage){ plan.reads = order; return; }
+  const reads = Object.assign({}, plan.reads_vs || {});
+  const k = Object.keys(reads).find(k => sameCoverage(k, coverage)) || coverage;
+  if (order.length) reads[k] = order; else delete reads[k];
+  plan.reads_vs = reads;
+}
+// Add a receiver to the end of the order against a coverage, or drop him.
+function toggleRead(label, coverage){
+  const plan = (qbAssignment() || {}).qb;
+  if (!plan) return;
+  if (!eligibleReceivers().some(p => p.label === label)) return toast(`${label} isn't an eligible receiver`);
+  pushUndo();
+  const cur = coverage ? ownReads(plan, coverage) : (plan.reads || []).slice();
+  setReads(plan, coverage, cur.includes(label) ? cur.filter(l => l !== label) : [...cur, label]);
+  renderAll();
+}
+function coverageNames(){
+  const out = [];
+  const add = c => { if (c && !out.some(x => sameCoverage(x, c))) out.push(c); };
+  for (const look of Object.values(CATALOG.coverage_calls || {}))
+    for (const call of Object.values(look || {})) add((call.__meta__ || {}).coverage);
+  const plan = (qbAssignment() || {}).qb;
+  Object.keys((plan && plan.reads_vs) || {}).forEach(add);
+  add(play.defense && play.defense.coverage);
+  return out.sort((x, y) => x.localeCompare(y, undefined, {numeric: true}));
+}
+let readsVs;                        // the coverage the play sheet is editing; null for the base order
+let readPick = false;               // tapping receivers on the field sets the order
+
 function drawReads(g){
   const plan = (qbAssignment() || {}).qb;
-  if (!plan || !plan.reads || !plan.reads.length) return;
+  if (!plan) return;
+  const reads = readsAgainst(plan, fieldCoverage());
+  if (!reads.length) return;
   const t = T();
   for (const a of assignments()){
-    const order = plan.reads.indexOf(a.player.label);
+    const order = reads.indexOf(a.player.label);
     if (order < 0 || !a.route) continue;
     const pts = a.route.waypoints.map(w => wpAbs(a.player, w));
     if (pts.length < 2) continue;
@@ -1830,6 +2054,11 @@ function bindStage(svg){
   svg.addEventListener("pointerdown", evt => {
     const t = evt.target;
     const [fx, fy] = stagePoint(evt, svg);
+    if (readPick){
+      if (t.dataset && t.dataset.player !== undefined && playerKind(findA(t.dataset.player).player) !== "quarterback")
+        return toggleRead(t.dataset.player, fieldCoverage());
+      readPick = false; renderAll(); return;
+    }
     if (t.dataset && t.dataset.player !== undefined){
       sel = t.dataset.player; selDef = null; selWp = -1;
       pushUndo();
@@ -2386,6 +2615,11 @@ function renderInspector(){
       <option value="1">Right</option><option value="-1">Left</option></select></div>` : ""}
     ${(!isOL && !isQB) ? `
     <div class="ifield"><label for="motionSel">Motion</label><select id="motionSel" class="w104"></select></div>` : ""}
+    ${isQB && a.qb ? `
+    <div class="ifield"><label>Reads ${fieldCoverage() ? `vs ${esc(fieldCoverage())}` : ""}</label><div class="btns">
+      <span class="readline">${esc(readsAgainst(a.qb, fieldCoverage()).join(" › ") || "none yet")}</span>
+      <button id="btnReadPick" class="${readPick ? "on" : ""}" title="Tap receivers on the field in the order he works them">${readPick ? "Done" : "Set reads"}</button>
+    </div></div>` : ""}
     <div class="isep"></div>
     <div class="ifield"><label>&nbsp;</label><div class="btns">
       <button id="btnBc" class="${a.is_ball_carrier ? "on" : ""}" title="Give this player the ball">Ball carrier</button>
@@ -2432,6 +2666,11 @@ function renderInspector(){
     };
     $("blockTarget").onchange = e => { a.block.target = e.target.value || null; renderAll(); };
   }
+  if ($("btnReadPick")) $("btnReadPick").onclick = () => {
+    readPick = !readPick;
+    if (readPick) toast(`Tap receivers in the order he works them${fieldCoverage() ? ` vs ${fieldCoverage()}` : ""}; tap one again to drop him`);
+    renderAll();
+  };
   if ($("motionSel")){
     fillSelect($("motionSel"), CATALOG.motions.map(m => [m, m]), a.motion_type, "No motion");
     $("motionSel").onchange = e => applyMotion(p.label, e.target.value || null);
@@ -2493,24 +2732,28 @@ function renderReads(){
     box.innerHTML = '<p class="note" style="margin:0">Give him a plan first.</p>';
     return;
   }
+  if (readsVs === undefined) readsVs = fieldCoverage();
+  const covs = coverageNames();
+  fillSelect($("readVs"), covs.map(c => [c, `vs ${c}` + (ownReads(plan, c).length ? " (set)" : "")]),
+    readsVs, "Any look (base order)");
+  $("readVs").onchange = e => { readsVs = e.target.value || null; renderReads(); };
+  const reads = readsVs ? ownReads(plan, readsVs) : (plan.reads || []);
   for (const p of eligibleReceivers()){
-    const order = plan.reads.indexOf(p.label);
+    const order = reads.indexOf(p.label);
     const b = document.createElement("button");
     b.type = "button";
     b.className = "chip" + (order >= 0 ? " sel" : "");
-    b.title = order >= 0 ? `Read ${order + 1} · click to drop` : "Add to the progression";
+    b.title = order >= 0 ? `Read ${order + 1} · tap to drop` : "Add to the progression";
     b.innerHTML = order >= 0
       ? `<span class="n">${order + 1}</span>${esc(p.label)}`
       : esc(p.label);
-    b.onclick = () => {
-      pushUndo();
-      plan.reads = order >= 0
-        ? plan.reads.filter(l => l !== p.label)   // click again to drop him
-        : [...plan.reads, p.label];
-      renderAll();
-    };
+    b.onclick = () => toggleRead(p.label, readsVs);
     box.appendChild(b);
   }
+  const base = (plan.reads || []).join(" › ");
+  $("readNote").hidden = !(readsVs && !reads.length);
+  $("readNote").textContent = readsVs && !reads.length
+    ? `No order of its own vs ${readsVs}: he works the base order${base ? ` (${base})` : ""}.` : "";
 }
 
 function renderTitle(){
@@ -2819,6 +3062,7 @@ function gotoPlay(i){
   bookIndex = i; play = book.plays[i];
   undoStack.length = 0;                     // undo belongs to the page you are on
   sel = null; selDef = null; selWp = -1;
+  readsVs = undefined; readPick = false;    // the reads editor follows the new page's look
   renderAll();
 }
 function uniqueName(base){
@@ -3243,23 +3487,112 @@ function callSheetHtml(d, columns){
              + `<div class="cols" style="column-count:${columns || 2}">${sections}</div>` + sheetFooter();
   return sheetPage(d.name, body);
 }
-function wristbandHtml(w){
+// Wristband inserts (renderer/sheets.py): each prints at the size of the
+// window it slides into, dense and in capitals, with a dashed cut line.
+const INSERTS = () => (CATALOG.inserts || {}).sizes || {adult: {w: 5.25, h: 3.25, cols: 3, rows: 19, label: "Adult"}};
+const insertOf = size => INSERTS()[size] || INSERTS().adult;
+function shortCall(text){
+  const words = (CATALOG.inserts || {}).words || {};
+  return String(text || "").split(/\s+/).filter(Boolean)
+    .map(w => Object.prototype.hasOwnProperty.call(words, w.toLowerCase()) ? words[w.toLowerCase()] : w)
+    .filter(Boolean).join(" ");
+}
+function bandLayout(groups, size){
+  const {rows, cols} = insertOf(size), lines = [];
+  for (const [title, entries] of groups){
+    if (title){
+      if (lines.length % rows === rows - 1) lines.push(["gap"]);
+      lines.push(["head", title]);
+    }
+    for (const [code, call] of entries) lines.push(["row", code, call]);
+  }
+  const per = rows * cols, inserts = [];
+  for (let start = 0; start < Math.max(lines.length, 1); start += per){
+    const chunk = lines.slice(start, start + per);
+    inserts.push(Array.from({length: cols}, (_, c) => chunk.slice(c * rows, (c + 1) * rows)));
+  }
+  return inserts;
+}
+const insertHtml = (size, strip, body) => { const s = insertOf(size);
+  return `<div class="insert" style="width:${s.w}in;height:${s.h}in"><div class="strip">${strip}</div><div class="body">${body}</div></div>`; };
+function listBody(columns, size){
+  const {rows} = insertOf(size);
+  return columns.map(col => `<div class="colm" style="grid-template-rows:repeat(${rows},1fr)">`
+    + col.map(l => l[0] === "head" ? `<div class="ln head">${esc(l[1])}</div>`
+        : l[0] === "row" ? `<div class="ln"><span class="c">${esc(l[1])}</span><span class="t">${esc(l[2])}</span></div>`
+        : `<div class="ln"></div>`).join("")
+    + `<div class="ln"></div>`.repeat(rows - col.length) + `</div>`).join("");
+}
+const stripHtml = (left, rule, right) =>
+  `<span>${esc(left)}</span><span class="rule">${esc(rule || "")}</span><span class="fp">${esc(right || "")}</span>`;
+const insertsPage = (cards, copies) => `<div class="inserts">${cards.join("").repeat(Math.max(1, copies || 1))}</div>`;
+const INSERT_FOOT = "Print at actual size (100%) and cut on the dashed lines.";
+
+function wristbandHtml(w, size, copies){
+  size = size || "adult";
   const groups = new Map();
   for (const e of w.entries){
     const g = e.group || "Plays";
     if (!groups.has(g)) groups.set(g, []);
-    groups.get(g).push(e);
+    groups.get(g).push([String(e.number), shortCall(e.call)]);
   }
-  const blocks = [...groups].map(([group, entries]) =>
-    `<div class="grp">${esc(group)}</div>`
-    + `<div class="band" style="grid-template-columns:repeat(${w.columns},1fr);grid-auto-rows:minmax(34px,auto)">`
-    + entries.map(e => `<div class="cell"><span class="num">${e.number}</span><span class="txt">${esc(e.call)}</span>`
-        + (e.note ? `<div class="note">${esc(e.note)}</div>` : "") + `</div>`).join("")
-    + `</div>`).join("");
-  const body = sheetHeader(w.name, [w.team], [`${w.entries.length} calls`])
-             + blocks + sheetFooter("cut along the outer border");
+  const layout = bandLayout([...groups], size);
+  const cards = layout.map((cols, i) => insertHtml(size, stripHtml(w.name, "", `${i + 1}/${layout.length}`), listBody(cols, size)));
+  const body = sheetHeader(w.name, [w.team], [`${w.entries.length} calls`, insertOf(size).label])
+             + insertsPage(cards, copies) + sheetFooter(INSERT_FOOT);
   return sheetPage(`${w.name} — Wristband`, body);
 }
+
+// A coded card as a coordinate grid: the first character down the side, the
+// last digit across the top. A blank square is a dead code.
+function gridBody(card, style, label){
+  const rows = style === "letter" ? [...((CATALOG.codes || {}).letters || "ABCDEFGHJK")] : ["1","2","3","4","5","6","7","8","9"];
+  const head = `<tr><th class="r"></th>${[0,1,2,3,4,5,6,7,8,9].map(d => `<th>${d}</th>`).join("")}</tr>`;
+  const body = rows.map(r => `<tr><th class="r">${r}</th>`
+    + [0,1,2,3,4,5,6,7,8,9].map(d => { const id = card.codes[r + d]; return `<td>${id ? esc(label(id)) : ""}</td>`; }).join("")
+    + `</tr>`).join("");
+  return `<table class="grid">${head}${body}</table>`;
+}
+
+// The quarterback's inserts: a coded card per period, and the line calls.
+function qbCardHtml(b, codes, lines, size, copies){
+  size = size || "adult";
+  const plan = planOf(b);
+  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
+  const label = id => shortCall(playCall(byId[id]));
+  const cards = [];
+  if (codes){
+    const grid = Object.keys(codes.cards[0] ? codes.cards[0].codes : {}).concat(codes.cards[0] ? codes.cards[0].dead : [])
+      .every(c => c.length === 2);
+    for (const card of codes.cards){
+      const rule = [signalRule(card), lines ? lineRule(lines, card.period) : ""].filter(Boolean).join(" · ");
+      const strip = stripHtml(card.period, rule, codes.fingerprint);
+      if (grid) cards.push(insertHtml(size, strip, gridBody(card, codes.style, label)));
+      else {
+        const rows = Object.entries(card.codes).sort((x, y) => codeCmp(x[0], y[0])).map(([c, id]) => [c, label(id)]);
+        for (const cols of bandLayout([["", rows]], size)) cards.push(insertHtml(size, strip, listBody(cols, size)));
+      }
+    }
+  }
+  if (lines){
+    const periods = Object.keys(Object.keys(lines.live).length ? lines.live : lines.order);
+    const rule = periods.map(p => `${p}: ${lineRule(lines, p)}`).join(" · ");
+    const rows = Object.entries(lines.words).map(([w, id]) => [w, label(id)])
+      .concat(lines.dead.map(w => [w, "—"])).sort((x, y) => byLower(x[0], y[0]));
+    for (const cols of bandLayout([["", rows]], size))
+      cards.push(insertHtml(size, stripHtml("Line calls", rule, lines.fingerprint), listBody(cols, size)));
+  }
+  const how = [codes ? "A blank square or a number not on the card means wait." : "",
+               lines ? (Object.keys(lines.order).length ? `At the line: ${lines.calls} calls; only the one the key names counts.`
+                                                       : "At the line: the live word, then the call, twice. Any other signal word is a dummy.") : ""]
+    .filter(Boolean).join(" ");
+  const keyed = codes || lines;
+  return sheetPage(`${planTitle(plan)} — QB card`,
+    sheetHeader(planTitle(plan), [codes ? "QB wristband" : "Line calls"],
+                [keyed ? `Fingerprint ${keyed.fingerprint}` : null, insertOf(size).label])
+    + insertsPage(cards, copies) + sheetFooter(`${how} ${INSERT_FOOT}`.trim()));
+}
+
 function scriptHtml(s, subtitle){
   const rows = s.entries.map(e =>
     `<tr><td class="n">${e.number}</td><td class="sit">${esc(e.sit)}</td><td class="sit">${esc(e.hash)}</td>`
@@ -3345,7 +3678,7 @@ const PRINT_KINDS = [
   ["boards", "Sign boards", "The rack, the players' key, the signaler's sheet"],
 ];
 const LS_PRINT = "chalktalk.designer.print";
-const printOpts = {kind: "playbook", perRow: 2, sheetCols: 2, bandCols: 3, reps: 1, hashes: false};
+const printOpts = {kind: "playbook", perRow: 2, sheetCols: 2, bandCols: 3, bandSize: "adult", bandCopies: 1, reps: 1, hashes: false};
 try { Object.assign(printOpts, JSON.parse(localStorage.getItem(LS_PRINT) || "{}")); } catch(e){}
 const savePrintOpts = () => { try { localStorage.setItem(LS_PRINT, JSON.stringify(printOpts)); } catch(e){} };
 
@@ -3372,6 +3705,11 @@ function renderPrint(){
     segment(seg, entries.map(([v, l]) => [String(v), l]), String(current), v => { onPick(v); savePrintOpts(); renderPrint(); });
     row.appendChild(seg); opts.appendChild(row);
   };
+  // Wristband inserts: the window they go in, and one for each player who wears one.
+  const bandOptions = () => {
+    addSeg("Insert", Object.entries(INSERTS()).map(([v, s]) => [v, s.label]), printOpts.bandSize, v => { printOpts.bandSize = v; });
+    addSeg("Copies", [[1, "1"], [2, "2"], [4, "4"], [6, "6"], [11, "11"]], printOpts.bandCopies, v => { printOpts.bandCopies = +v; });
+  };
   const k = printOpts.kind, n = book.plays.length;
   let summary = `${n} ${n === 1 ? "play" : "plays"}`, hint = "";
   if (k === "playbook" || k === "install")
@@ -3383,7 +3721,7 @@ function renderPrint(){
     if (sheet.sections.length === 1 && sheet.sections[0].title === "Base")
       hint = "No play has a situation yet, so every call lands in Base. Set down, distance and the ball in the play sheet.";
     if (k === "callsheet") addSeg("Columns", [[1, "One"], [2, "Two"], [3, "Three"]], printOpts.sheetCols, v => { printOpts.sheetCols = +v; });
-    else addSeg("Columns", [[2, "Two"], [3, "Three"], [4, "Four"]], printOpts.bandCols, v => { printOpts.bandCols = +v; });
+    else bandOptions();
     const row = document.createElement("div"); row.className = "popt";
     const locked = book.plays.some(p => p.call_number);
     row.innerHTML = `<label>Call numbers</label><span class="pnote">${locked
@@ -3409,6 +3747,7 @@ function renderPrint(){
     summary = `${(PLANDATA().card_starts || []).length} starts, three calls each`;
     if (!planOpeners(book).length) hint = "No opening script yet: label plays \"Openers\" in the play sheet.";
   }
+  if (k === "qbcard") bandOptions();
   if (k === "gameplan" || k === "qbcard" || k === "boards"){
     const methods = planOf(book).calls.methods || [];
     summary = `${planCallOrder(book).length} calls` + (codeKey ? ` · fingerprint ${fingerprintOf(codeKey.bytes, planOf(book).name)}` : "");
@@ -3433,7 +3772,7 @@ function printNow(){
   let doc;
   if (k === "playbook") doc = playbookHtml(book, printOpts.perRow);
   else if (k === "callsheet") doc = callSheetHtml(callSheetData(book), printOpts.sheetCols);
-  else if (k === "wristband") doc = wristbandHtml(wristbandData(callSheetData(book), printOpts.bandCols));
+  else if (k === "wristband") doc = wristbandHtml(wristbandData(callSheetData(book), printOpts.bandCols), printOpts.bandSize, printOpts.bandCopies);
   else if (k === "script") doc = scriptHtml(scriptData(book, printOpts.reps, printOpts.hashes), "Practice script");
   else if (k === "install") doc = installBookHtml(book, printOpts.perRow);
   else if (k === "drivecards") doc = driveCardsHtml(book);
@@ -3449,7 +3788,7 @@ function printNow(){
     else if (k === "qbcard"){
       if (!codes && !lines) return toast(methods.includes("wristband") || methods.includes("words")
         ? "Set a key first" : "Choose wristband numbers or line calls first");
-      doc = qbCardHtml(book, codes, lines);
+      doc = qbCardHtml(book, codes, lines, printOpts.bandSize, printOpts.bandCopies);
     } else {
       if (!boards) return toast(methods.includes("boards") ? "Set a key first" : "Turn on sign boards first");
       doc = signBoardsHtml(book, boards);
@@ -3601,8 +3940,16 @@ function inSection(p, section){
 }
 function planSections(b){
   const plan = planOf(b), ids = b.plays.map(p => p.id);
-  if (plan.sections && plan.sections.length)
-    return plan.sections.map(s => [s, (s.plays || []).filter(i => ids.includes(i))]);
+  if (plan.sections && plan.sections.length){
+    // A staff's own sections; a play added since lands in Base, not nowhere.
+    const listed = new Set();
+    for (const s of plan.sections) if (whenKind(s.when || {}) !== "base") (s.plays || []).forEach(i => listed.add(i));
+    return plan.sections.map(s => {
+      const hits = (s.plays || []).filter(i => ids.includes(i));
+      if (whenKind(s.when || {}) === "base") for (const i of ids) if (!listed.has(i) && !hits.includes(i)) hits.push(i);
+      return [s, hits];
+    });
+  }
   const out = [], placed = new Set(), all = PLANDATA().sections || [];
   for (const s of all){
     if (whenKind(s.when || {}) === "base") continue;
@@ -3655,6 +4002,485 @@ function planCheck(b){
       notes.push(`${calls.dummy_boards} dummy boards for ${units} live ones: use at least ${Math.ceil(units / 2)}.`);
   }
   return notes;
+}
+
+// ── a first draft of the plan (planner.draft) ──────────────────────────────
+// Fills only blanks: series and roles, the call-sheet sections, an opening
+// script, each decision with a note.
+const draftHas = (p, group) => ((PLANDATA().draft_tags || {})[group] || []).some(t => (p.tags || []).includes(t));
+function draftRole(p){
+  const plan = qbOf(p), action = plan ? plan.action : null;
+  if (p.play_type === "special") return "trick";
+  if (p.play_type === "screen") return "constraint";
+  if (p.play_type === "rpo") return "answer";
+  if (p.play_type === "run" && draftHas(p, "perimeter")) return "constraint";
+  if (p.play_type === "pass" && (draftHas(p, "play_action") || action === "play_action" || action === "boot"))
+    return draftHas(p, "shot") ? "shot" : "play_action";
+  return null;
+}
+function draftSpots(p){
+  if (draftHas(p, "short")) return ["3rd & 1-3", "4th & short", "Goal line"];
+  if (draftHas(p, "red")) return ["Red zone", "Low red"];
+  if (p.play_type === "run"){
+    if (draftHas(p, "perimeter")) return ["1st & 10", "2nd & 4-6"];
+    if ((p.tags || []).includes("draw")) return ["2nd & 7+", "3rd & 7+"];
+    return ["1st & 10", "2nd & 1-3", "3rd & 1-3", "Backed up", "Four minute"];
+  }
+  if (p.play_type === "rpo") return ["1st & 10", "2nd & 4-6"];
+  if (p.play_type === "screen") return ["2nd & 7+", "3rd & 7+"];
+  if (p.play_type === "special") return ["1st & 10"];
+  if (draftHas(p, "play_action") || draftHas(p, "shot") || p.role === "play_action" || p.role === "shot")
+    return ["1st & 10", "2nd & 1-3"];
+  if (draftHas(p, "quick")) return ["2nd & 4-6", "3rd & 4-6", "Two minute"];
+  return ["2nd & 7+", "3rd & 7+", "Two minute"];
+}
+function draftPlan(b){
+  const P = PLANDATA(), notes = [];
+  const key = p => String(p.series || "").trim().toLowerCase();
+  const blank = p => !key(p) && !p.role;
+  const plays = b.plays.map(p => Object.assign({}, p));
+
+  const bases = new Map();
+  for (const p of plays) if (p.role === "base" && key(p) && !bases.has(key(p))) bases.set(key(p), p);
+  plays.forEach((p, i) => {
+    if (!blank(p) || p.play_type !== "run") return;
+    const hit = (P.run_schemes || []).find(([tag]) => (p.tags || []).includes(tag));
+    if (!hit) return;
+    const name = hit[1], role = bases.has(name.toLowerCase()) ? "complement" : "base";
+    plays[i] = p = Object.assign({}, p, {series: name, role});
+    if (role === "base") bases.set(name.toLowerCase(), p);
+    notes.push(`${p.name}: ${ROLE_WORDS(role)} of the ${name} series`);
+  });
+
+  const order = new Map();
+  for (const p of plays) if (p.role === "base" && key(p) && !order.has(key(p))) order.set(key(p), p);
+  plays.forEach((p, i) => {
+    const role = blank(p) ? draftRole(p) : null;
+    if (!role || !order.size) return;
+    const same = [...order.values()].find(x => x.formation.name === p.formation.name);
+    const home = same || order.values().next().value;
+    plays[i] = Object.assign({}, p, {series: home.series, role});
+    notes.push(`${p.name}: ${ROLE_WORDS(role)} in ${home.series} (${same ? "same formation" : "the first series"})`);
+  });
+
+  const drafted = Object.assign({}, b, {plays});
+  const plan = JSON.parse(JSON.stringify(b.game_plan || {}));
+  if (!(planOf(b).sections || []).length){
+    const all = P.sections || [];
+    const base = all.find(s => whenKind(s.when || {}) === "base");
+    const derived = planSections(drafted);
+    const spots = new Map(derived.map(([s, ids]) => [s.title, new Set(ids)]));
+    const byId = Object.fromEntries(plays.map(p => [p.id, p]));
+    const unplaced = (derived.find(([s]) => s.title === base.title) || [null, []])[1];
+    for (const id of unplaced) for (const t of draftSpots(byId[id])) spots.get(t).add(id);
+    // Base is left empty: it gathers whatever no other section lists.
+    plan.sections = all.map(s => Object.assign(JSON.parse(JSON.stringify(s)), {plays: s.title === base.title ? []
+      : plays.filter(p => spots.get(s.title).has(p.id)).map(p => p.id)}));
+    if (unplaced.length) notes.push(`Call sheet: ${unplaced.length} plays placed by their type and tags`);
+  }
+  if (!planOpeners(drafted).length){
+    const pool = plays.filter(p => p.role !== "trick" && !draftHas(p, "short") && !draftHas(p, "red"));
+    const runs = pool.filter(p => p.play_type === "run" || p.play_type === "rpo")
+      .sort((x, y) => (x.role !== "base") - (y.role !== "base"));
+    const passes = pool.filter(p => p.play_type === "pass" || p.play_type === "screen");
+    const script = [], n = P.script_length || 10;
+    while ((runs.length || passes.length) && script.length < n){
+      if (runs.length) script.push(runs.shift().id);
+      if (passes.length && script.length < n) script.push(passes.shift().id);
+    }
+    plan.openers = script;
+    if (script.length) notes.push(`Opening script: ${script.length} plays, run and pass in turn`);
+  }
+  return {book: Object.assign({}, drafted, {game_plan: plan}), notes};
+}
+// ── drive scripts (planner.follow, planner.fill_script) ────────────────────
+// Scripted in the week: the 1st-down call, the 2nd-down call on and off
+// schedule, 3rd down under each. On game day the script is followed from
+// each result; when the drive leaves it, the suggestions take over.
+const SCRIPT_DEPTH = 3;
+const scriptGain = (state, step) => step === "on" ? Math.max(1, Math.ceil(state.distance * 0.6)) : 0;
+const scriptStart = script => Object.assign(freshState(), (script && script.start) || {});
+function scriptState(script, path){
+  let st = scriptStart(script);
+  for (const step of path) st = advanceState(st, "gain", scriptGain(st, step));
+  return st;
+}
+function scriptNode(script, path){
+  let node = (script && script.first) || null;
+  for (const step of path) node = node ? (node[step] || null) : null;
+  return node;
+}
+function followScript(b, script, state, log){
+  if (state.down === 1 || state.over) return [[], state.over ? null : (script.first || null)];
+  const t = thresholdsOf(planOf(b));
+  let path = [];
+  for (const snap of log){
+    if ((snap.before.drive || 1) !== (state.drive || 1)) continue;
+    if (snap.before.down === 1) path = [];
+    const ok = isSuccess(snap.before, snap.outcome, snap.gain, t);
+    if (ok !== null) path.push(ok ? "on" : "off");
+  }
+  if (path.length >= SCRIPT_DEPTH) return [path, null];
+  return [path, scriptNode(script, path)];
+}
+function fillScript(b, script){
+  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
+  const fill = (node, state, log, depth) => {
+    node = Object.assign({play: null, on: null, off: null}, node || {});
+    if (!node.play){
+      const pick = suggestCalls(b, state, log, 1, false);
+      node.play = pick.length ? pick[0].play : null;
+    }
+    if (node.play && depth + 1 < SCRIPT_DEPTH){
+      for (const step of ["on", "off"]){
+        const gain = scriptGain(state, step), after = advanceState(state, "gain", gain);
+        if (after.over || after.down === 1) continue;
+        const p = byId[node.play];
+        const snap = {before: state, play: node.play, call: p ? playCall(p) : node.play, outcome: "gain", gain, tells: []};
+        node[step] = fill(node[step], after, log.concat([snap]), depth + 1);
+      }
+    }
+    return node;
+  };
+  return Object.assign({}, script, {first: fill(script.first, scriptStart(script), [], 0)});
+}
+
+/* ─── the plan builder: the week's work, one step at a time ─────────────────
+   Prep and game day are two jobs. The builder is the week: the game, series
+   and roles, where each play goes on the call sheet, the opening script, the
+   drive scripts, how calls get in, and a last check. The Game panel is game
+   day: it follows a drive script from each result and offers the planner's
+   picks alongside. */
+const PLAN_STEPS = [["game", "Game"], ["series", "Series"], ["situations", "Situations"], ["openers", "Openers"],
+                    ["drives", "Drive scripts"], ["calling", "Calling"], ["check", "Check & print"]];
+let planStep = "game", planDraftUndo = null, planScript = 0;
+
+function openPlanner(step){
+  commit();
+  if (step) planStep = step;
+  if (!$("planDialog").open) $("planDialog").showModal();
+  renderPlanner();
+}
+function renderPlanner(){
+  const dlg = $("planDialog");
+  if (!dlg || !dlg.open) return;
+  const nav = $("planSteps"); nav.innerHTML = "";
+  PLAN_STEPS.forEach(([k, label], i) => nav.appendChild(
+    pick("pstep-btn" + (k === planStep ? " on" : ""), `<span class="n">${i + 1}</span>${esc(label)}`, () => { planStep = k; renderPlanner(); })));
+  for (const s of dlg.querySelectorAll(".pstep")) s.hidden = s.dataset.step !== planStep;
+  renderPlanControls();
+  const draw = {series: renderPlanSeries, situations: renderPlanSituations, openers: renderPlanOpeners,
+                drives: renderPlanDrives, calling: renderWordTable, check: renderPlanCheck}[planStep];
+  if (draw) draw();
+  const i = PLAN_STEPS.findIndex(([k]) => k === planStep);
+  $("planBack").disabled = i === 0;
+  $("planNext").textContent = i === PLAN_STEPS.length - 1 ? "Done" : "Next";
+  const n = book.plays.length, tagged = book.plays.filter(p => p.series || p.role).length;
+  const scripts = (planOf(book).drives || []).length;
+  $("planFoot").textContent = `${tagged} of ${n} plays in a series · ${planOpeners(book).length} openers · `
+    + `${scripts} drive ${scripts === 1 ? "script" : "scripts"}`;
+}
+// Edits in the builder: keep the page on the field in step, and redraw.
+function planEdited(p){ save(); if (p && p === play) renderAll(); else renderDrive(); }
+
+// The game and the calling controls (they live in the builder).
+function renderPlanControls(){
+  const plan = planOf(book), calls = plan.calls, thresholds = thresholdsOf(plan);
+  if (document.activeElement !== $("dGame")) $("dGame").value = gp().name || "";
+  if (document.activeElement !== $("dOpp")) $("dOpp").value = gp().opponent || "";
+  setSeg($("dLevel"), plan.level);
+  setSeg($("dExec"), String(plan.execution));
+  const [t1, t2] = thresholds;
+  $("dSuccess").textContent = `On schedule: ${t1}% of the distance on 1st down, ${t2}% on 2nd, all of it on 3rd and 4th.`;
+  for (const b of $("dMethods").children) b.classList.toggle("sel", (calls.methods || []).includes(b.dataset.value));
+  setSeg($("dRotate"), calls.rotate); setSeg($("dDigits"), String(calls.digits));
+  setSeg($("dExtra"), String(calls.extra_codes)); setSeg($("dBoardsBy"), calls.boards_by);
+  setSeg($("dCells"), String(calls.board_cells)); setSeg($("dSignals"), String(calls.signals));
+  setSeg($("dStyle"), calls.code_style); setSeg($("dDummyDigit"), calls.dummy_digit);
+  setSeg($("dWordList"), calls.word_list); setSeg($("dLive"), calls.live_signal);
+  const keep = (id, v) => { if (document.activeElement !== $(id)) $(id).value = v; };
+  keep("dTop", calls.top_calls); keep("dDead", calls.dead_codes); keep("dDummies", calls.dummy_boards);
+  keep("dDummyWords", calls.dummy_words); keep("dBurned", (calls.burned_words || []).join(", "));
+  keep("dOwnWords", (calls.own_words || []).join("\n")); keep("dOwnLive", (calls.own_live || []).join(", "));
+  const on = m => (calls.methods || []).includes(m), keyed = ["wristband", "words", "boards"].some(on);
+  $("dWristOpts").hidden = !on("wristband");
+  $("dWordOpts").hidden = !on("words");
+  $("dBoardOpts").hidden = !on("boards");
+  $("dRotateRow").hidden = !keyed;
+  $("dSignalsRow").hidden = !(on("wristband") || on("words"));
+  $("dKeyRow").hidden = !keyed;
+  $("dOwnWordsRow").hidden = calls.word_list !== "own";
+  $("dOwnLiveRow").hidden = calls.live_signal !== "own";
+  $("dFormatHow").hidden = !keyed;
+  $("dFormatHow").textContent = "Whatever you leave to the key is drawn from it each game or each period, "
+    + "so a team that also uses chalktalk can't assume your format.";
+  const every = {game: "game", half: "half", quarter: "quarter"}[calls.rotate];
+  $("dWordHow").textContent = calls.live_signal === "order"
+    ? `No signal word: the QB makes ${Math.max(2, calls.signals)} calls, and the key names which one counts each ${every}.`
+    : `At the line the QB says the live word, then the play's word, twice. Only the live word's call is real, and the live word changes every ${every}.`;
+  const cells = calls.board_cells;
+  $("dBoardHow").textContent = cells === 1
+    ? "One symbol a board: reads to about 55 yards on a 22 x 28 poster, but it is the easiest to crack. Symbols hold for the game."
+    : `${cells === "key" ? "Two or four (the key picks each game)" : cells} symbols a board and only one cell is live; the live cell changes every period `
+      + `and the others are decoys. Symbols hold for the game, so players learn them in practice.`;
+  renderKey();
+}
+
+// Step 1: the draft.
+function draftTheBook(){
+  commit();
+  const {book: drafted, notes} = draftPlan(book);
+  if (!notes.length){ $("planDraftNotes").innerHTML = "<li>Nothing blank to fill: every play has its series, the call sheet and the script are set.</li>"; return; }
+  planDraftUndo = JSON.stringify({plays: book.plays, game_plan: book.game_plan || null});
+  book.plays = drafted.plays; book.game_plan = drafted.game_plan; play = book.plays[bookIndex];
+  $("planDraftNotes").innerHTML = notes.map(n => `<li>${esc(n)}</li>`).join("");
+  $("planUndoDraft").hidden = false;
+  save(); renderAll();
+}
+function undoDraft(){
+  if (!planDraftUndo) return;
+  const was = JSON.parse(planDraftUndo);
+  book.plays = was.plays; book.game_plan = was.game_plan; play = book.plays[bookIndex];
+  planDraftUndo = null; $("planUndoDraft").hidden = true; $("planDraftNotes").innerHTML = "";
+  save(); renderAll(); toast("Draft undone");
+}
+
+// Step 2: series and roles, play by play.
+function renderPlanSeries(){
+  const box = $("planSeries");
+  const series = [...new Set(book.plays.map(p => String(p.series || "").trim()).filter(Boolean))];
+  const roles = PLANDATA().roles || [];
+  box.innerHTML = `<datalist id="planSeriesList">${series.map(s => `<option value="${esc(s)}">`).join("")}</datalist>`
+    + `<div class="pscroll"><table class="ptable"><thead><tr><th></th><th>Play</th><th>Series</th><th>Role</th>`
+    + `<th>Tell <span class="sub">what calls for it</span></th><th>Difficulty</th></tr></thead><tbody>`
+    + book.plays.map((p, i) => { const d = difficultyOf(p);
+        return `<tr data-i="${i}"><td class="pth">${playThumb(p)}</td>`
+          + `<td><b>${esc(p.name)}</b><div class="sub">${esc(p.formation.name)} · ${esc(p.play_type)}</div></td>`
+          + `<td><input data-f="series" list="planSeriesList" value="${esc(p.series || "")}" placeholder="—" aria-label="Series of ${esc(p.name)}"></td>`
+          + `<td><select data-f="role" aria-label="Role of ${esc(p.name)}"><option value="">—</option>`
+          + roles.map(r => `<option value="${r}"${p.role === r ? " selected" : ""}>${esc(capFirst(ROLE_WORDS(r)))}</option>`).join("") + `</select></td>`
+          + `<td><input data-f="tell" value="${esc(p.tell || "")}" placeholder="—" aria-label="Tell for ${esc(p.name)}"></td>`
+          + `<td><span class="tier t${d.tier}" title="${esc(d.reasons.join(", "))}">${esc(tierName(d.tier))} ${d.score}</span></td></tr>`; }).join("")
+    + `</tbody></table></div>`;
+  box.querySelectorAll("[data-f]").forEach(inp => inp.onchange = e => {
+    const p = book.plays[+inp.closest("tr").dataset.i];
+    p[inp.dataset.f] = String(e.target.value).trim() || null;
+    planEdited(p);
+  });
+}
+
+// Step 3: where each play goes on the call sheet.
+const SECTION_SHORT = {"1st & 10": "1st", "2nd & 1-3": "2 S", "2nd & 4-6": "2 M", "2nd & 7+": "2 L", "3rd & 1-3": "3 S",
+  "3rd & 4-6": "3 M", "3rd & 7+": "3 L", "4th & short": "4th", "Backed up": "Bkd", "Red zone": "RZ", "Low red": "LR",
+  "Goal line": "GL", "Two minute": "2:00", "Four minute": "4:00"};
+function ownSections(){
+  if (!(gp().sections || []).length)
+    gp().sections = planSections(book).map(([s, ids]) => Object.assign(JSON.parse(JSON.stringify(s)),
+      {plays: whenKind(s.when || {}) === "base" ? [] : ids.slice()}));
+  return gp().sections;
+}
+function renderPlanSituations(){
+  const box = $("planSit");
+  const secs = planSections(book).filter(([s]) => whenKind(s.when || {}) !== "base");
+  const own = !!(planOf(book).sections || []).length;
+  $("planSitIntro").textContent = own
+    ? "Your call sheet. Tick where each play goes; a play can go in several places. Anything you tick nowhere lands in Base."
+    : "Right now each play sits where its situation in the play sheet puts it. Tick a box to take over the call sheet here.";
+  $("planSitReset").hidden = !own;
+  box.innerHTML = `<div class="pscroll"><table class="ptable pmatrix"><thead><tr><th>Play</th>`
+    + secs.map(([s]) => `<th title="${esc(s.title)}">${esc(SECTION_SHORT[s.title] || s.title)}</th>`).join("") + `</tr></thead><tbody>`
+    + book.plays.map(p => `<tr><td><b>${esc(p.name)}</b></td>` + secs.map(([s, ids]) =>
+        `<td><input type="checkbox" data-sec="${esc(s.title)}" data-id="${esc(p.id)}"${ids.includes(p.id) ? " checked" : ""}`
+        + ` aria-label="${esc(p.name)}: ${esc(s.title)}" title="${esc(s.title)}"></td>`).join("") + `</tr>`).join("")
+    + `</tbody></table></div>`;
+  box.querySelectorAll("input[type=checkbox]").forEach(cb => cb.onchange = () => {
+    const s = ownSections().find(x => x.title === cb.dataset.sec);
+    const set = new Set(s.plays || []);
+    cb.checked ? set.add(cb.dataset.id) : set.delete(cb.dataset.id);
+    s.plays = book.plays.map(p => p.id).filter(id => set.has(id));
+    planEdited();
+  });
+}
+
+// Step 4: the opening script, in order.
+function renderPlanOpeners(){
+  const box = $("planOpeners");
+  const script = planOpeners(book), byId = Object.fromEntries(book.plays.map(p => [p.id, p]));
+  const rest = book.plays.filter(p => !script.includes(p.id));
+  box.innerHTML = (script.length ? `<ol class="pscript">${script.map((id, i) => `<li data-i="${i}"><span class="n">${i + 1}</span>`
+      + `<span class="nm">${esc(playCall(byId[id]))}</span>`
+      + `<button type="button" data-act="up" aria-label="Earlier"${i === 0 ? " disabled" : ""}>↑</button>`
+      + `<button type="button" data-act="down" aria-label="Later"${i === script.length - 1 ? " disabled" : ""}>↓</button>`
+      + `<button type="button" data-act="del" aria-label="Take it out">×</button></li>`).join("")}</ol>`
+      : `<p class="note">No script yet. Add plays in the order you want to call them, or draft the plan in the first step.</p>`)
+    + `<h4>Add to the script</h4><div class="chips">${rest.map(p =>
+        `<button type="button" class="chip" data-add="${esc(p.id)}">${esc(p.name)}</button>`).join("")}</div>`;
+  const edit = fn => { const s = planOpeners(book).slice(); fn(s); gp().openers = s; planEdited(); };
+  box.querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
+    const i = +b.closest("li").dataset.i;
+    edit(s => { if (b.dataset.act === "del") s.splice(i, 1);
+                else { const j = b.dataset.act === "up" ? i - 1 : i + 1; [s[i], s[j]] = [s[j], s[i]]; } });
+  });
+  box.querySelectorAll("[data-add]").forEach(b => b.onclick = () => edit(s => s.push(b.dataset.add)));
+}
+
+// Step 5: drive scripts, as a tree the coach fills.
+const SCRIPT_SLOTS = [[[], 1, 1, 4], [["on"], 2, 1, 2], [["off"], 2, 3, 2],
+                      [["on", "on"], 3, 1, 1], [["on", "off"], 3, 2, 1], [["off", "on"], 3, 3, 1], [["off", "off"], 3, 4, 1]];
+// Read top to bottom on a phone, each call under the one it follows.
+const TREE_ORDER = {"": 0, "on": 1, "on,on": 2, "on,off": 3, "off": 4, "off,on": 5, "off,off": 6};
+const pathWords = path => path.length ? path.map(s => s === "on" ? "on schedule" : "off schedule").join(", then ") : "the first call";
+function setScriptCall(script, path, id){
+  script.first = Object.assign({play: null, on: null, off: null}, script.first || {});
+  let node = script.first;
+  for (const step of path){ node[step] = Object.assign({play: null, on: null, off: null}, node[step] || {}); node = node[step]; }
+  node.play = id || null;
+}
+// The calls above a slot, as the drive so far, so the planner ranks the slot as it will be called.
+function scriptLog(script, path){
+  const byId = Object.fromEntries(book.plays.map(p => [p.id, p]));
+  const log = [];
+  let st = scriptStart(script);
+  for (let i = 0; i < path.length; i++){
+    const n = scriptNode(script, path.slice(0, i)), gain = scriptGain(st, path[i]);
+    if (n && n.play) log.push({before: st, play: n.play, call: byId[n.play] ? playCall(byId[n.play]) : n.play,
+                               outcome: "gain", gain, tells: []});
+    st = advanceState(st, "gain", gain);
+  }
+  return log;
+}
+function renderPlanDrives(){
+  const list = $("planDriveList"), edit = $("planDriveEdit");
+  const drives = gp().drives = gp().drives || [];
+  planScript = Math.max(0, Math.min(planScript, drives.length - 1));
+  const starts = PLANDATA().card_starts || [];
+  list.innerHTML = drives.map((d, i) => `<button type="button" class="dlist-btn${i === planScript ? " on" : ""}" data-i="${i}">`
+      + `<span class="nm">${esc(d.name)}</span><span class="sub">${esc(driveStateLabel(scriptStart(d)))}</span></button>`).join("")
+    + `<select id="planNewScript" aria-label="Start a new drive script"><option value="">New script at…</option>`
+    + starts.map(([t], i) => `<option value="${i}">${esc(t)}</option>`).join("") + `</select>`;
+  list.querySelectorAll("[data-i]").forEach(b => b.onclick = () => { planScript = +b.dataset.i; renderPlanner(); });
+  $("planNewScript").onchange = e => {
+    if (e.target.value === "") return;
+    const [title, st] = starts[+e.target.value];
+    drives.push({name: title.split(" · ")[0], start: Object.assign(freshState(), st), first: {play: null, on: null, off: null}});
+    planScript = drives.length - 1; planEdited();
+  };
+  if (!drives.length){
+    edit.innerHTML = `<p class="note">No drive scripts yet. Start one at a spot on the field: the planner can fill every call, and you change what you like.</p>`;
+    return;
+  }
+  const script = drives[planScript], byId = Object.fromEntries(book.plays.map(p => [p.id, p]));
+  const cell = ([path, col, row, span]) => {
+    const st = scriptState(script, path), node = scriptNode(script, path);
+    const reset = st.over || (path.length > 0 && st.down === 1);
+    const head = `<div class="dsitn">${esc(reset ? "A first down" : driveStateLabel(st))}</div><div class="dwhat">${esc(pathWords(path))}</div>`;
+    const at = `grid-column:${col};grid-row:${row} / span ${span};--o:${TREE_ORDER[path.join(",")]};--d:${path.length}`;
+    if (reset) return `<div class="dnode reset" style="${at}">${head}<p class="note">The script starts again.</p></div>`;
+    const ranked = suggestCalls(book, st, scriptLog(script, path), book.plays.length, false);
+    const picked = node && node.play;
+    return `<div class="dnode${picked ? "" : " empty"}" style="${at}">${head}`
+      + `<select data-path="${path.join(",")}" aria-label="Call for ${esc(pathWords(path))}"><option value="">— pick a call —</option>`
+      + ranked.map(s => `<option value="${esc(s.play)}"${picked === s.play ? " selected" : ""}>${esc(byId[s.play].name)} · ${s.points}</option>`).join("")
+      + (picked && !byId[picked] ? `<option value="${esc(picked)}" selected>(a play no longer in the book)</option>` : "")
+      + `</select></div>`;
+  };
+  edit.innerHTML = `<div class="dscript-head"><input id="planScriptName" value="${esc(script.name)}" aria-label="Script name">`
+      + `<span class="sub">from ${esc(driveStateLabel(scriptStart(script)))}</span></div>`
+      + `<div class="dtree"><div class="dcolh" style="grid-column:1">1st down</div><div class="dcolh" style="grid-column:2">2nd down</div>`
+      + `<div class="dcolh" style="grid-column:3">3rd down</div>${SCRIPT_SLOTS.map(cell).join("")}</div>`
+      + `<p class="note">Each call lists the book in the planner's order for that spot, with its points, reading the calls above it as the drive so far.</p>`
+      + `<div class="row pscript-acts"><button type="button" id="planFill" class="primary">Fill empty calls from the planner</button>`
+      + `<button type="button" id="planClearScript">Clear the calls</button><button type="button" id="planDelScript" class="danger">Delete</button></div>`;
+  edit.querySelectorAll("select[data-path]").forEach(sel => sel.onchange = e => {
+    setScriptCall(script, sel.dataset.path ? sel.dataset.path.split(",") : [], e.target.value);
+    planEdited();
+  });
+  $("planScriptName").onchange = e => { script.name = e.target.value.trim() || "Drive"; planEdited(); };
+  $("planFill").onclick = () => { drives[planScript] = fillScript(book, script); planEdited(); };
+  $("planClearScript").onclick = () => { script.first = {play: null, on: null, off: null}; planEdited(); };
+  $("planDelScript").onclick = () => {
+    if (!window.confirm(`Delete the script "${script.name}"?`)) return;
+    drives.splice(planScript, 1); planScript = Math.max(0, planScript - 1); planEdited();
+  };
+}
+
+// Step 6 (in Calling): each play's line word, typed or taken from the list.
+function renderWordTable(){
+  const box = $("dWordTable");
+  if (!box || $("dWordOpts").hidden) return;
+  const calls = planOf(book).calls, bank = wordBankOf(calls);
+  const used = lowerSet(book.plays.map(p => cleanWord(p.word)).filter(Boolean));
+  const byId = Object.fromEntries(book.plays.map(p => [p.id, p]));
+  box.innerHTML = `<datalist id="wordSuggest">${bank.filter(w => !used.has(w.toLowerCase())).map(w => `<option value="${esc(w)}">`).join("")}</datalist>`
+    + `<div class="row" style="margin:6px 0;max-width:420px"><button type="button" id="dWordFill">Fill blanks from the list</button>`
+    + `<button type="button" id="dWordClear">Clear every word</button></div>`
+    + `<div class="pscroll"><table class="ptable"><tbody>` + planCallOrder(book).map(id =>
+        `<tr><td>${esc(playCall(byId[id]))}</td><td><input data-word="${esc(id)}" list="wordSuggest" value="${esc(byId[id].word || "")}"`
+        + ` placeholder="from the key" aria-label="Word for ${esc(byId[id].name)}"></td></tr>`).join("")
+    + `</tbody></table></div>`;
+  box.querySelectorAll("[data-word]").forEach(inp => inp.onchange = e => {
+    const p = byId[inp.dataset.word]; p.word = cleanWord(e.target.value) || null; planEdited(p);
+  });
+  $("dWordFill").onclick = () => {
+    const taken = lowerSet([...book.plays.map(p => cleanWord(p.word)).filter(Boolean), ...cleanWords(calls.burned_words), ...liveWordsOf(calls)]);
+    const pool = bank.filter(w => !taken.has(w.toLowerCase()));
+    for (let i = pool.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    let n = 0;
+    for (const id of planCallOrder(book)) if (!cleanWord(byId[id].word) && pool.length){ byId[id].word = pool.shift(); n++; }
+    planEdited(); toast(n ? `${n} words from the list: they stay until you change them` : "Every play already has a word");
+  };
+  $("dWordClear").onclick = () => {
+    if (!window.confirm("Clear every play's word? Blank words are drawn from the list with the key each game.")) return;
+    book.plays.forEach(p => { p.word = null; }); planEdited();
+  };
+}
+
+// Step 7: the check.
+function renderPlanCheck(){
+  const notes = planCheck(book);
+  $("planCheckList").innerHTML = notes.length ? notes.map(n => `<li>${esc(n)}</li>`).join("") : "<li>Nothing to flag.</li>";
+}
+
+// Game day: the call the chosen script makes from here.
+let gameScript = 0;
+function renderScripted(st, log){
+  const drives = planOf(book).drives || [], sel = $("dScript"), box = $("dScripted");
+  $("dScriptRow").hidden = !drives.length;
+  if (!drives.length){ box.innerHTML = ""; return false; }
+  if (gameScript >= drives.length) gameScript = -1;
+  fillSelect(sel, drives.map((d, i) => [String(i), d.name]), gameScript >= 0 ? String(gameScript) : null, "No script");
+  const script = drives[gameScript];
+  if (!script || st.over){ box.innerHTML = ""; return false; }
+  const [path, node] = followScript(book, script, st, log);
+  const p = node && node.play && book.plays.find(q => q.id === node.play);
+  if (!p){
+    box.innerHTML = `<p class="note dscripted-off">Off the script here${path.length ? ` (${esc(pathWords(path))})` : ""}: the planner's picks below.</p>`;
+    return false;
+  }
+  box.innerHTML = `<div class="dcard scripted${pendingCall === p.id ? " picked" : ""}"><div class="dtop"><span class="drank">★</span>`
+    + `<span class="dcall">${esc(playCall(p))}</span></div>`
+    + `<div class="dbr"><span>From ${esc(script.name)}: ${esc(pathWords(path))}</span></div>`
+    + `<div class="dact"><button type="button" data-go>Show</button><button type="button" data-call class="${pendingCall === p.id ? "on" : ""}">Call it</button></div></div>`;
+  box.querySelector("[data-go]").onclick = () => { gotoPlay(book.plays.indexOf(p)); if (isPhone()) setDrive(false); };
+  box.querySelector("[data-call]").onclick = () => { pendingCall = p.id; renderDrive(); };
+  return true;
+}
+
+// Scripts on paper: each one as its tree.
+function scriptCardsHtml(b){
+  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
+  return (planOf(b).drives || []).map(script => {
+    const line = path => {
+      const node = scriptNode(script, path), st = scriptState(script, path);
+      if (path.length && (st.over || st.down === 1)) return "";
+      const p = node && node.play && byId[node.play];
+      return `<li style="padding-left:${path.length * 14}px"><span class="num">${esc(driveStateLabel(st).split(",")[0])}</span>`
+        + `<span><b>${p ? esc(playCall(p)) : "—"}</b>${path.length ? `<div class="why">${esc(pathWords(path))}</div>` : ""}</span></li>`;
+    };
+    const order = [[], ["on"], ["on", "on"], ["on", "off"], ["off"], ["off", "on"], ["off", "off"]];
+    return `<div class="dcardp"><h2>${esc(script.name)}</h2><div class="note">${esc(driveStateLabel(scriptStart(script)))}</div>`
+      + `<ol>${order.map(line).join("")}</ol></div>`;
+  }).join("");
 }
 
 // ── the football arithmetic ────────────────────────────────────────────────
@@ -3954,22 +4780,62 @@ function codeStream(key, label){
   };
   return {below, shuffle};
 }
+// The format of a signal (codes.py): what the coach leaves to the key is
+// drawn from the secret, so a team that also uses chalktalk can't assume it.
+function codeSpace(style, digits){
+  const out = [];
+  if (style === "letter"){
+    const n = 10 ** (digits - 1);
+    for (const c of (CATALOG.codes || {}).letters || "ABCDEFGHJK")
+      for (let i = 0; i < n; i++) out.push(c + String(i).padStart(digits - 1, "0"));
+    return out;
+  }
+  const [low, high] = digits === 3 ? [100, 999] : [10, 99];
+  for (let c = low; c <= high; c++) out.push(String(c));
+  return out;
+}
+function codeCmp(a, b){
+  const na = /^\d+$/.test(a), nb = /^\d+$/.test(b);
+  if (na && nb) return +a - +b;
+  if (na !== nb) return na ? -1 : 1;
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+function pickFrom(stream, options, last){
+  let choices = options.filter(o => o !== last);
+  if (!choices.length) choices = options.slice();
+  return choices[stream.below(choices.length)];
+}
+const range1 = n => Array.from({length: n}, (_, i) => i + 1);
+const codeStyleOf = (key, game, style) =>
+  style === "key" ? ["number", "letter"][codeStream(key, `${game}|style`).below(2)] : style;
+function signalRules(key, game, calls){
+  const stream = codeStream(key, `${game}|signals`), rules = {};
+  let lastDummy = null, lastLive = null;
+  for (const period of periodsOf(calls)){
+    let dummy = calls.dummy_digit === "none" ? null : calls.dummy_digit;
+    if (dummy === "key") dummy = lastDummy = pickFrom(stream, ["first", "middle", "last"], lastDummy);
+    let live = null;
+    if (calls.signals > 1) live = lastLive = pickFrom(stream, range1(calls.signals), lastLive);
+    rules[period] = [dummy, live];
+  }
+  return rules;
+}
 // codes.wristband: the QB's coded cards for one game.
 function wristbandCodes(b, secret, game, key){
   key = key || keyBytes(secret);
   const calls = planOf(b).calls;
   const plays = planCallOrder(b), top = plays.slice(0, calls.top_calls);
-  const [low, high] = calls.digits === 3 ? [100, 999] : [10, 99];
-  const space = [];
-  for (let c = low; c <= high; c++) space.push(String(c));
+  const style = codeStyleOf(key, game, calls.code_style);
+  const space = codeSpace(style, calls.digits);
   const need = plays.length + top.length * calls.extra_codes + calls.dead_codes;
   if (need > space.length)
     throw new Error(`${need} codes needed but ${calls.digits} digits give only ${space.length}: use 3 digits, or fewer extra and dead codes.`);
   const wanted = [...plays];
   for (let r = 0; r < calls.extra_codes; r++) wanted.push(...top);
+  const rules = signalRules(key, game, calls);
   const cards = [];
   let before = new Map();
-  for (const period of ((CATALOG.codes || {}).periods || {})[calls.rotate] || ["Game"]){
+  for (const period of periodsOf(calls)){
     const pool = codeStream(key, `${game}|${period}|wristband`).shuffle(space);
     const codes = new Map(pool.slice(0, wanted.length).map((c, i) => [c, wanted[i]]));
     const spare = pool.slice(wanted.length);
@@ -3980,55 +4846,80 @@ function wristbandCodes(b, secret, game, key){
         codes.set(swap, codes.get(code)); codes.delete(code);
       }
     }
-    const sorted = [...codes].sort((x, y) => +x[0] - +y[0]);
-    cards.push({period, codes: Object.fromEntries(sorted),
-                dead: spare.slice(0, calls.dead_codes).sort((x, y) => +x - +y)});
+    const sorted = [...codes].sort((x, y) => codeCmp(x[0], y[0]));
+    cards.push({period, codes: Object.fromEntries(sorted), dead: spare.slice(0, calls.dead_codes).sort(codeCmp),
+                dummy: rules[period][0], live: rules[period][1]});
     before = codes;
   }
-  return {game, fingerprint: fingerprintOf(key, game), plays, cards};
+  return {game, fingerprint: fingerprintOf(key, game), style, plays, cards};
 }
 
 /* ─── line calls: what the quarterback says at the line ─────────────────────
-   Mirrors codes.line_calls. A code word per play for the game (a word the
-   coach set stays), dummy and burned words, and a live colour each period:
-   "Blue... Tiger, Blue... Tiger" is real only while blue is live. */
+   Mirrors codes.line_calls. A code word per play for the game from the
+   team's chosen list (a word the coach set stays), dummy and burned words,
+   and what is live each period: a signal word ("Blue... Tiger") or, with no
+   signal word, which of the calls counts. */
 const cleanWord = t => String(t || "").split(/\s+/).filter(Boolean).join(" ");
 const lowerSet = list => new Set(list.map(w => w.toLowerCase()));
 const byLower = (x, y) => { const a = x.toLowerCase(), b = y.toLowerCase(); return a < b ? -1 : a > b ? 1 : 0; };
-function liveColors(key, game, periods){
-  const colors = (CATALOG.codes || {}).live_colors || [];
-  const stream = codeStream(key, `${game}|live`), live = {};
-  let last = null;
-  for (const period of periods){
-    const options = colors.filter(c => c !== last);
-    last = live[period] = options[stream.below(options.length)];
-  }
-  return live;
+function cleanWords(items){
+  const out = [];
+  for (const w of (items || []).map(cleanWord)) if (w && !lowerSet(out).has(w.toLowerCase())) out.push(w);
+  return out;
 }
 const periodsOf = calls => ((CATALOG.codes || {}).periods || {})[calls.rotate] || ["Game"];
+const liveWordsOf = calls => calls.live_signal === "own" ? cleanWords(calls.own_live)
+  : (((CATALOG.codes || {}).live_signals || {})[calls.live_signal] || []);
+const wordBankOf = calls => calls.word_list === "own" ? cleanWords(calls.own_words)
+  : (((CATALOG.codes || {}).word_lists || {})[calls.word_list] || []);
 function lineCalls(b, game, key){
-  const calls = planOf(b).calls, all = (CATALOG.codes || {}).words || [];
+  const calls = planOf(b).calls;
   const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const burned = [];
-  for (const w of (calls.burned_words || []).map(cleanWord))
-    if (w && !lowerSet(burned).has(w.toLowerCase())) burned.push(w);
+  const signals = liveWordsOf(calls);
+  if (calls.live_signal !== "order" && signals.length < 2)
+    throw new Error("Give at least two live words, so the others can be dummies.");
+  const bank = wordBankOf(calls), burned = cleanWords(calls.burned_words);
   const order = planCallOrder(b);
   const own = Object.fromEntries(order.filter(id => cleanWord(byId[id].word)).map(id => [id, cleanWord(byId[id].word)]));
-  const taken = lowerSet([...Object.values(own), ...burned]);
-  const pool = codeStream(key, `${game}|words`).shuffle(all).filter(w => !taken.has(w.toLowerCase()));
+  const taken = lowerSet([...Object.values(own), ...burned, ...signals]);
+  const pool = codeStream(key, `${game}|words`).shuffle(bank).filter(w => !taken.has(w.toLowerCase()));
   const words = {};
   for (const id of order){
     let w = own[id];
     if (!w || lowerSet(Object.keys(words)).has(w.toLowerCase())){
-      if (!pool.length) throw new Error(`Only ${all.length} words to draw from: set your own words on some plays, or burn fewer.`);
+      if (!pool.length) throw new Error(`Not enough words: the list has ${bank.length}. Add words to it, set your own on some plays, or burn fewer.`);
       w = pool.shift();
     }
     words[w] = id;
   }
   const used = lowerSet(Object.keys(words));
   const dead = pool.slice(0, calls.dummy_words).concat(burned.filter(w => !used.has(w.toLowerCase())));
+  const live = {}, turn = {};
+  let count = calls.signals;
+  if (calls.live_signal === "order"){
+    count = Math.max(2, calls.signals);
+    const stream = codeStream(key, `${game}|order`);
+    let last = null;
+    for (const period of periodsOf(calls)) last = turn[period] = pickFrom(stream, range1(count), last);
+  } else {
+    const stream = codeStream(key, `${game}|live`);
+    let last = null;
+    for (const period of periodsOf(calls)) last = live[period] = pickFrom(stream, signals, last);
+  }
   return {game, fingerprint: fingerprintOf(key, game), words, dead: dead.sort(byLower),
-          live: liveColors(key, game, periodsOf(calls))};
+          live, order: turn, calls: count, signals};
+}
+const ORDINALS = ["", "1st", "2nd", "3rd"];
+// How to read a signal this period, in the words a card prints.
+function signalRule(card){
+  const bits = [];
+  if (card.dummy) bits.push(`drop the ${card.dummy} digit`);
+  if (card.live) bits.push(`the ${ORDINALS[card.live]} signal is live`);
+  return bits.join(" · ");
+}
+function lineRule(lines, period){
+  if (lines.order && lines.order[period]) return `say ${lines.calls}; the ${ORDINALS[lines.order[period]]} counts`;
+  return lines.live && lines.live[period] ? `live: ${lines.live[period]}` : "";
 }
 
 /* ─── sign boards: symbols, one cell live ───────────────────────────────────
@@ -4056,7 +4947,8 @@ function boardSymbols(b, game, key){
   const pool = codeStream(key, `${game}|boards`).shuffle(symbols);
   const meaning = Object.fromEntries(units.map((u, i) => [u, pool[i]]));
   const blanks = pool.slice(units.length, n);
-  const cells = calls.board_cells;
+  let cells = calls.board_cells;
+  if (cells === "key") cells = [2, 4][codeStream(key, `${game}|cells`).below(2)];   // two or four, each game
 
   let stream = codeStream(key, `${game}|boards|live`), last = null;
   const live = {};
@@ -4188,6 +5080,7 @@ const driveSide = y => y > 50 ? "own" : "opp";
 const driveYardNum = y => y > 50 ? 100 - y : y;
 
 function renderDrive(){
+  renderPlanner();
   if (!driveOpen) return;
   commit();
   const st = driveState, plan = planOf(book), log = planLog();
@@ -4201,7 +5094,9 @@ function renderDrive(){
   const lock = !!st.over;
   for (const id of ["dDist", "dYard"]) $(id).disabled = lock;
 
-  // suggestions
+  // the script's call, then the planner's picks
+  const scripted = renderScripted(st, log);
+  $("dSugHead").textContent = scripted ? "Other options" : "Suggested next";
   const box = $("dSuggest"); box.innerHTML = "";
   if (st.over){
     box.innerHTML = `<p class="dover">${esc(driveStateLabel(st))}. Start a new drive to keep rehearsing.</p>`;
@@ -4271,37 +5166,10 @@ function renderDrive(){
   $("dCheckCount").textContent = notes.length ? `(${notes.length})` : "";
   $("dCheck").innerHTML = notes.length ? notes.map(n => `<li>${esc(n)}</li>`).join("") : "<li>Nothing to flag.</li>";
 
-  // team and success
-  if (document.activeElement !== $("dGame")) $("dGame").value = gp().name || "";
-  if (document.activeElement !== $("dOpp")) $("dOpp").value = gp().opponent || "";
-  setSeg($("dLevel"), plan.level);
-  setSeg($("dExec"), String(plan.execution));
-  const [t1, t2, t3] = thresholds;
-  $("dSuccess").textContent = `On schedule: ${t1}% of the distance on 1st down, ${t2}% on 2nd, all of it on 3rd and 4th.`;
-
-  // calling the plays
-  const calls = plan.calls;
-  for (const b of $("dMethods").children) b.classList.toggle("sel", (calls.methods || []).includes(b.dataset.value));
-  setSeg($("dRotate"), calls.rotate); setSeg($("dDigits"), String(calls.digits));
-  setSeg($("dExtra"), String(calls.extra_codes)); setSeg($("dBoardsBy"), calls.boards_by);
-  setSeg($("dCells"), String(calls.board_cells));
-  if (document.activeElement !== $("dTop")) $("dTop").value = calls.top_calls;
-  if (document.activeElement !== $("dDead")) $("dDead").value = calls.dead_codes;
-  if (document.activeElement !== $("dDummies")) $("dDummies").value = calls.dummy_boards;
-  if (document.activeElement !== $("dDummyWords")) $("dDummyWords").value = calls.dummy_words;
-  if (document.activeElement !== $("dBurned")) $("dBurned").value = (calls.burned_words || []).join(", ");
-  const on = m => (calls.methods || []).includes(m), keyed = ["wristband", "words", "boards"].some(on);
-  $("dWristOpts").hidden = !on("wristband");
-  $("dWordOpts").hidden = !on("words");
-  $("dBoardOpts").hidden = !on("boards");
-  $("dRotateRow").hidden = !keyed;
-  $("dKeyRow").hidden = !keyed;
-  const cells = calls.board_cells;
-  $("dBoardHow").textContent = cells === 1
-    ? "One symbol a board: reads to about 55 yards on a 22 x 28 poster, but it is the easiest to crack. Symbols hold for the game."
-    : `${cells} symbols a board and only one cell is live; the live cell changes every period and the others are decoys. `
-      + `Reads to about ${BOARD_REACH[cells]} yards on a 22 x 28 poster. Symbols hold for the game, so players learn them in practice.`;
-  renderKey();
+  // the plan, built in the week
+  const tagged = book.plays.filter(p => p.series || p.role).length, scripts = (plan.drives || []).length;
+  $("dPlanSum").textContent = `${planTitle(plan)} · ${tagged} of ${book.plays.length} plays in a series · `
+    + `${scripts} drive ${scripts === 1 ? "script" : "scripts"}`;
 }
 
 function renderKey(){
@@ -4378,9 +5246,11 @@ function driveCardsHtml(b){
     + ".dcardp ol{list-style:none;margin:8px 0 0;padding:0}.dcardp li{display:flex;gap:8px;padding:4px 0;border-top:1px dotted var(--line)}"
     + ".dcardp .num{min-width:22px;color:var(--muted);font-variant-numeric:tabular-nums}"
     + ".why{color:var(--muted);font-size:11px}.br{font-size:11px;margin-top:2px}";
+  const scripts = scriptCardsHtml(b);
   return sheetPage(`${planTitle(plan)} — Drive cards`,
-    sheetHeader(planTitle(plan), ["Drive cards: the first calls from each start, and what follows"],
-                [b.team, `${b.plays.length} plays`]) + `<div class="dcards">${cards}</div>` + sheetFooter(), css);
+    sheetHeader(planTitle(plan), [scripts ? "Your drive scripts, then the planner's first calls from each start"
+                                          : "Drive cards: the first calls from each start, and what follows"],
+                [b.team, `${b.plays.length} plays`]) + `<div class="dcards">${scripts}${cards}</div>` + sheetFooter(), css);
 }
 
 // The staff's master: every section with numbers, words, symbols and codes.
@@ -4406,7 +5276,11 @@ function gamePlanHtml(b, codes, boards, lines){
     + `</tbody></table></div>` : "";
   // What is live, period by period.
   const live = [];
-  if (lines) live.push(`Live colour: ` + Object.entries(lines.live).map(([p, c]) => `${esc(p)} <b>${esc(c)}</b>`).join(" · "));
+  if (codes && codes.cards.some(c => signalRule(c)))
+    live.push(`Signals: ` + codes.cards.map(c => `${esc(c.period)} <b>${esc(signalRule(c) || "as is")}</b>`).join(" · "));
+  if (lines) live.push(`Line calls: ` + Object.keys(Object.keys(lines.live).length ? lines.live : lines.order)
+    .map(p => `${esc(p)} <b>${esc(lineRule(lines, p))}</b>`).join(" · ")
+    + (lines.signals.length ? ` <span class="note">(signal words: ${lines.signals.map(esc).join(", ")})</span>` : ""));
   if (boards) live.push(`Live cell: ` + Object.entries(boards.live).map(([p, c]) =>
     `${cellMap(boards.cells, c)} ${esc(p)} <b>${esc(cellName(boards.cells, c))}</b>`).join(" · "));
   let body = live.length ? `<p class="note">${live.join("<br>")}</p>` : "";
@@ -4420,40 +5294,6 @@ function gamePlanHtml(b, codes, boards, lines){
     sheetHeader(planTitle(plan), ["Game plan · staff only"],
                 [b.team, keyed ? `Fingerprint ${keyed.fingerprint}` : null, `${order.length} calls`])
     + body + dead + sheetFooter(keyed ? "Staff only. The key is not printed." : ""));
-}
-
-// The quarterback's card: coded cards per period, and the line calls.
-function qbCardHtml(b, codes, lines){
-  const plan = planOf(b);
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const wordOf = lines ? Object.fromEntries(Object.entries(lines.words).map(([w, id]) => [id, w])) : {};
-  const label = id => playCall(byId[id]) + (wordOf[id] ? ` · ${wordOf[id]}` : "");
-  let blocks = "";
-  if (codes){
-    blocks += codes.cards.map(card => {
-      const cells = Object.entries(card.codes).map(([c, id]) => [c, label(id)])
-        .concat(card.dead.map(c => [c, null])).sort((x, y) => +x[0] - +y[0]);
-      return `<div class="grp">${esc(card.period)}${lines ? ` · live colour ${esc(lines.live[card.period] || "")}` : ""} · ${esc(codes.fingerprint)}</div>`
-        + `<div class="band" style="grid-template-columns:repeat(4,1fr);grid-auto-rows:minmax(34px,auto)">`
-        + cells.map(([c, text]) => `<div class="cell"><span class="num">${c}</span><span class="txt">${text ? esc(text) : "—"}</span></div>`).join("")
-        + `</div>`;
-    }).join("");
-  }
-  if (lines){
-    const rows = Object.entries(lines.words).map(([w, id]) => [w, playCall(byId[id])])
-      .concat(lines.dead.map(w => [w, null])).sort((x, y) => byLower(x[0], y[0]));
-    blocks += `<div class="grp">Line calls · live colour ${Object.entries(lines.live).map(([p, c]) => `${esc(p)} ${esc(c)}`).join(" · ")}</div>`
-      + `<div class="band" style="grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(34px,auto)">`
-      + rows.map(([w, text]) => `<div class="cell"><span class="num">${esc(w)}</span><span class="txt">${text ? esc(text) : "—"}</span></div>`).join("")
-      + `</div>`;
-  }
-  const how = [codes ? "A dash means wait for the next signal." : "",
-               lines ? "At the line: the colour, then the word, twice. Only the live colour's call is real." : ""]
-    .filter(Boolean).join(" ");
-  const keyed = codes || lines;
-  return sheetPage(`${planTitle(plan)} — QB card`,
-    sheetHeader(planTitle(plan), [codes ? "QB wristband" : "Line calls"], [keyed ? `Fingerprint ${keyed.fingerprint}` : null])
-    + blocks + sheetFooter(`${how} Cut along the outer border.`.trim()));
 }
 
 /* ─── files: the coach's own disk or drive ──────────────────────────────────
@@ -4753,6 +5593,8 @@ function commands(){
   add("Help", "Show the start screen", showWelcome);
   add("Plan", driveOpen ? "Close the drive planner" : "Open the drive planner", () => setDrive(!driveOpen), "D");
   add("Plan", "New drive", newDrive);
+  add("Plan", "Build the game plan", () => openPlanner());
+  add("Plan", "Script a drive", () => openPlanner("drives"));
   add("Plan", "Print drive cards", () => openPrint("drivecards"));
   add("Plan", "Print the game plan", () => openPrint("gameplan"));
   add("Plan", "Print the QB card", () => openPrint("qbcard"));
@@ -4926,7 +5768,33 @@ function boot(){
   segment($("dDigits"), [["2","2 digits"],["3","3 digits"]], "2", drv(v => { gpCalls().digits = +v; }));
   segment($("dExtra"), [["0","0"],["1","1"],["2","2"],["3","3"],["4","4"]], "2", drv(v => { gpCalls().extra_codes = +v; }));
   segment($("dBoardsBy"), [["play","Play"],["series","Series"]], "play", drv(v => { gpCalls().boards_by = v; }));
-  segment($("dCells"), [["1","1"],["2","2"],["4","4"]], "4", drv(v => { gpCalls().board_cells = +v; }));
+  segment($("dCells"), [["1","1"],["2","2"],["4","4"],["key","Key picks"]], "4",
+    drv(v => { gpCalls().board_cells = v === "key" ? "key" : +v; }));
+  segment($("dSignals"), [["1","1"],["2","2"],["3","3"]], "1", drv(v => { gpCalls().signals = +v; }));
+  segment($("dStyle"), [["number","47"],["letter","B7"],["key","Key picks"]], "number", drv(v => { gpCalls().code_style = v; }));
+  segment($("dDummyDigit"), [["none","None"],["first","First"],["middle","Middle"],["last","Last"],["key","Key picks"]], "none",
+    drv(v => { gpCalls().dummy_digit = v; }));
+  segment($("dWordList"), [["mix","Mix"],["animals","Animals"],["cities","Cities"],["things","Things"],["own","Our own"]], "mix",
+    drv(v => { gpCalls().word_list = v; }));
+  segment($("dLive"), [["colors","Colours"],["numbers","Numbers"],["own","Our own"],["order","None: by order"]], "colors",
+    drv(v => { gpCalls().live_signal = v; }));
+  $("dOwnWords").onchange = drv(e => { gpCalls().own_words = cleanWords(e.target.value.split(/[\n,]+/)); });
+  $("dOwnLive").onchange = drv(e => { gpCalls().own_live = cleanWords(e.target.value.split(/[\n,]+/)); });
+  // the builder
+  const stepTo = d => { const i = PLAN_STEPS.findIndex(([k]) => k === planStep) + d;
+    if (i < 0) return;
+    if (i >= PLAN_STEPS.length) return $("planDialog").close();
+    planStep = PLAN_STEPS[i][0]; renderPlanner(); $("planDialog").querySelector(".plan-body").scrollTop = 0; };
+  $("btnPlan").onclick = () => openPlanner();
+  $("btnPlanOpen").onclick = () => openPlanner();
+  $("planClose").onclick = () => $("planDialog").close();
+  $("planBack").onclick = () => stepTo(-1);
+  $("planNext").onclick = () => stepTo(1);
+  $("planDraft").onclick = draftTheBook;
+  $("planUndoDraft").onclick = undoDraft;
+  $("planSitReset").onclick = () => { gp().sections = []; planEdited(); };
+  $("planToDrive").onclick = () => { $("planDialog").close(); setDrive(true); };
+  $("dScript").onchange = e => { gameScript = e.target.value === "" ? -1 : +e.target.value; renderDrive(); };
   $("dDummyWords").onchange = drv(e => { gpCalls().dummy_words = clampInt(e.target.value, 0, 20); });
   $("dBurned").onchange = drv(e => { gpCalls().burned_words = e.target.value.split(",").map(cleanWord).filter(Boolean); });
   $("dTop").onchange = drv(e => { gpCalls().top_calls = clampInt(e.target.value, 0, 20); });
@@ -5036,6 +5904,7 @@ function boot(){
     else if (e.key === "["){ gotoPlay(bookIndex - 1); }
     else if (e.key === "]"){ gotoPlay(bookIndex + 1); }
     else if (e.key === "Escape"){
+      if (readPick){ readPick = false; return renderAll(); }
       if (welcomeOpen()) return dismissWelcome();
       if (pop) return closePop();
       if (!$("exportMenu").hidden) return ($("exportMenu").hidden = true);

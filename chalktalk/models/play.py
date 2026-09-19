@@ -120,12 +120,13 @@ class Play(BaseModel):
                             for a in self.assignments]
         })
 
-    def progression(self, *labels: str, qb: str = "QB") -> "Play":
-        """Set the quarterback's read order without touching the rest."""
+    def progression(self, *labels: str, qb: str = "QB", vs: Optional[str] = None) -> "Play":
+        """Set the quarterback's read order without touching the rest, or
+        his order against one coverage: .progression("H", "Z", vs="Cover 2")."""
         a = self.assignment(qb)
         if a is None or a.qb is None:
             raise ValueError("give the quarterback a plan before a progression")
-        return self.with_qb(a.qb.progression(*labels), qb)
+        return self.with_qb(a.qb.progression(*labels, vs=vs), qb)
 
     def with_block(self, label: str, block: "Block") -> "Play":
         """Return a copy with one player's blocking assignment replaced."""
@@ -308,10 +309,11 @@ class Play(BaseModel):
                   if a.player.position.value == "QB"), None)
         return a.qb if a else None
 
-    def read_order(self, label: str) -> Optional[int]:
-        """Where a receiver sits in the progression, 1-based."""
+    def read_order(self, label: str, coverage: Optional[str] = None) -> Optional[int]:
+        """Where a receiver sits in the progression, 1-based, against a
+        coverage if one is given."""
         plan = self.qb
-        return plan.read_order(label) if plan else None
+        return plan.read_order(label, coverage) if plan else None
 
     @property
     def ball_carrier(self) -> Optional[Assignment]:

@@ -129,6 +129,65 @@ def test_difficulty_of_adjusted_plays_matches_python():
     assert js == [[d.score, d.tier, d.reasons] for d in map(difficulty, book.plays)]
 
 
+@pytest.mark.parametrize("size", ["youth", "teen", "adult"])
+def test_wristband_inserts_lay_out_the_same(size):
+    from chalktalk.renderer.sheets import band_layout, short_call
+    calls = ["Shotgun Trips Right Mesh Concept", "I-Form Strong Left Power", "Doubles Screen Right"]
+    groups = [["1st & 10", [[str(n), short_call(calls[n % 3])] for n in range(1, 18)]],
+              ["3rd & short", [[str(n), "Power"] for n in range(18, 20)]],
+              ["Red zone", [[str(n), "Fade"] for n in range(20, 75)]]]
+    js = _js(_book(), f"return [bandLayout({json.dumps(groups)}, {json.dumps(size)}),"
+                      f" {json.dumps(calls)}.map(shortCall)];")
+    assert js == [band_layout(groups, size), [short_call(c) for c in calls]]
+
+
+def test_reads_against_a_coverage_match_python():
+    from chalktalk.models.qb import QBAction, QBPlan
+    plan = QBPlan(action=QBAction.DROPBACK).progression("Z", "H", "RB").progression("H", "Z", vs="Cover 2")
+    covs = [None, "Cover 2", "cover 2 ", "Cover 3", ""]
+    js = _js(_book(), f"const plan = {plan.model_dump_json()};"
+                      f" return {json.dumps(covs)}.map(c => readsAgainst(plan, c));")
+    assert js == [plan.reads_against(c) for c in covs]
+
+
+@pytest.mark.parametrize("start", [DriveState(), DriveState(yard_line=18), DriveState(down=1, distance=2, yard_line=50)])
+def test_filling_and_following_a_script_match_python(start):
+    from chalktalk.models import DriveScript, ScriptCall
+    book = _book()
+    mine = DriveScript(name="Open", start=start, first=ScriptCall(play="power-right", off=ScriptCall(play="stick")))
+    py = P.fill_script(book, mine)
+    s1 = P.advance(start, Outcome.GAIN, 1)
+    log = [Snap(before=start, play=py.first.play or "x", call="x", gain=1)]
+    path, node = P.follow(book, py, s1, log)
+    payload = json.dumps({"script": mine.model_dump(mode="json"), "state": s1.model_dump(mode="json"),
+                          "log": [s.model_dump(mode="json") for s in log]})
+    js = _js(book, f"const x = {payload}; const f = fillScript(__book, x.script);"
+                   " const [path, node] = followScript(__book, f, x.state, x.log);"
+                   " return {first: f.first, path, node: node ? node.play : null};")
+    assert js == {"first": py.first.model_dump(mode="json"), "path": path, "node": node.play if node else None}
+
+
+def _plan_view(book: Playbook, notes: list[str]) -> dict:
+    return {"tags": [[p.id, p.series, p.role.value if p.role else None] for p in book.plays],
+            "sections": [[s.title, ids] for s, ids in P.sections(book)],
+            "openers": P.openers(book), "notes": notes}
+
+
+@pytest.mark.parametrize("which", ["catalog", "tagged", "few"])
+def test_the_draft_matches_python(which):
+    book = {"catalog": lambda: Playbook(name="all", plays=list(all_plays().values())),
+            "tagged": _book,
+            "few": lambda: Playbook(name="few", plays=[running.inside_zone(), running.speed_sweep(),
+                                                       all_plays()["pa_boot"], passing.mesh_concept(),
+                                                       running.power_right()])}[which]()
+    d = P.draft(book)
+    js = _js(book, "const d = draftPlan(__book);"
+                   " return {tags: d.book.plays.map(p => [p.id, p.series || null, p.role || null]),"
+                   " sections: planSections(d.book).map(([s, ids]) => [s.title, ids]),"
+                   " openers: planOpeners(d.book), notes: d.notes};")
+    assert js == _plan_view(d.book, d.notes)
+
+
 def test_sections_openers_numbers_and_check_match_python():
     book = _book(execution=2)
     js = _js(book, "return {sections: planSections(__book).map(([s, ids]) => [s.title, ids]),"
@@ -189,6 +248,8 @@ def test_sha256_hmac_and_key_stretching_match_python():
     CallSystem(),
     CallSystem(rotate="quarter", extra_codes=4, top_calls=9, dead_codes=20),
     CallSystem(rotate="game", digits=3, extra_codes=0, dead_codes=0),
+    CallSystem(code_style="letter", dummy_digit="key", signals=3, rotate="quarter"),
+    CallSystem(code_style="key", digits=3, dummy_digit="middle", signals=2),
 ])
 def test_wristbands_are_identical_in_both(calls):
     book = _book(calls=calls)
@@ -200,6 +261,12 @@ def test_wristbands_are_identical_in_both(calls):
 @pytest.mark.parametrize("calls", [
     CallSystem(methods=["words"]),
     CallSystem(methods=["words"], rotate="quarter", dummy_words=9, burned_words=["Tiger", "rocket"]),
+    CallSystem(methods=["words"], word_list="cities", live_signal="numbers"),
+    CallSystem(methods=["words"], word_list="own", live_signal="own", dummy_words=2,
+               own_words=["Ranger", "Hawk", "Maple", "Onyx", "Quartz", "Sierra", "Tundra", "Umber",
+                          "Vortex", "Willow", " hawk ", "Zinc", "Yarrow"],
+               own_live=["Alpha", "Bravo", "alpha", "Charlie"]),
+    CallSystem(methods=["words"], word_list="things", live_signal="order", signals=3, rotate="quarter"),
 ])
 def test_line_calls_are_identical_in_both(calls):
     plays = [tag(p, word="Ranger") if p.id == "stick" else p for p in _book().plays]
@@ -214,6 +281,7 @@ def test_line_calls_are_identical_in_both(calls):
     CallSystem(methods=["boards"], board_cells=1),
     CallSystem(methods=["boards"], board_cells=2, rotate="quarter", dummy_boards=6),
     CallSystem(methods=["boards"], rotate="quarter", boards_by="series", dummy_boards=5),
+    CallSystem(methods=["boards"], board_cells="key"),
 ])
 def test_boards_are_identical_in_both(calls):
     book = _book(calls=calls)

@@ -409,9 +409,12 @@ formation. Drop a play or playbook `.json` anywhere on the window to open it.
 - **Layers** hide whatever you are not working on: routes, blocks, motion, the
   quarterback, reads, the defense, its assignments, zone landmarks, the title.
   Exports follow the toggles.
-- The **play sheet** drawer holds the quarterback action and progression
-  (click receivers in the order he works them), protection, tempo, alerts,
-  tags, the situation and notes.
+- The **play sheet** drawer holds the quarterback action and progression,
+  protection, tempo, alerts, tags, the situation and notes. Tap receivers in
+  the order he works them, and give the order its own look: the progression
+  vs Cover 2 can differ from vs Cover 3. Select the quarterback and **Set
+  reads** to tap them on the field instead. The diagram numbers the reads for
+  the coverage on it, in the designer, the SVG and the PDF alike.
 - <kbd>Ctrl</kbd>+<kbd>K</kbd> opens a command palette: every concept,
   formation, look, coverage and scheme is two keystrokes away. <kbd>F</kbd>
   flips the play, <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.
@@ -500,26 +503,51 @@ phone are drawn at desk size.
 
 ## Game plans and drives
 
-A book becomes a game plan when its plays carry their jobs. Tag each play in
-the play sheet with its **series** ("Zone"), its **role** in it (base,
-complement, constraint, play-action, shot, trick, answer) and the **tell**, which
-is what the defense does that calls for it. The plan sorts the book into call-sheet
-sections by down, distance and field zone, and puts the plays labelled "Openers"
-first.
+Two jobs, two places in the app: **Plan** is the week, **Game** is game day.
 
-The **drive planner** (the Drive tab, or <kbd>D</kbd>) is for rehearsing during
-the week. Set the down, distance, spot, hash and clock, and it suggests the
-next three calls, each with its arithmetic: "+6 next on the opening script",
-"+4 they showed it: backside LB flowing hard", "-4 hold: Inside Zone hasn't been
-shown yet". For each suggestion it also says what to call if the play gains or
-if it doesn't. Call one, tap what happened, and the log marks each snap on or off
-schedule. Constraint plays wait until their base play has been shown, a trick
-is used once, and a play that worked earlier gets another look. **Drive cards**
-print the first calls from six common starts.
+**Plan** opens the game-plan builder, one step at a time:
+
+1. **Game**: the name, the opponent, the level and what your team can run.
+   **Draft the plan from this book** fills what is blank, from what the plays
+   already say about themselves (type, scheme tags, the quarterback's action),
+   and lists every decision: "Speed Sweep: constraint in Inside Zone". It never
+   overwrites what you set, and the draft can be undone.
+2. **Series**: each play's **series** ("Zone"), its **role** in it (base,
+   complement, constraint, play-action, shot, trick, answer), the **tell** that
+   calls for it, and its difficulty, in one table.
+3. **Situations**: a grid of plays against call-sheet sections. Tick where each
+   play goes. A play can go in several places, and a play you add later lands
+   in Base.
+4. **Openers**: the opening script, in order.
+5. **Drive scripts**: drive patterns scripted in the week. A script covers a
+   set of downs: the 1st-down call, the 2nd-down call if it stays on schedule
+   and if it doesn't, then 3rd down under each. Every slot shows where it will
+   be called ("2nd & 4, Own 31") and lists the book in the planner's order for
+   that spot, reading the calls above it as the drive so far. **Fill empty calls
+   from the planner** drafts the rest. Start a script at the own 25, backed up,
+   midfield, the red zone, goal to go or in two-minute.
+6. **Calling**: how calls get in (below).
+7. **Check and print**: what a coordinator would flag, and the paper.
+
+**Game** (<kbd>D</kbd>) is game day, and rehearsal in the week. Pick a drive
+script, and after each result it shows the script's next call ("From Opening
+drive: off schedule"). The planner's picks sit underneath, and take over when
+the drive leaves the script. Each pick shows its arithmetic: "+6 next on the
+opening script", "+4 they showed it: backside LB flowing hard", "-4 hold: Inside
+Zone hasn't been shown yet". Constraint plays wait until their base has been
+shown, a trick is used once, and a play that worked earlier gets another look.
+Call one, tap what happened, and the log marks each snap on or off schedule.
+**Drive cards** print your scripts, then the planner's first calls from six
+common starts.
+
+On a phone, Game is the part to use: it takes the whole screen and works
+one-handed. The builder works too, but its wide steps (the series table, the
+call-sheet grid, the script tree) say they are easier on a tablet or a laptop.
 
 ```python
 from chalktalk import codes as K, planner as P
-from chalktalk.models import CallSystem, DriveState, GamePlan, Outcome, Playbook
+from chalktalk.models import (CallSystem, DriveScript, DriveState, GamePlan, Outcome,
+                              Playbook, Snap)
 
 book = Playbook.load("week3.json")
 book.game_plan = GamePlan(name="Wk 3 vs Central", level="hs", execution=2,
@@ -529,6 +557,11 @@ for s in P.suggest(book, state):
     print(s.points, s.name, [r.text for r in s.reasons])
 state = P.advance(state, Outcome.GAIN, 4)     # 2nd & 6, own 29
 P.check(book)                                 # what a coordinator would flag
+
+book = P.draft(book).book                     # series, call sheet and openers, blanks only
+script = P.fill_script(book, DriveScript(name="Opening drive"))
+first = Snap(before=DriveState(), play=script.first.play, call="IZ", gain=4)
+P.follow(book, script, state, [first])        # (["on"], the 2nd-down call on schedule)
 ```
 
 **On schedule** means gaining enough of the distance for the down. The bar
@@ -561,15 +594,20 @@ from what coaches name as hard, not a published scale; the catalog comes out
 A plan can use any mix of four ways to get the call in:
 
 - **Verbal**: the call as written.
-- **Wristband numbers**: the signal is a number, and the quarterback reads the
-  play off his card. The top calls get extra codes so no number repeats all
+- **Wristband numbers**: the signal is a code, and the quarterback reads the
+  play off his card. Codes are numbers (47) or a letter and a number (B7), two
+  or three characters. The top calls get extra codes so no code repeats all
   game. Dead codes mean "wait". The cards change every half, or every quarter
   or every game, and no code keeps its play from one card to the next.
 - **Line calls**: what the quarterback can say at the line. Every play gets a
-  code word for the game, so the team learns the week's words in practice. A
-  word you set on a play stays. At the line he calls a colour, then the word,
-  twice ("Blue... Tiger, Blue... Tiger"). Only the live colour's call is real,
-  and the live colour changes every half. Dummy words fill the noise, and a
+  code word for the game, so the team learns the week's words in practice.
+  The words come from a list (a mix, animals, cities, things) or from your
+  own. Type a word on a play, pick one from the list, or leave it blank and
+  let the key draw one. At the line he says the live word, then the call,
+  twice ("Blue... Tiger, Blue... Tiger"). Only the live word's call is real,
+  and the live word changes every half. The live word can be a colour, a
+  number, or your own word. It can also be dropped: he makes two or three
+  calls and the key names which one counts. Dummy words fill the noise, and a
   word heard on film goes on the burned list: it becomes a decoy and never
   means a play again.
 - **Sign boards**: each board carries two or four symbols, and only one cell is
@@ -584,6 +622,19 @@ A plan can use any mix of four ways to get the call in:
   and the signaler's sheet, and the plan check warns when there are more
   symbols than players can keep (about 12 in high school).
 
+**The format varies too.** Two teams on chalktalk know every format the app
+has, so you can leave parts of yours to the key: whether codes are 47 or B7,
+two or four symbols a board (each game), where a dummy digit hides in the
+signal, and which of two or three signals is live (each period, never the same
+twice running). An opponent who knows the app still doesn't know your format.
+
+**Wristbands print as inserts** at the real size of a wrist coach's window
+(youth 3.75 x 2.25 in, teen 5 x 2.75, adult 5.25 x 3.25), with dashed cut lines,
+in capitals, as many copies as players wear. A numbered band fills its inserts
+in columns under situation headings. A coded band with two-character codes is
+a grid: the first character down the side, the last digit across the top, and
+a blank square is a dead code. Print at actual size.
+
 Codes, words and boards come from a **key** through HMAC-SHA256, so the head
 coach and the signaler can print matching copies on different machines and
 check the fingerprint on every page. The method is public; only the key is
@@ -593,7 +644,7 @@ designer forgets it unless you ask it to remember it on that device.
 ```python
 key = K.new_key()                          # "K7QM-2XRA-9FPD-HW4C": write it down
 K.wristband(book, key, "Wk 3 vs Central")  # a card per half: code -> play, dead codes
-K.line_calls(book, key, "Wk 3 vs Central") # word -> play, dummy words, the live colour
+K.line_calls(book, key, "Wk 3 vs Central") # word -> play, dummy words, what's live
 K.boards(book, key, "Wk 3 vs Central")     # symbols, the live cell per half, the rack
 ```
 

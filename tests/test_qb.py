@@ -135,6 +135,27 @@ def test_play_read_order_reads_through_to_the_plan():
     assert play.read_order("H") is None
 
 
+def test_the_order_he_works_changes_with_the_coverage():
+    play = passing.mesh_concept().progression("Z", "H", "RB").progression("H", "Z", vs="Cover 2")
+    plan = play.qb
+    assert plan.reads_against("cover 2") == ["H", "Z"]           # any case
+    assert plan.reads_against("Cover 3") == ["Z", "H", "RB"]     # no order of its own: the base
+    assert plan.reads_against(None) == ["Z", "H", "RB"]
+    assert play.read_order("H", "Cover 2") == 1 and play.read_order("RB", "Cover 2") is None
+    assert QBPlan.model_validate_json(plan.model_dump_json()).reads_vs == {"Cover 2": ["H", "Z"]}
+
+
+def test_the_diagram_numbers_the_reads_for_the_coverage_it_shows():
+    from chalktalk.renderer.theme import theme_for as get_theme
+    from chalktalk.templates import defense as D
+    play = passing.mesh_concept().progression("Z", "H", "RB").progression("H", "Z", vs="Cover 2")
+    play = play.model_copy(update={"defense": D.FOUR_THREE_OVER().model_copy(update={"coverage": "Cover 2"})})
+    t = get_theme("turf")
+    marker = f'fill="{t.read_fill}" stroke="{t.qb}" stroke-width="1.4"'
+    assert play.render(theme="turf").render().count(marker) == 2                    # vs Cover 2
+    assert play.render(theme="turf", hide=["defense"]).render().count(marker) == 3  # the base order
+
+
 def test_mirroring_a_play_mirrors_the_quarterback():
     play = running.power_right()
     flipped = play.mirror()
