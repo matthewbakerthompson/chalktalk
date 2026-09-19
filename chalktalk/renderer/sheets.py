@@ -24,9 +24,12 @@ _CSS = """
 * { box-sizing: border-box; }
 body {
   margin: 0; padding: 18px 20px; background: var(--paper); color: var(--ink);
-  font: 13px/1.4 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font: 13px/1.4 Bahnschrift, "DIN Alternate", "D-DIN", Barlow, "Segoe UI", Roboto, Helvetica,
+        Arial, sans-serif;
 }
-h1 { font-size: 19px; margin: 0 0 2px; letter-spacing: -.01em; }
+h1, h2, .insert { font-family: Bahnschrift, "DIN Condensed", "Barlow Condensed",
+  "Roboto Condensed", "Arial Narrow", sans-serif; font-stretch: condensed; }
+h1 { font-size: 21px; margin: 0 0 2px; letter-spacing: 0; }
 h2 { font-size: 12px; margin: 0; text-transform: uppercase; letter-spacing: .09em; }
 .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
 header { border-bottom: 2px solid var(--ink); padding-bottom: 8px; margin-bottom: 14px;
@@ -72,6 +75,32 @@ td.look { color: var(--muted); }
 .card .title { font-weight: 700; margin-bottom: 6px; }
 .foot { margin-top: 16px; padding-top: 6px; border-top: 1px solid var(--line);
         color: var(--muted); font-size: 10px; display: flex; justify-content: space-between; }
+/* wristband inserts, at the size of the window they slide into */
+.inserts { display: flex; flex-wrap: wrap; gap: .12in; align-items: flex-start; }
+.insert { border: 1px dashed #666; background: #fff; display: flex; flex-direction: column;
+          overflow: hidden; break-inside: avoid; }
+.insert .strip { height: .17in; flex: none; display: flex; align-items: center; gap: .08in;
+                 padding: 0 .06in; background: #111; color: #fff; font-size: 6pt; font-weight: 700;
+                 text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; overflow: hidden; }
+.insert .strip .rule { flex: 1; text-align: center; font-weight: 600; }
+.insert .strip .fp { font-weight: 400; opacity: .75; }
+.insert .body { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+.insert .colm { display: grid; min-width: 0; border-right: .5pt solid #888; }
+.insert .colm:last-child { border-right: 0; }
+.insert .ln { display: flex; align-items: center; gap: .04in; min-width: 0; padding: 0 .04in;
+              border-bottom: .5pt solid #d6d6d2; font-size: 6.2pt; line-height: 1;
+              text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+.insert .ln .c { font-weight: 800; min-width: .2in; font-variant-numeric: tabular-nums; }
+.insert .ln .t { overflow: hidden; text-overflow: clip; }
+.insert .ln.head { background: #deded9; font-weight: 800; font-size: 5.6pt; letter-spacing: .06em; }
+.insert table.grid { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+.insert .grid th { background: #111; color: #fff; font-size: 6pt; padding: 0; text-align: center;
+                   border: .5pt solid #111; text-transform: none; letter-spacing: 0; }
+.insert .grid th.r { width: .16in; }
+.insert .grid td { border: .5pt solid #8a8a86; padding: .01in .02in; font-size: 5.2pt; line-height: 1.08;
+                   vertical-align: top; text-transform: uppercase; overflow: hidden; background: #fff;
+                   word-break: break-word; }
+.insert .grid tr:nth-child(even) td { background: #f0f0ec; }
 @media print {
   body { padding: 0; }
   .page-break { break-before: page; }
@@ -216,23 +245,85 @@ def call_sheet_html(sheet: "CallSheet", columns: int = 2) -> str:
 
 # ── Wristband ─────────────────────────────────────────────────────────────────
 
-def wristband_html(band: "Wristband", cell_height: int = 34) -> str:
-    blocks = []
-    for group, entries in band.groups().items():
+# A wrist coach has three windows, and each takes one printed insert. The
+# sizes are the common windows (youth, teen, adult); every insert prints at
+# its real size with a dashed cut line, dense and in capitals, the way a
+# quarterback reads one between plays.
+INSERT_SIZES = {
+    "youth": {"w": 3.75, "h": 2.25, "cols": 2, "rows": 12, "label": "Youth 3.75 x 2.25 in"},
+    "teen":  {"w": 5.0,  "h": 2.75, "cols": 3, "rows": 15, "label": "Teen 5 x 2.75 in"},
+    "adult": {"w": 5.25, "h": 3.25, "cols": 3, "rows": 19, "label": "Adult 5.25 x 3.25 in"},
+}
+# The call as a card prints it: "Shotgun Trips Right Mesh Concept" -> "Gun Trips Rt Mesh".
+BAND_WORDS = {"shotgun": "Gun", "right": "Rt", "left": "Lt", "strong": "Str", "weak": "Wk",
+              "doubles": "Dbls", "screen": "Scr", "concept": "", "formation": ""}
+
+
+def short_call(text: str) -> str:
+    words = [BAND_WORDS.get(w.lower(), w) for w in str(text or "").split()]
+    return " ".join(w for w in words if w)
+
+
+def band_layout(groups: list, size: str = "adult") -> list:
+    """
+    Lines onto inserts: a list of inserts, each a list of columns, each a
+    list of lines. A line is ["head", title], ["row", code, call] or ["gap"].
+    Columns fill top to bottom, inserts one after another, and a heading
+    never sits alone at the foot of a column.
+    """
+    rows, cols = INSERT_SIZES[size]["rows"], INSERT_SIZES[size]["cols"]
+    lines: list = []
+    for title, entries in groups:
+        if title:
+            if len(lines) % rows == rows - 1:
+                lines.append(["gap"])
+            lines.append(["head", title])
+        lines.extend(["row", code, call] for code, call in entries)
+    per = rows * cols
+    inserts = []
+    for start in range(0, max(len(lines), 1), per):
+        chunk = lines[start:start + per]
+        inserts.append([chunk[c * rows:(c + 1) * rows] for c in range(cols)])
+    return inserts
+
+
+def _insert(size: str, strip: str, body: str) -> str:
+    s = INSERT_SIZES[size]
+    return (f"<div class=\"insert\" style=\"width:{s['w']}in;height:{s['h']}in\">"
+            f"<div class=\"strip\">{strip}</div><div class=\"body\">{body}</div></div>")
+
+
+def _list_body(columns: list, size: str) -> str:
+    rows = INSERT_SIZES[size]["rows"]
+    out = []
+    for col in columns:
         cells = []
-        for e in entries:
-            note = f"<div class=\"note\">{_e(e.note)}</div>" if e.note else ""
-            cells.append(
-                f"<div class=\"cell\"><span class=\"num\">{e.number}</span>"
-                f"<span class=\"txt\">{_e(e.call)}</span>{note}</div>"
-            )
-        blocks.append(
-            f"<div class=\"grp\">{_e(group)}</div>"
-            f"<div class=\"band\" style=\"grid-template-columns:repeat({band.columns},1fr);"
-            f"grid-auto-rows:minmax({cell_height}px,auto)\">{''.join(cells)}</div>"
-        )
-    body = (_header(band.name, [band.team or ""], [f"{len(band)} calls"])
-            + "".join(blocks) + _footer("cut along the outer border"))
+        for line in col:
+            if line[0] == "head":
+                cells.append(f"<div class=\"ln head\">{_e(line[1])}</div>")
+            elif line[0] == "row":
+                cells.append(f"<div class=\"ln\"><span class=\"c\">{_e(line[1])}</span>"
+                             f"<span class=\"t\">{_e(line[2])}</span></div>")
+            else:
+                cells.append("<div class=\"ln\"></div>")
+        cells += ["<div class=\"ln\"></div>"] * (rows - len(col))
+        out.append(f"<div class=\"colm\" style=\"grid-template-rows:repeat({rows},1fr)\">"
+                   + "".join(cells) + "</div>")
+    return "".join(out)
+
+
+def wristband_html(band: "Wristband", size: str = "adult", copies: int = 1) -> str:
+    """The numbered band as real inserts: sections in columns, window after window."""
+    groups = [(g, [(str(e.number), short_call(e.call)) for e in entries])
+              for g, entries in band.groups().items()]
+    layout = band_layout(groups, size)
+    cards = [_insert(size, f"<span>{_e(band.name)}</span><span class=\"rule\"></span>"
+                           f"<span class=\"fp\">{i + 1}/{len(layout)}</span>", _list_body(cols, size))
+             for i, cols in enumerate(layout)]
+    body = (_header(band.name, [band.team or ""], [f"{len(band)} calls",
+                                                   INSERT_SIZES[size]["label"]])
+            + f"<div class=\"inserts\">{''.join(cards * max(1, copies))}</div>"
+            + _footer("Print at actual size (100%) and cut on the dashed lines."))
     return _page(f"{band.name} — Wristband", body)
 
 

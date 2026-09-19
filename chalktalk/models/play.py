@@ -52,6 +52,7 @@ class Play(BaseModel):
     tell: Optional[str] = None               # what the defense does that calls for it
     word: Optional[str] = None               # the team's one-word call for it
     difficulty: Optional[int] = None         # coach's override: 1 Basic .. 3 Advanced
+    favorite: bool = False                   # one of the coach's go-to calls
 
     # ── Rendering ─────────────────────────────────────────────────────────────
 
@@ -120,12 +121,13 @@ class Play(BaseModel):
                             for a in self.assignments]
         })
 
-    def progression(self, *labels: str, qb: str = "QB") -> "Play":
-        """Set the quarterback's read order without touching the rest."""
+    def progression(self, *labels: str, qb: str = "QB", vs: Optional[str] = None) -> "Play":
+        """Set the quarterback's read order without touching the rest, or
+        his order against one coverage: .progression("H", "Z", vs="Cover 2")."""
         a = self.assignment(qb)
         if a is None or a.qb is None:
             raise ValueError("give the quarterback a plan before a progression")
-        return self.with_qb(a.qb.progression(*labels), qb)
+        return self.with_qb(a.qb.progression(*labels, vs=vs), qb)
 
     def with_block(self, label: str, block: "Block") -> "Play":
         """Return a copy with one player's blocking assignment replaced."""
@@ -308,10 +310,11 @@ class Play(BaseModel):
                   if a.player.position.value == "QB"), None)
         return a.qb if a else None
 
-    def read_order(self, label: str) -> Optional[int]:
-        """Where a receiver sits in the progression, 1-based."""
+    def read_order(self, label: str, coverage: Optional[str] = None) -> Optional[int]:
+        """Where a receiver sits in the progression, 1-based, against a
+        coverage if one is given."""
         plan = self.qb
-        return plan.read_order(label) if plan else None
+        return plan.read_order(label, coverage) if plan else None
 
     @property
     def ball_carrier(self) -> Optional[Assignment]:
@@ -343,8 +346,11 @@ def _carry(prev: Assignment, player: Player, on_field: set[str]) -> Assignment:
             updates["motion_from"] = None
             updates["motion_type"] = None
     if prev.qb is not None:
+        vs = {cov: kept for cov, order in prev.qb.reads_vs.items()
+              if (kept := [r for r in order if r in on_field])}
         updates["qb"] = prev.qb.model_copy(update={
             "reads": [r for r in prev.qb.reads if r in on_field],
+            "reads_vs": vs,
             "mesh_with": prev.qb.mesh_with if prev.qb.mesh_with in on_field else None,
         })
     return prev.model_copy(update=updates)

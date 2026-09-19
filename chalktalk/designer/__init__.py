@@ -47,7 +47,7 @@ def catalog() -> dict:
     from ..models.defense import DefensiveRole, Zone, _ZONE_GEOMETRY
     from ..adjustments import _MOTION_PRESETS
     from ..renderer.theme import LAYERS, themes_json
-    from ..renderer.sheets import _CSS as SHEET_CSS
+    from ..renderer.sheets import _CSS as SHEET_CSS, BAND_WORDS, INSERT_SIZES
     from ..callsheet import STANDARD_BUCKETS
     from .. import codes as K, difficulty as DF, planner as PL
     from ..models import gameplan as GP
@@ -117,6 +117,7 @@ def catalog() -> dict:
         # The browser prints the same sheets Python does: same stylesheet,
         # same situational buckets, in the same order.
         "sheet_css": SHEET_CSS,
+        "inserts": {"sizes": INSERT_SIZES, "words": BAND_WORDS},
         "call_sheet_buckets": [[title, sit.model_dump(mode="json")]
                                for title, sit in STANDARD_BUCKETS.items()],
         # The drive planner's tables, so the browser ranks plays by the same rules.
@@ -129,15 +130,18 @@ def catalog() -> dict:
             "success_by_level": {k.value: list(v) for k, v in GP.SUCCESS_BY_LEVEL.items()},
             "kind_points": PL.KIND_POINTS,
             "card_starts": [[t, st.model_dump(mode="json")] for t, st in PL.DRIVE_CARD_STARTS],
+            "script_starts": [[t, st.model_dump(mode="json")] for t, st in PL.SCRIPT_STARTS],
             "roles": [r.value for r in GP.Role],
+            "run_schemes": PL.RUN_SCHEMES, "draft_tags": PL.DRAFT_TAGS,
+            "script_length": PL.SCRIPT_LENGTH,
         },
         "difficulty": {"rubric": DF.RUBRIC, "tiers": list(DF.TIERS),
                        "tier_names": DF.TIER_NAMES, "team_levels": DF.TEAM_LEVELS},
         "codes": {"alphabet": K.KEY_ALPHABET, "salt": K.SALT.decode(),
                   "iterations": K.ITERATIONS, "periods": K.PERIODS,
                   "board_shapes": K.BOARD_SHAPES, "board_colors": K.BOARD_COLORS,
-                  "board_memory": K.BOARD_MEMORY, "live_colors": K.LIVE_COLORS,
-                  "words": K.WORDS},
+                  "board_memory": K.BOARD_MEMORY, "letters": K.LETTERS,
+                  "word_lists": K.WORD_LISTS, "live_signals": K.LIVE_SIGNALS},
         "layers": list(LAYERS),
     }
 

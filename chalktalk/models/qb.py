@@ -60,6 +60,9 @@ class QBPlan(BaseModel):
     direction: int = 1                 # +1 right, -1 left, for anything moving
     mesh_with: Optional[str] = None    # the back he rides, hands to, or fakes to
     reads: list[str] = []              # receiver labels, in the order he works them
+    # The order changes with the look: vs Cover 2 he may work the hole shot
+    # first, vs Cover 3 the flat. A coverage without its own order uses `reads`.
+    reads_vs: dict[str, list[str]] = {}
     key: Optional[str] = None          # the defender he is reading (RPO, option)
     rule: Optional[str] = None         # "high-low the flat defender"
     path: list[Point] = []             # relative waypoints, never mirrored
@@ -79,10 +82,18 @@ class QBPlan(BaseModel):
     def absolute_path(self, x: float, y: float) -> list[tuple[float, float]]:
         return [(x + p.x, y + p.y) for p in self.path]
 
-    def read_order(self, label: str) -> Optional[int]:
+    def reads_against(self, coverage: Optional[str] = None) -> list[str]:
+        """The progression against a coverage ("Cover 3"), or the base one."""
+        want = (coverage or "").strip().lower()
+        for name, order in self.reads_vs.items():
+            if want and name.strip().lower() == want and order:
+                return list(order)
+        return list(self.reads)
+
+    def read_order(self, label: str, coverage: Optional[str] = None) -> Optional[int]:
         """1-based position in the progression, or None if he is not in it."""
         try:
-            return self.reads.index(label) + 1
+            return self.reads_against(coverage).index(label) + 1
         except ValueError:
             return None
 
@@ -106,8 +117,11 @@ class QBPlan(BaseModel):
                         else Point(x=-self.mesh_at.x, y=self.mesh_at.y)),
         })
 
-    def progression(self, *labels: str) -> "QBPlan":
-        """Set the read order: .progression('Z', 'H', 'RB')"""
+    def progression(self, *labels: str, vs: Optional[str] = None) -> "QBPlan":
+        """Set the read order: .progression('Z', 'H', 'RB'), or against one
+        coverage: .progression('H', 'Z', vs='Cover 2')"""
+        if vs:
+            return self.model_copy(update={"reads_vs": {**self.reads_vs, vs: list(labels)}})
         return self.model_copy(update={"reads": list(labels)})
 
 

@@ -98,6 +98,13 @@ def test_reads_on_players_the_new_formation_lacks_are_dropped():
     assert moved.read_order("Z") == 2
 
 
+def test_orders_against_a_coverage_lose_the_same_players():
+    play = passing.mesh_concept().progression("H", "Z", vs="Cover 2").progression("H", vs="Cover 3")
+    moved = play.with_formation(F.I_FORM_PRO_RIGHT())       # no H
+    assert moved.qb.reads_vs == {"Cover 2": ["Z"]}          # Cover 3 had only H: it goes
+    assert moved.read_order("Z", "Cover 2") == 1
+
+
 def test_the_mesh_goes_with_a_missing_back_but_the_footwork_stays():
     play = running.power_right()
     moved = play.with_formation(F.PRO_SET())                # HB and FB, no RB

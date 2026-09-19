@@ -439,14 +439,17 @@ class SVGRenderer:
         return "\n".join(els)
 
     def _reads(self) -> str:
-        """Number the progression so the play says what he works, in order."""
+        """Number the progression so the play says what he works, in order,
+        against the coverage on the diagram when the defense is drawn."""
         plan = self.play.qb
-        if plan is None or not plan.reads:
+        d = self.play.defense
+        coverage = d.coverage if d is not None and "defense" in self.layers else None
+        if plan is None or not plan.reads_against(coverage):
             return ""
         T = self.theme
         els: list[str] = []
         for a in self.play.assignments:
-            order = plan.read_order(a.player.label)
+            order = plan.read_order(a.player.label, coverage)
             if order is None:
                 continue
             pts = a.absolute_waypoints()

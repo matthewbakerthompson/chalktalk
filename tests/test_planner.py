@@ -342,10 +342,186 @@ def test_a_word_the_coach_sets_stays_and_burned_words_become_dummies():
     assert sheet.dead == ["rocket", "Tiger"]        # burned, and "ranger" is still in use
 
 
-def test_words_are_distinct_and_shoutable():
-    assert len(K.WORDS) == len({w.lower() for w in K.WORDS}) == 64
-    colours = {c.lower() for c in K.LIVE_COLORS}
-    assert all(w.isascii() and w.isalpha() and w.lower() not in colours for w in K.WORDS)
+FOOTBALL_WORDS = {  # calls a team already says at the line, or a defense already names
+    "mesh", "smash", "stick", "snag", "flood", "levels", "sail", "spacing", "curl", "drive",
+    "cross", "dagger", "glance", "arrow", "bubble", "pop", "slant", "jet", "orbit", "veer",
+    "power", "counter", "trap", "toss", "draw", "iso", "zone", "sweep", "boot", "naked",
+    "waggle", "tunnel", "post", "corner", "fade", "wheel", "seam", "hitch", "screen",
+    "tampa", "nickel", "dime", "cover", "blitz", "fire", "mike", "will", "sam", "omaha",
+    "hut", "set", "go", "hike", "ready", "kill", "can", "check", "alert", "helmet"}
+
+
+def test_word_lists_are_distinct_and_shoutable():
+    everyone = [w for name, words in K.WORD_LISTS.items() if name != "mix" for w in words]
+    assert len(everyone) == len({w.lower() for w in everyone}) == len(K.WORDS) == 144
+    signals = {w.lower() for ws in K.LIVE_SIGNALS.values() for w in ws}
+    for w in everyone:
+        assert w.isascii() and w.isalpha(), w
+        assert w.lower() not in signals | FOOTBALL_WORDS, w
+
+
+# ── the format of a signal ───────────────────────────────────────────────────
+
+def test_letter_codes_and_a_dummy_digit_each_period():
+    b = book(calls=CallSystem(methods=["wristband"], code_style="letter", dummy_digit="key",
+                              signals=3, rotate="quarter"))
+    sheet = K.wristband(b, "key", "Wk 3")
+    assert sheet.style == "letter"
+    for card in sheet.cards:
+        assert all(c[0] in K.LETTERS and c[1:].isdigit() for c in [*card.codes, *card.dead])
+        assert list(card.codes) == sorted(card.codes)
+    dummies = [c.dummy for c in sheet.cards]
+    lives = [c.live for c in sheet.cards]
+    assert set(dummies) <= {"first", "middle", "last"} and set(lives) <= {1, 2, 3}
+    assert all(a != c for a, c in zip(dummies, dummies[1:]))    # never the same twice running
+    assert all(a != c for a, c in zip(lives, lives[1:]))
+
+
+def test_the_key_picks_the_code_style_per_game():
+    b = book(calls=CallSystem(methods=["wristband"], code_style="key"))
+    styles = {K.wristband(b, "key", f"Wk {n}").style for n in range(1, 13)}
+    assert styles == {"number", "letter"}
+    plain = K.wristband(book(), "key", "Wk 3").cards[0]
+    assert plain.dummy is None and plain.live is None
+
+
+def test_line_calls_from_the_teams_own_words_and_live_words():
+    own = ["Ranger", "Hawk", "Maple", "Onyx", "Quartz", "Sierra", "Tundra", "Umber", "Vortex", "Willow"]
+    b = book(calls=CallSystem(methods=["words"], word_list="own", own_words=own + [" hawk "],
+                              live_signal="own", own_live=["Alpha", "Bravo", "Charlie"], dummy_words=1))
+    sheet = K.line_calls(b, "key", "g")
+    assert set(sheet.words) <= set(own) and len(sheet.dead) == 1
+    assert set(sheet.live.values()) <= {"Alpha", "Bravo", "Charlie"}
+    assert sheet.signals == ["Alpha", "Bravo", "Charlie"] and not sheet.order
+    short = book(calls=CallSystem(methods=["words"], word_list="own", own_words=own[:3]))
+    with pytest.raises(ValueError, match="Not enough words"):
+        K.line_calls(short, "key", "g")
+    with pytest.raises(ValueError, match="two live words"):
+        K.line_calls(book(calls=CallSystem(methods=["words"], live_signal="own", own_live=["Alpha"])), "key", "g")
+
+
+def test_line_calls_by_order_say_which_call_counts():
+    b = book(calls=CallSystem(methods=["words"], live_signal="order", signals=3, rotate="quarter",
+                              word_list="animals"))
+    sheet = K.line_calls(b, "key", "g")
+    assert not sheet.live and sheet.calls == 3 and list(sheet.order) == K.PERIODS["quarter"]
+    turns = list(sheet.order.values())
+    assert set(turns) <= {1, 2, 3} and all(a != c for a, c in zip(turns, turns[1:]))
+    assert set(sheet.words) <= set(K.WORD_LISTS["animals"])
+    numbers = K.line_calls(book(calls=CallSystem(methods=["words"], live_signal="numbers")), "key", "g")
+    assert set(numbers.live.values()) <= set(K.LIVE_SIGNALS["numbers"])
+
+
+def test_the_key_picks_two_or_four_cells_per_game():
+    b = book(calls=CallSystem(methods=["boards"], board_cells="key"))
+    assert {K.boards(b, "key", f"Wk {n}").cells for n in range(1, 13)} == {2, 4}
+
+
+# ── the draft ────────────────────────────────────────────────────────────────
+
+def test_the_draft_fills_only_blanks_and_says_why():
+    plain = Playbook(name="x", plays=[running.inside_zone(), running.speed_sweep(),
+                                      all_plays()["pa_boot"], passing.mesh_concept(),
+                                      running.power_right()])
+    d = P.draft(plain)
+    by = {p.id: p for p in d.book.plays}
+    assert (by["inside-zone"].series, by["inside-zone"].role) == ("Inside Zone", Role.BASE)
+    assert by["speed-sweep"].role is Role.CONSTRAINT and by["speed-sweep"].series == "Inside Zone"
+    assert by["mesh-concept"].series is None and by["mesh-concept"].role is None
+    assert (by["power-right"].series, by["power-right"].role) == ("Power", Role.BASE)
+    assert any(n.startswith("Speed Sweep: constraint in Inside Zone") for n in d.notes)
+    sections = dict((s.title, ids) for s, ids in P.sections(d.book))
+    assert "inside-zone" in sections["1st & 10"] and "mesh-concept" in sections["2nd & 7+"]
+    assert by["pa-boot-left"].role is Role.PLAY_ACTION and by["pa-boot-left"].series == "Inside Zone"
+    script = P.openers(d.book)                   # base runs first, run and pass in turn
+    assert script == ["inside-zone", "pa-boot-left", "power-right", "mesh-concept", "speed-sweep"]
+    again = P.draft(d.book)                      # nothing left to fill
+    assert again.book.plays == d.book.plays and not again.notes
+
+
+def test_the_draft_keeps_what_the_coach_set():
+    b = book()                                   # tagged, with openers and situations
+    d = P.draft(b)
+    for mine, drafted in zip(b.plays, d.book.plays):
+        if mine.series or mine.role:
+            assert (drafted.series, drafted.role) == (mine.series, mine.role)
+    assert P.openers(d.book) == P.openers(b)
+
+
+# ── favorites and drive starters ─────────────────────────────────────────────
+
+def test_a_favorite_is_lifted_wherever_it_fits():
+    b = book()
+    favs = Playbook(name="x", plays=[tag(p, favorite=True) if p.id == "mesh-concept" else p for p in b.plays],
+                    game_plan=b.game_plan)
+    state = DriveState(down=2, distance=8, yard_line=60, snap=1)
+    before = {s.play: s.points for s in P.suggest(b, state, k=20)}
+    after = {s.play: s for s in P.suggest(favs, state, k=20)}
+    assert after["mesh-concept"].points == before["mesh-concept"] + 2          # Base fits anywhere
+    assert any(r.text == "One of your favorites" for r in after["mesh-concept"].reasons)
+
+
+def test_drive_starters_come_up_on_a_drives_first_snap():
+    b = book()
+    plan = (b.game_plan or GamePlan()).model_copy(update={"starters": ["power-right"], "openers": []})
+    b = b.model_copy(update={"game_plan": plan,
+                             "plays": [tag(p, situation=None) if p.id != "power-right" else tag(p, situation=None)
+                                       for p in b.plays]})
+    first = {s.play: s for s in P.suggest(b, DriveState(drive=2, yard_line=60), k=20)}
+    assert "power-right" in first
+    assert any(r.text == "A drive starter" and r.points == 4 for r in first["power-right"].reasons)
+    later = {s.play: s for s in P.suggest(b, DriveState(drive=2, down=2, distance=6, yard_line=56, snap=1), k=20)}
+    assert not any(r.text == "A drive starter" for s in later.values() for r in s.reasons)
+    assert P.starters(b) == ["power-right"]
+
+
+def test_scripts_can_start_all_over_the_field():
+    assert len(P.SCRIPT_STARTS) >= 12
+    assert {st.mode for _, st in P.SCRIPT_STARTS} >= {None, Mode.TWO_MINUTE, Mode.FOUR_MINUTE}
+
+
+# ── drive scripts ────────────────────────────────────────────────────────────
+
+def test_a_script_fills_its_empty_calls_and_keeps_the_coachs():
+    from chalktalk.models import DriveScript, ScriptCall
+    b = book()
+    mine = DriveScript(name="Open", first=ScriptCall(play="power-right"))
+    s = P.fill_script(b, mine)
+    assert s.first.play == "power-right"                          # the coach's call stays
+    for path in (["on"], ["off"], ["on", "on"], ["on", "off"], ["off", "on"], ["off", "off"]):
+        node = P.script_node(s, path)
+        assert node is not None and node.play in {p.id for p in b.plays}, path
+    assert P.script_state(s, ["on"]).label().startswith("2nd & 4")
+    assert P.script_state(s, ["off", "off"]).label().startswith("3rd & 10")
+    assert P.fill_script(b, s) == s                               # nothing left to fill
+
+
+def test_the_game_follows_the_script_from_each_result():
+    from chalktalk.models import DriveScript, ScriptCall
+    b = book()
+    s = DriveScript(name="Open", first=ScriptCall(play="inside-zone",
+                                                  on=ScriptCall(play="speed-sweep", on=ScriptCall(play="power-right")),
+                                                  off=ScriptCall(play="mesh-concept", off=ScriptCall(play="stick"))))
+    st0 = DriveState()
+    assert P.follow(b, s, st0, [])[1].play == "inside-zone"
+    st1 = P.advance(st0, Outcome.GAIN, 2)                       # 2 of 10: off schedule
+    log = [Snap(before=st0, play="inside-zone", call="IZ", gain=2)]
+    assert P.follow(b, s, st1, log) == (["off"], s.first.off)
+    st2 = P.advance(st1, Outcome.INCOMPLETE)
+    log.append(Snap(before=st1, play="mesh-concept", call="Mesh", outcome=Outcome.INCOMPLETE))
+    assert P.follow(b, s, st2, log)[1].play == "stick"
+    flag = P.advance(st2, Outcome.PENALTY_US, 5)                 # a flag doesn't move the script
+    log.append(Snap(before=st2, play="stick", call="Stick", outcome=Outcome.PENALTY_US, gain=5))
+    assert P.follow(b, s, flag, log)[1].play == "stick"
+    first = P.advance(flag, Outcome.GAIN, 20)                    # a first down starts it again
+    log.append(Snap(before=flag, play="stick", call="Stick", gain=20))
+    assert first.down == 1 and P.follow(b, s, first, log)[1].play == "inside-zone"
+
+
+def test_a_play_added_after_the_plan_lands_in_base():
+    d = P.draft(Playbook(name="x", plays=[running.inside_zone()]))
+    later = d.book.model_copy(update={"plays": [*d.book.plays, passing.stick().model_copy(update={"id": "stick"})]})
+    assert "stick" in dict((s.title, ids) for s, ids in P.sections(later))["Base"]
 
 
 # ── sign boards ──────────────────────────────────────────────────────────────

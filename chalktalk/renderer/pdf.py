@@ -658,12 +658,13 @@ class PDFExporter:
         y_range: tuple[float, float] | None = None,
     ) -> None:
         plan = play.qb
-        if plan is None or not plan.reads:
+        coverage = play.defense.coverage if play.defense else None   # the look drawn with it
+        if plan is None or not plan.reads_against(coverage):
             return
         yr = y_range or self._Y_RANGE
         xr = self._X_RANGE
         for a in play.assignments:
-            order = plan.read_order(a.player.label)
+            order = plan.read_order(a.player.label, coverage)
             if order is None:
                 continue
             pts = a.absolute_waypoints()

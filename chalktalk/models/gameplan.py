@@ -146,13 +146,26 @@ class CallSystem(BaseModel):
     # the live cell on the boards. What things mean (words, symbols) holds for
     # the game, so the team can learn it during the week.
     rotate: Literal["game", "half", "quarter"] = "half"
+    # How a signal is built. The method is public, so anything the coach
+    # leaves to the key ("key") is chosen per game or per period from the
+    # secret: two teams on chalktalk can't assume each other's format.
+    signals: int = Field(default=1, ge=1, le=3)           # shown each snap; the key picks the live one
+    # wristband numbers
     digits: Literal[2, 3] = 2
+    code_style: Literal["number", "letter", "key"] = "number"   # 47, B7, or the key picks
+    dummy_digit: Literal["none", "first", "middle", "last", "key"] = "none"
     extra_codes: int = Field(default=2, ge=0, le=4)       # more codes for top calls
     top_calls: int = Field(default=6, ge=0, le=20)        # how many plays get them
     dead_codes: int = Field(default=6, ge=0, le=40)       # codes that mean "wait"
+    # line calls
+    word_list: Literal["mix", "animals", "cities", "things", "own"] = "mix"
+    own_words: list[str] = []                             # the team's own list
+    live_signal: Literal["colors", "numbers", "own", "order"] = "colors"
+    own_live: list[str] = []                              # the team's own live words
     dummy_words: int = Field(default=4, ge=0, le=20)      # words that mean nothing
     burned_words: list[str] = []                          # heard on film: decoys from now on
-    board_cells: Literal[1, 2, 4] = 4                     # symbols on each board
+    # sign boards
+    board_cells: Literal[1, 2, 4, "key"] = 4              # symbols on each board
     dummy_boards: int = Field(default=4, ge=0, le=20)
     boards_by: Literal["play", "series"] = "play"          # a symbol per play, or per series
 
@@ -174,6 +187,27 @@ class DriveState(BaseModel):
                     "downs": "Turnover on downs", "safety": "Safety"}[self.over]
         situation = Situation(down=self.down, distance=self.distance, yard_line=self.yard_line)
         return situation.describe()
+
+
+class ScriptCall(BaseModel):
+    """
+    One call in a drive script, and what follows it: the next call if this
+    one keeps the drive on schedule, and the next if it doesn't.
+    """
+    play: Optional[str] = None                # play id; empty until the coach picks
+    on: Optional["ScriptCall"] = None         # next call when it stays on schedule
+    off: Optional["ScriptCall"] = None        # next call when it doesn't
+
+
+class DriveScript(BaseModel):
+    """
+    A drive pattern scripted during the week: the 1st-down call, the 2nd-down
+    call on and off schedule, then 3rd down under each. It covers one set of
+    downs; a new first down starts it again from the top.
+    """
+    name: str = "Drive"
+    start: "DriveState" = Field(default_factory=lambda: DriveState())
+    first: ScriptCall = Field(default_factory=ScriptCall)
 
 
 class Outcome(str, Enum):
@@ -215,6 +249,8 @@ class GamePlan(BaseModel):
     success: Optional[tuple[int, int, int]] = None  # None: the level's default
     sections: list[PlanSection] = []                 # empty: derived from the book
     openers: list[str] = []                          # empty: plays labelled "Openers"
+    starters: list[str] = []                         # go-to first calls of a drive
+    drives: list[DriveScript] = []                   # drive patterns scripted in the week
     calls: CallSystem = CallSystem()
     log: list[Snap] = []
     notes: list[str] = []
@@ -226,4 +262,5 @@ class GamePlan(BaseModel):
 
 __all__ = ["Role", "HELD_ROLES", "Mode", "When", "PlanSection", "DEFAULT_SECTIONS",
            "OPENERS_LABEL", "MODE_LABELS", "ZONES_WITH_DOWNS", "CallMethod", "CallSystem",
-           "DriveState", "Outcome", "Snap", "SUCCESS_BY_LEVEL", "GamePlan"]
+           "DriveState", "ScriptCall", "DriveScript", "Outcome", "Snap", "SUCCESS_BY_LEVEL",
+           "GamePlan"]

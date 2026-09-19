@@ -1,8 +1,90 @@
 # Changelog
 
-## Unreleased
+## 0.9.0
 
-**A play keeps its jobs when it changes formation.**
+**Plan the week, call the game.** A step-by-step plan builder with scripted
+drive patterns, a Game panel that follows them from each result, coded calls
+whose format the key can vary, wristband inserts at their real size, reads by
+coverage, favorites, and DIN lettering.
+
+### Plan: the week
+- The **Plan** button opens the game-plan builder in seven steps:
+  - the game;
+  - series and roles;
+  - situations, as a grid of plays by call-sheet section;
+  - the opening script and the drive starters;
+  - drive scripts;
+  - calling;
+  - a check and the paper.
+- **Draft the plan from this book** fills only what is blank, from what the
+  plays already say about themselves, and lists every decision. It never
+  overwrites the coach's own tags, sections or script, and it can be undone.
+  In Python it is `planner.draft`.
+- **Drive scripts** (`GamePlan.drives`, `DriveScript`, `ScriptCall`): drive
+  patterns scripted in the week.
+  - A script covers one set of downs: the 1st-down call, the 2nd-down call on
+    and off schedule, then 3rd down under each.
+  - Each slot shows where it will be called and lists the book in the
+    planner's order for that spot, with points.
+  - `fill_script` drafts the empty slots.
+  - Scripts start from any of 13 spots, from backed up on the 3 to the goal
+    line, plus two-minute, end of half and four-minute.
+- **Favorites and drive starters.**
+  - Star a play (★ beside its name) and the planner gives it +2 wherever it
+    fits.
+  - Drive starters (`GamePlan.starters`) are the go-to first calls of a drive.
+    Once the opening script is done they get +4 on each drive's first snap.
+- A staff's own call sheet puts a play added later in Base.
+
+### Game: game day
+- The drawer is now the **Game** panel (`D`). It follows a drive script from
+  each result ("From Opening drive: off schedule"), with the planner's picks as
+  the other options. `planner.follow` does the same in Python.
+- Drive cards print the coach's scripts, then the planner's first calls from
+  six common starts.
+
+### Calling the plays
+- **A format the key can vary.** Two teams on chalktalk know every format, so
+  whatever a coach leaves to the key is drawn from the secret:
+  - per game: codes as 47 or B7, and two or four symbols a board;
+  - per period, never the same twice running: where a dummy digit hides in
+    the signal, and which of two or three signals is live.
+- **Line calls from the team's own words.**
+  - The words come from a list (mix, animals, cities, things; 144 in all) or
+    the team's own.
+  - A coach can type each play's word, pick it from the list, or fill the
+    blanks from the list.
+  - The live signal is a colour, a number or the team's own word, or there is
+    none and the key names which of two or three calls counts.
+- **Wristbands print as inserts** at the real size of a wrist coach's window
+  (youth 3.75 x 2.25 in, teen 5 x 2.75, adult 5.25 x 3.25), with dashed cut
+  lines, capitals, and as many copies as players wear.
+  - A numbered band fills its inserts in columns under situation headings.
+  - A two-character coded band is a grid: first character down the side, last
+    digit across the top, blank squares dead.
+  - `wristband_html(band, size=..., copies=...)` matches in Python.
+
+### Reads by coverage
+- `QBPlan.reads_vs` keeps an order per coverage. `reads_against`,
+  `read_order(label, coverage)` and `progression(..., vs=...)` read and set it.
+- The designer numbers the reads for the coverage on the field, and so do the
+  SVG and the PDF.
+- In the play sheet the progression has a coverage picker. **Set reads** on a
+  selected quarterback lets the coach tap receivers on the field in order.
+
+### On a phone
+- The Game panel is the part to use on a phone: it takes the whole screen and
+  works one-handed.
+- The plan builder works on a phone too. Its wide steps say they are easier on
+  a tablet or a laptop, the script tree stacks in reading order, and printing
+  points to a computer.
+
+### Lettering
+- The designer, the diagrams and the paper letter in DIN, the type of signs
+  and scoreboards, in place of Inter. The fonts are ones each platform already
+  has: Bahnschrift on Windows, DIN Alternate and DIN Condensed on Apple, and
+  Roboto Condensed on Android. Nothing is embedded or fetched. Titles, the
+  situation and the big numbers use the condensed cut.
 
 ### Fixed
 - `Play.with_formation()`, and so `A.FORMATION`, carries every job across by
