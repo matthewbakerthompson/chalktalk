@@ -42,8 +42,8 @@ from pydantic import BaseModel
 
 from .difficulty import TIER_NAMES, difficulty, over_level
 from .models.gameplan import (DEFAULT_SECTIONS, HELD_ROLES, MODE_LABELS, OPENERS_LABEL,
-                              ZONES_WITH_DOWNS, CallMethod, DriveState, GamePlan, Mode,
-                              Outcome, PlanSection, Role, Snap)
+                              ZONES_WITH_DOWNS, CallMethod, DriveScript, DriveState, GamePlan,
+                              Mode, Outcome, PlanSection, Role, ScriptCall, Snap)
 from .models.play import Play, Playbook, PlayType
 
 KIND_POINTS = {"mode": 4, "down": 3, "zone": 3, "base": 0}
@@ -106,7 +106,15 @@ def sections(book: Playbook) -> list[tuple[PlanSection, list[str]]]:
     plan = plan_of(book)
     ids = [p.id for p in book.plays]
     if plan.sections:
-        return [(s, [i for i in s.plays if i in ids]) for s in plan.sections]
+        # A staff's own sections; a play added since lands in Base, not nowhere.
+        listed = {i for s in plan.sections if s.when.kind != "base" for i in s.plays}
+        own: list[tuple[PlanSection, list[str]]] = []
+        for s in plan.sections:
+            hits = [i for i in s.plays if i in ids]
+            if s.when.kind == "base":
+                hits += [i for i in ids if i not in listed and i not in hits]
+            own.append((s, hits))
+        return own
     out: list[tuple[PlanSection, list[str]]] = []
     placed: set[str] = set()
     for section in DEFAULT_SECTIONS:
@@ -136,6 +144,156 @@ def numbers(book: Playbook) -> dict[str, int]:
         if pid not in out:
             out[pid] = len(out) + 1
     return out
+
+
+# ── a first draft of the plan ────────────────────────────────────────────────
+# Tagging every play by hand is the slow part of a game plan. The draft fills
+# only what is blank, from what the plays already say about themselves (their
+# type, their scheme tags, the quarterback's action), and says why for each
+# decision, so a staff edits a plan instead of starting one.
+
+RUN_SCHEMES = [("inside-zone", "Inside Zone"), ("outside-zone", "Outside Zone"),
+               ("power", "Power"), ("counter", "Counter"), ("iso", "Iso"), ("trap", "Trap")]
+DRAFT_TAGS = {
+    "perimeter": ["sweep", "jet", "toss", "perimeter"],
+    "short": ["goal-line", "short-yardage"],
+    "red": ["red-zone", "end-zone"],
+    "play_action": ["play-action"],
+    "shot": ["shot", "shot-play", "explosive"],
+    "quick": ["quick-game", "quick"],
+}
+SCRIPT_LENGTH = 10
+
+
+class Draft(BaseModel):
+    book: Playbook
+    notes: list[str] = []
+
+
+def _has(p: Play, group: str) -> bool:
+    return any(t in p.tags for t in DRAFT_TAGS[group])
+
+
+def _draft_role(p: Play) -> Optional[Role]:
+    """The job a play's own data gives it, for anything but a base-scheme run."""
+    action = p.qb.action.value if p.qb else None
+    if p.play_type is PlayType.SPECIAL:
+        return Role.TRICK
+    if p.play_type is PlayType.SCREEN:
+        return Role.CONSTRAINT
+    if p.play_type is PlayType.RPO:
+        return Role.ANSWER
+    if p.play_type is PlayType.RUN and _has(p, "perimeter"):
+        return Role.CONSTRAINT
+    if p.play_type is PlayType.PASS and (_has(p, "play_action") or action in ("play_action", "boot")):
+        return Role.SHOT if _has(p, "shot") else Role.PLAY_ACTION
+    return None
+
+
+def _spots(p: Play) -> list[str]:
+    """The call-sheet sections a play's own data points it at."""
+    if _has(p, "short"):
+        return ["3rd & 1-3", "4th & short", "Goal line"]
+    if _has(p, "red"):
+        return ["Red zone", "Low red"]
+    if p.play_type is PlayType.RUN:
+        if _has(p, "perimeter"):
+            return ["1st & 10", "2nd & 4-6"]
+        if "draw" in p.tags:
+            return ["2nd & 7+", "3rd & 7+"]
+        return ["1st & 10", "2nd & 1-3", "3rd & 1-3", "Backed up", "Four minute"]
+    if p.play_type is PlayType.RPO:
+        return ["1st & 10", "2nd & 4-6"]
+    if p.play_type is PlayType.SCREEN:
+        return ["2nd & 7+", "3rd & 7+"]
+    if p.play_type is PlayType.SPECIAL:
+        return ["1st & 10"]
+    if _has(p, "play_action") or _has(p, "shot") or p.role in (Role.PLAY_ACTION, Role.SHOT):
+        return ["1st & 10", "2nd & 1-3"]
+    if _has(p, "quick"):
+        return ["2nd & 4-6", "3rd & 4-6", "Two minute"]
+    return ["2nd & 7+", "3rd & 7+", "Two minute"]
+
+
+def draft(book: Playbook) -> Draft:
+    """
+    A first plan from the book, filling only blanks: series and roles for
+    untagged plays, the call-sheet sections if the plan has none of its own,
+    and an opening script if there isn't one. Every decision is in the notes.
+    """
+    plays = list(book.plays)
+    notes: list[str] = []
+
+    def blank(p: Play) -> bool:
+        return not _series_key(p) and p.role is None
+
+    # Runs with a base scheme found their series: the first is its base.
+    bases: dict[str, Play] = {}
+    for p in plays:
+        if p.role is Role.BASE and _series_key(p) and _series_key(p) not in bases:
+            bases[_series_key(p)] = p
+    for i, p in enumerate(plays):
+        if not blank(p) or p.play_type is not PlayType.RUN:
+            continue
+        name = next((n for tag, n in RUN_SCHEMES if tag in p.tags), None)
+        if name is None:
+            continue
+        role = Role.COMPLEMENT if name.lower() in bases else Role.BASE
+        plays[i] = p = p.model_copy(update={"series": name, "role": role})
+        if role is Role.BASE:
+            bases[name.lower()] = p
+        notes.append(f"{p.name}: {role.display.lower()} of the {name} series")
+
+    # Everything else joins the series whose base shares its formation, or the first.
+    order: dict[str, Play] = {}
+    for p in plays:
+        if p.role is Role.BASE and _series_key(p) and _series_key(p) not in order:
+            order[_series_key(p)] = p
+    for i, p in enumerate(plays):
+        role = _draft_role(p) if blank(p) else None
+        if role is None or not order:
+            continue
+        same = next((b for b in order.values() if b.formation.name == p.formation.name), None)
+        home = same or next(iter(order.values()))
+        plays[i] = p.model_copy(update={"series": home.series, "role": role})
+        notes.append(f"{p.name}: {role.display.lower()} in {home.series} "
+                     f"({'same formation' if same else 'the first series'})")
+
+    drafted = book.model_copy(update={"plays": plays})
+    plan = plan_of(book).model_copy(deep=True)
+
+    if not plan.sections:
+        base = next(s for s in DEFAULT_SECTIONS if s.when.kind == "base")
+        derived = sections(drafted)
+        spots = {s.title: set(ids) for s, ids in derived}
+        by_id = {p.id: p for p in plays}
+        unplaced = next(ids for s, ids in derived if s.title == base.title)
+        for pid in unplaced:
+            for title in _spots(by_id[pid]):
+                spots[title].add(pid)
+        # Base is left empty: it gathers whatever no other section lists.
+        plan.sections = [s.model_copy(update={"plays": [] if s.title == base.title else [
+            p.id for p in plays if p.id in spots[s.title]]}) for s in DEFAULT_SECTIONS]
+        if unplaced:
+            notes.append(f"Call sheet: {len(unplaced)} plays placed by their type and tags")
+
+    if not openers(drafted):
+        pool = [p for p in plays if p.role is not Role.TRICK
+                and not _has(p, "short") and not _has(p, "red")]
+        runs = sorted([p for p in pool if p.play_type in (PlayType.RUN, PlayType.RPO)],
+                      key=lambda p: p.role is not Role.BASE)
+        passes = [p for p in pool if p.play_type in (PlayType.PASS, PlayType.SCREEN)]
+        script: list[str] = []
+        while (runs or passes) and len(script) < SCRIPT_LENGTH:
+            if runs:
+                script.append(runs.pop(0).id)
+            if passes and len(script) < SCRIPT_LENGTH:
+                script.append(passes.pop(0).id)
+        plan.openers = script
+        if script:
+            notes.append(f"Opening script: {len(script)} plays, run and pass in turn")
+
+    return Draft(book=drafted.model_copy(update={"game_plan": plan}), notes=notes)
 
 
 def check(book: Playbook) -> list[str]:
@@ -421,6 +579,88 @@ def _branches(book: Playbook, state: DriveState, log: list[Snap],
                               play=nxt[0].play, call=nxt[0].call,
                               why=nxt[0].reasons[0].text if nxt[0].reasons else ""))
     return out
+
+
+# ── drive scripts ────────────────────────────────────────────────────────────
+# A staff scripts drive patterns in the week (GamePlan.drives): the 1st-down
+# call, the 2nd-down call on and off schedule, and 3rd down under each. On
+# game day the planner follows a script from each result; when the drive
+# leaves it, the suggestions take over.
+
+SCRIPT_DEPTH = 3                 # 1st, 2nd and 3rd down
+
+
+def _script_gain(state: DriveState, step: str) -> int:
+    """The gain a script plans around: most of the distance on schedule, none off it."""
+    return max(1, math.ceil(state.distance * 0.6)) if step == "on" else 0
+
+
+def script_state(script: DriveScript, path: list[str]) -> DriveState:
+    """Where a call in the script is meant to be made."""
+    state = script.start
+    for step in path:
+        state = advance(state, Outcome.GAIN, _script_gain(state, step))
+    return state
+
+
+def script_node(script: DriveScript, path: list[str]) -> Optional[ScriptCall]:
+    node: Optional[ScriptCall] = script.first
+    for step in path:
+        node = getattr(node, step) if node is not None else None
+    return node
+
+
+def follow(book: Playbook, script: DriveScript, state: DriveState,
+           log: list[Snap]) -> tuple[list[str], Optional[ScriptCall]]:
+    """
+    Where a drive stands in a script: the path since this set of downs began
+    (each call on or off schedule) and the call the script makes next, if it
+    makes one. Penalties don't move it; a first down starts it again.
+    """
+    if state.down == 1 or state.over:
+        return [], (script.first if not state.over else None)
+    t = plan_of(book).thresholds
+    path: list[str] = []
+    for snap in log:
+        if snap.before.drive != state.drive:
+            continue
+        if snap.before.down == 1:
+            path = []
+        ok = is_success(snap.before, snap.outcome, snap.gain, t)
+        if ok is not None:
+            path.append("on" if ok else "off")
+    if len(path) >= SCRIPT_DEPTH:
+        return path, None
+    return path, script_node(script, path)
+
+
+def fill_script(book: Playbook, script: DriveScript) -> DriveScript:
+    """
+    Fill a script's empty calls with the planner's first pick for where each
+    one is meant to be made, reading the calls above it as the drive so far.
+    What the coach already picked stays.
+    """
+    by_id = {p.id: p for p in book.plays}
+
+    def fill(node: Optional[ScriptCall], state: DriveState, log: list[Snap],
+             depth: int) -> ScriptCall:
+        node = node.model_copy() if node is not None else ScriptCall()
+        if not node.play:
+            pick = suggest(book, state, log, k=1, branches=False)
+            node.play = pick[0].play if pick else None
+        if node.play and depth + 1 < SCRIPT_DEPTH:
+            for step in ("on", "off"):
+                gain = _script_gain(state, step)
+                after = advance(state, Outcome.GAIN, gain)
+                if after.over or after.down == 1:
+                    continue
+                p = by_id.get(node.play)
+                snap = Snap(before=state, play=node.play, call=p.call if p else node.play,
+                            outcome=Outcome.GAIN, gain=gain)
+                setattr(node, step, fill(getattr(node, step), after, log + [snap], depth + 1))
+        return node
+
+    return script.model_copy(update={"first": fill(script.first, script.start, [], 0)})
 
 
 # ── drive cards ──────────────────────────────────────────────────────────────
