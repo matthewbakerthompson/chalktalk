@@ -1348,6 +1348,12 @@ function formationSwap(p, formation){
     }
     if (a.qb){
       a.qb.reads = (a.qb.reads || []).filter(l => onField.has(l));
+      const vs = {};
+      for (const [cov, order] of Object.entries(a.qb.reads_vs || {})){
+        const kept = order.filter(l => onField.has(l));
+        if (kept.length) vs[cov] = kept;
+      }
+      a.qb.reads_vs = vs;
       if (!onField.has(a.qb.mesh_with)) a.qb.mesh_with = null;
     }
     return a;

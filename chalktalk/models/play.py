@@ -346,8 +346,11 @@ def _carry(prev: Assignment, player: Player, on_field: set[str]) -> Assignment:
             updates["motion_from"] = None
             updates["motion_type"] = None
     if prev.qb is not None:
+        vs = {cov: kept for cov, order in prev.qb.reads_vs.items()
+              if (kept := [r for r in order if r in on_field])}
         updates["qb"] = prev.qb.model_copy(update={
             "reads": [r for r in prev.qb.reads if r in on_field],
+            "reads_vs": vs,
             "mesh_with": prev.qb.mesh_with if prev.qb.mesh_with in on_field else None,
         })
     return prev.model_copy(update=updates)
