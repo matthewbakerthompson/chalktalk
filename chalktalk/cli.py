@@ -305,6 +305,16 @@ def cmd_book(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_site(args: argparse.Namespace) -> int:
+    """The designer as an installable web app, ready for any static host."""
+    from .designer.site import build_site
+    out = build_site(args.out, level=args.level, theme=args.theme)
+    print(f"Site: {out}")
+    print("Serve the folder over https (GitHub Pages, Netlify, Cloudflare Pages) and")
+    print("browsers will offer to install it. Plays stay on each coach's device.")
+    return 0
+
+
 def cmd_design(args: argparse.Namespace) -> int:
     """Open the visual designer, optionally on an existing play."""
     from .designer import open_in_browser, write
@@ -456,6 +466,12 @@ def build_parser() -> argparse.ArgumentParser:
                     help="default: paper, because it prints")
     bk.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
     bk.set_defaults(func=cmd_book)
+
+    site = sub.add_parser("site", help="build the designer as an installable web app")
+    site.add_argument("-o", "--out", default="site", help="folder to write (default: site)")
+    site.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
+    site.add_argument("--theme", default="turf", choices=["turf", "paper"])
+    site.set_defaults(func=cmd_site)
 
     des = sub.add_parser("design", help="open the visual play designer")
     des.add_argument("play", nargs="?",

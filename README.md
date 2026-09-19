@@ -7,8 +7,14 @@ players and draw routes on screen, or generate a hundred variants in a loop —
 either way you get the same JSON, and the same diagrams, call sheets, practice
 scripts and wristbands come out the other end.
 
-The designer is a single HTML file — `docs/index.html` in this repo. Open it
-locally, or serve `docs/` with GitHub Pages for a live version.
+**Use it now: <https://matthewbakerthompson.github.io/chalktalk/>.** Nothing to install. Chrome, Edge and Chromebooks
+offer to install it as an app from the address bar; on an iPad, use Share, then
+Add to Home Screen. It opens with no connection, and your plays stay on your
+device: the app keeps a working copy in the browser and saves to files you
+choose, on your computer or your drive. Nothing is sent anywhere.
+
+The designer is also a single HTML file, `docs/index.html` in this repo, and
+`chalk design` writes one wherever you want it.
 
 ```bash
 chalk design                 # open the designer
@@ -413,9 +419,23 @@ formation. Drop a play or playbook `.json` anywhere on the window to open it.
   play or one from the library, duplicate, delete (with undo), drag to reorder,
   <kbd>[</kbd> and <kbd>]</kbd> to turn pages. A concept from the library fills a
   blank page or joins the book as a new one.
-- **Save** writes the playbook once it has more than one play, otherwise the
-  play; **Export** offers either, plus the SVG, a 2x PNG, and **Print playbook**,
-  which lays every page out in the paper look and opens the print dialog.
+- **Open** and **Save** work with real files: <kbd>Ctrl</kbd>+<kbd>O</kbd>,
+  <kbd>Ctrl</kbd>+<kbd>S</kbd>, and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>
+  for Save as. Save writes the playbook once it has more than one play,
+  otherwise the play. **More** adds a copy of just this play, the SVG, a 2x PNG
+  and the raw JSON.
+- **Print** (<kbd>Ctrl</kbd>+<kbd>P</kbd>) builds the paper in the browser, no
+  Python needed: the playbook with diagrams, a call sheet bucketed by
+  situation, the wristband, a practice script with looks, hashes and reps, and
+  an install book grouped by install day. Choose Save as PDF in the print
+  dialog to keep a file. The call sheet and wristband use the same buckets and
+  numbering as Python's `CallSheet` and `Wristband`, and a test holds them to
+  it. Write the call numbers into the plays once the book is set, and every
+  sheet printed after agrees.
+- The play sheet sets what the paper needs: down, distance, the ball, the
+  hash, a call-sheet bucket (Openers, Two Minute, Four Minute), the install day
+  and the call number. The situation line says which section of the call sheet
+  the play lands in.
 
 The file the designer saves is the same JSON Python reads, so a book drawn in
 the browser prints from the command line and loads in a script:
@@ -430,9 +450,33 @@ chalk book week3.json                       # week3.pdf, two to a page, paper
 chalk book week3.json -o week3.html
 ```
 
-The browser keeps a working copy of the book, not a document store — save the
-file. Opening a different book stashes the old working copy; the command
-palette can bring it back.
+### Where your plays live
+
+On your device, and nowhere else. The browser keeps a working copy, so closing
+the tab loses nothing, but the real copy is the file you save:
+
+| Where you run it | What Save does |
+|---|---|
+| Chrome, Edge, a Chromebook | Writes to the file you picked, and keeps writing to it, even after you close and reopen the app |
+| iPad or iPhone | Opens the share sheet: Save to Files puts it in iCloud Drive, Google Drive, or on the device |
+| Safari or Firefox on a computer | Downloads the file; open it again with Open or by dropping it on the window |
+
+Save into a synced folder (Google Drive, OneDrive, Dropbox) and the playbook
+follows you between machines without the app ever seeing an account. The
+playbook panel shows which file the book belongs to and whether it has unsaved
+changes, and the Save button carries a dot until it's written. Opening a
+different file stashes the old working copy; the command palette can bring it
+back.
+
+### Host it yourself
+
+```bash
+chalk site --out site        # index.html, manifest, service worker, icons
+```
+
+Serve that folder over https from any static host (GitHub Pages, Netlify,
+Cloudflare Pages, a school web server) and browsers will offer to install it.
+The service worker caches only the app itself.
 
 Routes are authored as if the player is on the right side of the ball and
 mirrored for left-side players. The designer and the Python renderer share that
@@ -509,6 +553,7 @@ chalk design --theme paper
 ```bash
 chalk design                         # visual play designer
 chalk book week3.json                # a designer playbook to PDF or HTML
+chalk site --out site                # the designer as an installable web app
 chalk list plays                     # or formations | defenses | routes | series | systems | schemes | blocks | coverages | qb
 chalk system base_offense --out out/install   # the whole install book
 chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs --theme paper

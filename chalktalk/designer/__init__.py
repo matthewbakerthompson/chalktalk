@@ -47,6 +47,8 @@ def catalog() -> dict:
     from ..models.defense import DefensiveRole, Zone, _ZONE_GEOMETRY
     from ..adjustments import _MOTION_PRESETS
     from ..renderer.theme import LAYERS, themes_json
+    from ..renderer.sheets import _CSS as SHEET_CSS
+    from ..callsheet import STANDARD_BUCKETS
 
     plays = {name: play.model_dump(mode="json")
              for name, play in play_catalog.all_plays().items()}
@@ -110,6 +112,11 @@ def catalog() -> dict:
         },
         "default_formation": DEFAULT_FORMATION,
         "themes": themes_json(),
+        # The browser prints the same sheets Python does: same stylesheet,
+        # same situational buckets, in the same order.
+        "sheet_css": SHEET_CSS,
+        "call_sheet_buckets": [[title, sit.model_dump(mode="json")]
+                               for title, sit in STANDARD_BUCKETS.items()],
         "layers": list(LAYERS),
     }
 

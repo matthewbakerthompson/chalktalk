@@ -169,8 +169,12 @@ def test_inlined_json_cannot_break_out_of_the_script_tag():
 
 
 def test_designer_is_self_contained():
-    # The SVG namespace is an identifier, not something the page fetches.
+    # The SVG namespace is an identifier, not something the page fetches, and
+    # the licence notice at the top names URLs without loading them.
     html = designer.build().replace("http://www.w3.org/2000/svg", "")
+    notice = html[:html.index("-->") + 3]
+    assert "Required Notice:" in notice and "PolyForm Noncommercial" in notice
+    html = html[len(notice):]
     assert "http://" not in html
     assert "https://" not in html
     assert "<script src=" not in html

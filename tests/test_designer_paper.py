@@ -1,0 +1,150 @@
+"""
+The designer prints the sheets Python prints: call sheets, wristbands, practice
+scripts. These tests run the browser's own builders in node, against the same
+playbook, and require the same sections, numbers and calls Python produces, so
+a wristband printed from the browser agrees with a call sheet printed by Python.
+"""
+import json
+import os
+import shutil
+import subprocess
+import tempfile
+
+import pytest
+
+from chalktalk import adjustments as A
+from chalktalk import designer
+from chalktalk.callsheet import STANDARD_BUCKETS, CallSheet, Wristband
+from chalktalk.catalog import passing, redzone, running
+from chalktalk.models import Playbook
+from chalktalk.models import situation as S
+from chalktalk.models.situation import Hash, Tempo
+from chalktalk.script import Script
+from chalktalk.templates import coverages as C, defense as D
+
+NODE = shutil.which("node")
+pytestmark = pytest.mark.skipif(NODE is None, reason="node is not installed")
+
+
+def _book() -> Playbook:
+    tempo = passing.mesh_concept().model_copy(update={"tempo": Tempo.NO_HUDDLE})
+    return Playbook(name="Week 3", team="Owls", plays=[
+        passing.mesh_concept().at(S.Situation(down=1, distance=10)),
+        running.inside_zone().at(S.Situation(down=3, distance=2, yard_line=45)),
+        passing.four_verticals().at(S.Situation(label="Openers")),
+        running.power_right(),
+        redzone.fade_corner().at(S.Situation(down=2, distance=8, yard_line=15,
+                                             hash_mark=Hash.LEFT)),
+        passing.mesh_concept().rename("Mesh Goal").at(
+            S.Situation(down=1, distance=2, yard_line=2)),
+        running.counter_trey().vs(D.NICKEL_425(), C.cover_3).at(
+            S.Situation(down=2, distance=1.5)),
+        tempo.rename("Mesh Tempo").adjust(A.PROTECTION("Slide Rt"), A.MOTION("Z", "jet"))
+             .model_copy(update={"alerts": ["Check to fade vs press"]})
+             .at(S.Situation(label="Two Minute", clock="2:00", tempo=Tempo.NO_HUDDLE)),
+        redzone.fade_corner().rename("Fade Red").at(S.Situation(yard_line=12)),
+        running.inside_zone().rename("Zone Own").at(S.Situation(down=1, distance=10,
+                                                                yard_line=95)),
+    ])
+
+
+def _js(book: Playbook, body: str):
+    """Run `body` inside the designer's script, with `__book` bound, and return its value."""
+    html = designer.build()
+    script = html[html.index("<script>") + len("<script>"):html.rindex("</script>")].rstrip()
+    assert script.endswith("boot();")
+    script = script[:-len("boot();")]
+    prelude = ("globalThis.window = globalThis;\n"
+               "globalThis.document = {getElementById: () => null, addEventListener() {},"
+               " createElement: () => ({})};\n"
+               "globalThis.localStorage = {getItem: () => null, setItem() {}, removeItem() {}};\n")
+    tail = (f"\n;const __book = normalizeBook({json.dumps(book.model_dump(mode='json'))});\n"
+            f"process.stdout.write(JSON.stringify((function () {{ {body} }})()));\n")
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "designer.js")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(prelude + script + tail)
+        run = subprocess.run([NODE, path], capture_output=True, text=True, encoding="utf-8")
+    assert run.returncode == 0, run.stderr
+    return json.loads(run.stdout)
+
+
+def _sheet_rows(sheet: CallSheet):
+    return [[sec.title, [[p.call_number, p.call] for p in sec.plays]] for sec in sheet.sections]
+
+
+def test_the_browser_ships_pythons_buckets_in_order():
+    buckets = designer.catalog()["call_sheet_buckets"]
+    assert [title for title, _ in buckets] == list(STANDARD_BUCKETS)
+
+
+def test_call_sheet_matches_python():
+    book = _book()
+    sheet = CallSheet.from_playbook(book).number()
+    js = _js(book, "return callSheetData(__book).sections"
+                   ".map(s => [s.title, s.rows.map(r => [r.number, r.call])]);")
+    assert js == _sheet_rows(sheet)
+    assert {title for title, _ in js} >= {"Openers", "1st & 10", "3rd & 1-2", "Goal Line",
+                                          "Two Minute", "Red Zone", "Base"}
+
+
+def test_call_sheet_keeps_numbers_the_book_already_has():
+    book = _book()
+    plays = list(book.plays)
+    plays[0] = plays[0].numbered(40)
+    plays[3] = plays[3].numbered(7)
+    book = book.model_copy(update={"plays": plays})
+    sheet = CallSheet.from_playbook(book)                # numbered: left alone
+    js = _js(book, "return callSheetData(__book).sections"
+                   ".map(s => [s.title, s.rows.map(r => [r.number, r.call])]);")
+    assert js == _sheet_rows(sheet)
+
+
+@pytest.mark.parametrize("renumber", [False, True])
+def test_wristband_matches_python(renumber):
+    book = _book()
+    if renumber:
+        book = book.model_copy(update={"plays": [p.numbered(20 + i)
+                                                 for i, p in enumerate(book.plays)]})
+    band = Wristband.from_call_sheet(CallSheet.from_playbook(book), columns=3)
+    js = _js(book, "return wristbandData(callSheetData(__book), 3).entries"
+                   ".map(e => [e.number, e.call, e.group, e.note]);")
+    assert js == [[e.number, e.call, e.group, e.note] for e in band.entries]
+
+
+@pytest.mark.parametrize("reps,alternate", [(1, False), (2, True)])
+def test_practice_script_matches_python(reps, alternate):
+    book = _book()
+    script = Script(name=book.name).add_all(book.plays, reps=reps)
+    if alternate:
+        script = script.alternate_hashes()
+    js = _js(book, f"const s = scriptData(__book, {reps}, {str(alternate).lower()});"
+                   "return {rows: s.entries.map(e => [e.number, e.sit, e.hash, e.call, e.look, e.reps]),"
+                   " balance: s.balance};")
+    rows = [[e.number, e.situation.short() if e.situation else "",
+             e.hash_mark.value if e.hash_mark else "", e.call, e.look_name, e.reps]
+            for e in script.entries]
+    assert js["rows"] == rows
+    b = script.balance()
+    assert js["balance"] == {"total_reps": b["total_reps"], "run_pct": b["run_pct"],
+                             "pass_pct": b["pass_pct"], "personnel": b["personnel"]}
+
+
+def test_situations_read_the_same_in_both():
+    sits = [
+        S.Situation(down=1, distance=10), S.Situation(down=1, distance=10, yard_line=8),
+        S.Situation(down=3, distance=2.5, yard_line=45, hash_mark=Hash.RIGHT),
+        S.Situation(yard_line=80), S.Situation(yard_line=50), S.Situation(down=4),
+        S.Situation(label="Openers"), S.Situation(),
+        S.Situation(down=2, distance=6, clock="2:00", tempo=Tempo.NO_HUDDLE),
+        S.Situation(down=3, distance=7, label="3rd & long special"),
+    ]
+    payload = json.dumps([s.model_dump(mode="json") for s in sits])
+    js = _js(_book(), f"return {payload}.map(s => [sitDescribe(s), sitShort(s)]);")
+    assert js == [[s.describe(), s.short()] for s in sits]
+
+
+def test_percentages_round_like_python():
+    values = [0.5, 1.5, 2.5, 12.5, 13.5, 62.5, 33.3, 66.7]
+    js = _js(_book(), f"return {json.dumps(values)}.map(pyRound);")
+    assert js == [round(v) for v in values]
