@@ -284,6 +284,28 @@ svg *{-webkit-user-select:none;user-select:none}
 .tok.sel .c{box-shadow:0 0 0 2px #fde047}
 .tok.sel .a{color:var(--ink)}
 .tok-sep{width:1px;height:34px;background:var(--hair-2);margin:6px 8px 0;flex:none}
+/* the line: five dots, one caption */
+.grp{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none;padding:5px 6px 4px;border-radius:8px;margin-right:4px}
+.grp.has-sel{background:var(--accent-soft)}
+.grp .dots{display:flex;gap:2px;padding-top:2px}
+.ol-dot{width:22px;height:22px;min-width:0;padding:0;border-radius:50%;border:1.5px solid var(--offense-ring);
+  background:var(--offense);color:var(--offense-ink);font-size:8.5px;font-weight:700;opacity:.7}
+.ol-dot:hover{opacity:1;background:var(--offense);border-color:var(--offense-ring);color:var(--offense-ink)}
+.ol-dot.sel{opacity:1;box-shadow:0 0 0 2px #fde047}
+.grp .a{font-size:10.5px;color:var(--muted);max-width:124px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grp.has-sel .a{color:var(--ink)}
+/* the defense: one chip that opens into eleven tokens */
+.dgrp{display:flex;flex-direction:column;align-items:flex-start;gap:4px;height:auto;flex:none;
+  padding:5px 10px 4px;border:1px solid var(--hair);border-radius:8px;color:var(--ink-2);max-width:176px}
+.dgrp .top{display:flex;align-items:center;gap:7px;min-width:0;max-width:100%;height:26px}
+.dgrp .sq{width:14px;height:14px;border-radius:3px;background:var(--defense);border:1.5px solid var(--defense-ring);flex:none}
+.dgrp .nm{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dgrp .chev{width:7px;height:10px;flex:none;color:var(--muted);transition:transform var(--t)}
+.dgrp.open .chev{transform:rotate(180deg)}
+.dgrp .a{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:154px}
+.dgrp.has-sel{border-color:var(--accent-line);background:var(--accent-soft)}
+.dgrp.has-sel .a{color:var(--ink)}
+.dgrp.open{margin-right:4px}
 .bench-right{display:flex;align-items:center;gap:10px;flex:none;color:var(--muted);font-size:11.5px}
 .fieldinfo{white-space:nowrap;font-variant-numeric:tabular-nums}
 .fieldinfo b{color:var(--ink-2);font-weight:500}
@@ -1777,33 +1799,102 @@ function popLayers(box){
 }
 
 /* ─── bench ─────────────────────────────────────────────────────────────── */
+const LS_BENCHDEF = "chalktalk.designer.benchdef";
+let benchDefOpen = (() => {
+  try { return localStorage.getItem(LS_BENCHDEF) === "1"; } catch(e){ return false; }
+})();
+function setBenchDef(open){
+  benchDefOpen = open;
+  try { localStorage.setItem(LS_BENCHDEF, open ? "1" : "0"); } catch(e){}
+  renderBench();
+}
+
+// The kinds of block the line carries, left to right, name the scheme:
+// "pass set" for protection, "hinge · wrap · down" for power.
+function lineCaption(line){
+  const kinds = [];
+  for (const a of line){
+    const k = a.block ? words(a.block.kind === "base" ? "block" : a.block.kind)
+            : (a.route && a.route.route_type !== "block") ? words(a.route.route_type)
+            : a.route ? "block" : "—";
+    if (!kinds.includes(k)) kinds.push(k);
+  }
+  return kinds.join(" · ");
+}
+
+function benchToken(label, cls, glyph, caption, title, onPick){
+  const b = document.createElement("button"); b.type = "button";
+  b.className = "tok" + cls; b.title = title;
+  b.innerHTML = `<span class="c${glyph}">${esc(label)}</span><span class="a">${esc(caption)}</span>`;
+  b.onclick = onPick;
+  return b;
+}
+
 function renderBench(){
   const box = $("playerList"); box.innerHTML = "";
-  for (const a of assignments()){
-    const p = a.player;
-    const b = document.createElement("button"); b.type = "button";
-    b.className = "tok" + (p.label === sel ? " sel" : "") + (OL.has(p.position) ? " ol" : "");
-    b.title = [`${p.label} · ${playerKind(p)}`, `x ${fmt(p.x)}, y ${fmt(p.y)}`,
-               a.motion_type ? `${a.motion_type} motion` : null,
-               a.is_ball_carrier ? "ball carrier" : null].filter(Boolean).join(" · ");
-    const ball = a.is_ball_carrier || p.position === "QB";
-    b.innerHTML = `<span class="c${ball ? " ball" : ""}${a.motion_type ? " mo" : ""}">${esc(p.label)}</span>`
-                + `<span class="a">${esc(assignmentSummary(a))}</span>`;
-    b.onclick = () => { sel = p.label; selDef = null; selWp = -1; renderAll(); };
-    box.appendChild(b);
-  }
-  if (play.defense){
-    const sep = document.createElement("div"); sep.className = "tok-sep"; box.appendChild(sep);
-    for (const d of play.defense.players){
+  const all = assignments();
+  const pickOffense = label => { sel = label; selDef = null; selWp = -1; renderAll(); };
+
+  // The line: one group, five dots, one caption.
+  const line = all.filter(a => OL.has(a.player.position));
+  if (line.length){
+    const onLine = line.find(a => a.player.label === sel);
+    const g = document.createElement("div");
+    g.className = "grp" + (onLine ? " has-sel" : "");
+    g.setAttribute("role", "group"); g.setAttribute("aria-label", "Offensive line");
+    const dots = document.createElement("div"); dots.className = "dots";
+    for (const a of line){
+      const p = a.player;
       const b = document.createElement("button"); b.type = "button";
-      b.className = "tok def" + (d.label === selDef ? " sel" : "");
-      b.title = `${d.label} · ${d.position} · x ${fmt(d.x)}, y ${fmt(d.y)}`;
-      b.innerHTML = `<span class="c">${esc(d.label)}</span><span class="a">${esc(defenderSummary(d))}</span>`;
-      b.onclick = () => { selDef = d.label; sel = null; selWp = -1; renderAll(); };
-      box.appendChild(b);
+      b.className = "ol-dot" + (p.label === sel ? " sel" : "");
+      b.textContent = p.label;
+      b.title = `${p.label} · ${assignmentSummary(a)}`;
+      b.setAttribute("aria-label", b.title);
+      b.onclick = () => pickOffense(p.label);
+      dots.appendChild(b);
     }
+    const cap = document.createElement("span"); cap.className = "a";
+    cap.textContent = onLine ? `${onLine.player.label} · ${assignmentSummary(onLine)}` : lineCaption(line);
+    g.append(dots, cap);
+    box.appendChild(g);
   }
-  const on = box.querySelector(".tok.sel");
+
+  // Everyone else, one token each — they are what gets drawn most.
+  for (const a of all){
+    const p = a.player;
+    if (OL.has(p.position)) continue;
+    const ball = a.is_ball_carrier || p.position === "QB";
+    const title = [`${p.label} · ${playerKind(p)}`, `x ${fmt(p.x)}, y ${fmt(p.y)}`,
+                   a.motion_type ? `${a.motion_type} motion` : null,
+                   a.is_ball_carrier ? "ball carrier" : null].filter(Boolean).join(" · ");
+    box.appendChild(benchToken(p.label, p.label === sel ? " sel" : "",
+      (ball ? " ball" : "") + (a.motion_type ? " mo" : ""),
+      assignmentSummary(a), title, () => pickOffense(p.label)));
+  }
+
+  // The defense folds into one chip; its players are on the field already.
+  if (play.defense && layers.defense){
+    const sep = document.createElement("div"); sep.className = "tok-sep"; box.appendChild(sep);
+    const look = play.defense;
+    const call = [look.coverage, look.pressure].filter(Boolean).join(" · ") || "no call";
+    const chip = document.createElement("button"); chip.type = "button";
+    chip.className = "dgrp" + (benchDefOpen ? " open" : "") + (selDef ? " has-sel" : "");
+    chip.setAttribute("aria-expanded", String(benchDefOpen));
+    chip.title = benchDefOpen ? "Fold the defenders away" : "Show each defender";
+    chip.innerHTML = `<span class="top"><span class="sq"></span><span class="nm">${esc(look.name)}</span>`
+      + `<svg class="chev" viewBox="0 0 7 10" fill="none" stroke="currentColor" stroke-width="1.5" `
+      + `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 1.5 5 5l-3.5 3.5"/></svg></span>`
+      + `<span class="a">${esc(selDef && !benchDefOpen ? `${selDef} · ${defenderSummary(
+            look.players.find(d => d.label === selDef) || {})}` : call)}</span>`;
+    chip.onclick = () => setBenchDef(!benchDefOpen);
+    box.appendChild(chip);
+    if (benchDefOpen) for (const d of look.players)
+      box.appendChild(benchToken(d.label, " def" + (d.label === selDef ? " sel" : ""), "",
+        defenderSummary(d), `${d.label} · ${d.position} · x ${fmt(d.x)}, y ${fmt(d.y)}`,
+        () => { selDef = d.label; sel = null; selWp = -1; renderAll(); }));
+  }
+
+  const on = box.querySelector(".tok.sel, .ol-dot.sel");
   if (on && on.scrollIntoView) on.scrollIntoView({block:"nearest", inline:"nearest"});
 }
 
@@ -2659,6 +2750,9 @@ function commands(){
   add("File", "Restore the previous working copy", restorePrevious);
   add("File", "Open a file", () => $("fileInput").click());
   add("Help", "Show the start screen", showWelcome);
+  if (play.defense) add("View", benchDefOpen ? "Fold the defenders on the bench"
+                                             : "Show each defender on the bench",
+                      () => setBenchDef(!benchDefOpen));
   add("File", "Download SVG", () => download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml"));
   add("File", "Download PNG", () => exportPng(2));
   add("File", "View JSON", () => openIo("JSON", playJson()));

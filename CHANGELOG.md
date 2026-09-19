@@ -16,6 +16,9 @@
   file, or a blank formation. `Show the start screen` in the palette brings it back.
 - Open a play or playbook file from the start screen, the Import dialog, the
   palette, or by dropping it on the window.
+- A quieter bench: the five linemen are one group captioned with their scheme
+  ("pass set", "hinge · wrap · down"), and the defense folds into one chip
+  naming the look and the call. Opening it is remembered.
 
 ### Command line
 - `chalk design book.json` opens a whole playbook.

@@ -327,6 +327,10 @@ formation. Drop a play or playbook `.json` anywhere on the window to open it.
 - **Formation, Line, Defense, Library, Layers** sit on the rail at the left.
   Formations and defensive looks are picked from thumbnails, schemes and
   coverages from a list, concepts from a searchable library.
+- **The bench** under the field lists the offense: the five linemen as one
+  group captioned with their scheme, then a token per skill player. The
+  defense folds into one chip naming the look and the call; open it to reach
+  each defender.
 - **Click a player** on the field or on the bench to select it, **drag** to
   move (snapped to half yards). The strip above the bench edits the selection:
   route, block, target, direction, motion, ball carrier, note.
