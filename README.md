@@ -320,7 +320,9 @@ chalk design --level hs --out designer.html --no-open
 ```
 
 It writes one self-contained HTML file — the whole catalog inlined, no server,
-no CDN, no build step — and opens it. The field is the window and the tools float over it:
+no CDN, no build step — and opens it. The field is the window and the tools float over it. The first time it opens,
+a start screen offers four concepts, the whole library, a file, or a blank
+formation. Drop a play or playbook `.json` anywhere on the window to open it.
 
 - **Formation, Line, Defense, Library, Layers** sit on the rail at the left.
   Formations and defensive looks are picked from thumbnails, schemes and
@@ -329,7 +331,9 @@ no CDN, no build step — and opens it. The field is the window and the tools fl
   move (snapped to half yards). The strip above the bench edits the selection:
   route, block, target, direction, motion, ball carrier, note.
 - **Click the field** to add route points, **drag** the yellow handles to shape
-  the route, **double-click** one to delete it. Or pick a stock route.
+  the route, **double-click** one to delete it. Or pick a stock route. While a
+  player is selected a faint line runs from the end of his route to the cursor,
+  with the depth of the next point.
 - **Arrow keys** nudge the selected player, defender or route point by half a
   yard; hold <kbd>Shift</kbd> for a full yard.
 - **Layers** hide whatever you are not working on: routes, blocks, motion, the

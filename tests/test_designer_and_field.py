@@ -329,3 +329,14 @@ def test_cli_prints_a_playbook(tmp_path):
     assert cli.main(["book", str(book), "-o", str(tmp_path / "book.html")]) == 0
     page = (tmp_path / "book.html").read_text(encoding="utf-8")
     assert "Week 3" in page and page.count("<svg") == 2
+
+
+def test_the_start_screen_and_the_preview_stay_out_of_exports():
+    """Both are interface: neither may leak into an exported SVG or the printed book."""
+    with open(designer._TEMPLATE, encoding="utf-8") as fh:
+        src = fh.read()
+    assert 'id="welcome"' in src and "showWelcome" in src
+    assert 'id="fileInput"' in src
+    # every place that strips the UI layer strips the preview layer too
+    assert src.count('svg.querySelector("#ui").remove()') == \
+        src.count('svg.querySelector("#preview").remove()') == 2

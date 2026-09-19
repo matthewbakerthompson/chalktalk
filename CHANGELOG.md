@@ -10,6 +10,12 @@
   offers the play, the book, and a client-side Print playbook in the paper look.
 - Opening a different book stashes the previous working copy; the command
   palette restores it.
+- Live route preview: with a player selected, a faint line runs from the end of
+  his route to the cursor, labelled with the depth of the next point.
+- A start screen on the first open: four featured concepts, the library, a
+  file, or a blank formation. `Show the start screen` in the palette brings it back.
+- Open a play or playbook file from the start screen, the Import dialog, the
+  palette, or by dropping it on the window.
 
 ### Command line
 - `chalk design book.json` opens a whole playbook.

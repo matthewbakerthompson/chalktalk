@@ -288,6 +288,31 @@ svg *{-webkit-user-select:none;user-select:none}
 .fieldinfo{white-space:nowrap;font-variant-numeric:tabular-nums}
 .fieldinfo b{color:var(--ink-2);font-weight:500}
 
+/* ─── start screen ─────────────────────────────────────────────────── */
+.welcome{
+  position:absolute;left:50%;top:50%;z-index:var(--z-pop);
+  width:min(680px,calc(100% - 140px));padding:20px 20px 16px;
+  transform:translate(-50%,-50%);animation:welcome-in 220ms var(--ease);
+}
+@keyframes welcome-in{from{opacity:0;transform:translate(-50%,calc(-50% + 6px))}}
+.welcome h2{font-size:17px;font-weight:650;color:var(--ink);letter-spacing:-.01em;margin:0 0 4px}
+.welcome .lede{color:var(--muted);font-size:13px;margin:0 0 16px;max-width:60ch}
+.welcome-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.wtile{
+  display:flex;flex-direction:column;align-items:stretch;gap:2px;height:auto;padding:8px;
+  border-color:var(--hair);text-align:left;color:var(--ink-2);white-space:normal;
+}
+.wtile:hover{border-color:var(--accent-line);background:var(--accent-soft)}
+.wtile .pthumb{width:100%;height:auto;display:block;border-radius:5px;margin-bottom:6px}
+.wtile .nm{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wtile .sub{font-size:11px;font-weight:400;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.welcome-foot{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--hair)}
+.welcome-foot .tip{margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap}
+.stage-box{transition:opacity 220ms var(--ease),filter 220ms var(--ease)}
+.canvas.welcoming .stage-box{opacity:.3;filter:saturate(.5)}
+#stage svg.drawing{cursor:crosshair}
+@media (max-width:900px){.welcome-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 /* ─── playbook panel ────────────────────────────────────────────────── */
 .book{display:none;flex:none;width:276px;flex-direction:column;background:var(--panel);border-right:1px solid var(--hair);min-height:0}
 #app.book-open .book{display:flex}
@@ -506,6 +531,18 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
       </div>
       <div class="card pop" id="pop" hidden></div>
       <div id="toast" role="status" aria-live="polite"></div>
+      <div class="card welcome" id="welcome" role="dialog" aria-labelledby="welcomeTitle" hidden>
+        <h2 id="welcomeTitle">Start a play</h2>
+        <p class="lede">Take a concept and make it yours, or start from a blank formation.
+          Everything you draw is the same file Python reads.</p>
+        <div class="welcome-grid" id="welcomeGrid"></div>
+        <div class="welcome-foot">
+          <button id="welcomeLib">Browse all <span id="welcomeCount"></span> concepts</button>
+          <button id="welcomeFile" title="Open a play or a playbook .json">Open a file</button>
+          <button id="welcomeBlank">Start blank</button>
+          <span class="tip"><kbd>Ctrl</kbd>+<kbd>K</kbd> reaches everything</span>
+        </div>
+      </div>
     </div>
 
     <div class="dock" id="dock">
@@ -581,10 +618,13 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
   <div class="dlg-foot">
     <span class="note">The exact schema the Python package reads:
       <code>Play.from_json(...)</code></span>
+    <button id="ioFile" title="Open a play or a playbook .json">Choose file</button>
     <button id="ioCopy">Copy</button>
     <button id="ioLoad" class="primary">Load into designer</button>
   </div>
 </dialog>
+
+<input type="file" id="fileInput" accept=".json,application/json" hidden>
 
 <dialog id="palette" class="palette" aria-label="Commands">
   <input id="palInput" class="pal-input" placeholder="Type a command, a concept, a formation, a coverage"
@@ -1340,7 +1380,38 @@ function renderSvg(){
   const ui = el("g", {id:"ui"});
   drawUI(ui);
   svg.appendChild(ui);
+  svg.appendChild(el("g", {id:"preview", "pointer-events":"none"}));
   return svg;
+}
+
+/* ─── live route preview: where the next click puts a point ───────────── */
+let hover = null;            // the snapped field point under the pointer, over open grass
+function previewFrom(){
+  const a = selA();
+  if (!a || !layers.routes) return null;
+  const wps = a.route && a.route.route_type !== "block" ? a.route.waypoints : null;
+  return wps && wps.length ? wpAbs(a.player, wps[wps.length - 1]) : [a.player.x, a.player.y];
+}
+function drawPreview(svg){
+  const g = svg && svg.querySelector("#preview");
+  if (!g) return;
+  while (g.firstChild) g.removeChild(g.firstChild);
+  svg.classList.toggle("drawing", !!previewFrom());
+  const from = (hover && !drag) ? previewFrom() : null;
+  if (!from) return;
+  const t = T(), [hx, hy] = hover;
+  const x0 = sx(from[0]), y0 = sy(from[1]), x1 = sx(hx), y1 = sy(hy);
+  if (Math.hypot(x1 - x0, y1 - y0) > 2)
+    g.appendChild(el("line", {x1:x0, y1:y0, x2:x1, y2:y1, stroke:t.route, "stroke-width":2,
+      "stroke-dasharray":"4,5", "stroke-linecap":"round", opacity:0.6}));
+  g.appendChild(el("circle", {cx:x1, cy:y1, r:5, fill:"none", stroke:"#fde047", "stroke-width":1.6}));
+  // Depth is how a coach says a route: a 12-yard dig, a 5-yard out.
+  const depth = hy >= 0 ? `${fmt(hy)} yd` : `${fmt(-hy)} yd back`;
+  const right = x1 < W() - 90;
+  g.appendChild(el("text", {x: right ? x1 + 10 : x1 - 10, y: y1 - 9,
+    "text-anchor": right ? "start" : "end", fill:t.title, stroke:t.field, "stroke-width":3,
+    "paint-order":"stroke", "stroke-linejoin":"round", "font-family":FONT, "font-size":11,
+    "font-weight":600}, depth));
 }
 
 /* ─── pointer interaction ───────────────────────────────────────────────── */
@@ -1397,7 +1468,15 @@ function bindStage(svg){
   });
 
   svg.addEventListener("pointermove", evt => {
-    if (!drag) return;
+    if (!drag){
+      const tg = evt.target;
+      const onHandle = tg.dataset && (tg.dataset.player !== undefined || tg.dataset.defender !== undefined
+        || tg.dataset.wp !== undefined || tg.dataset.motion !== undefined);
+      const [fx, fy] = stagePoint(evt, svg);
+      hover = onHandle ? null : [snap(fx), snap(fy)];
+      drawPreview(svg);
+      return;
+    }
     const [fx, fy] = stagePoint(evt, svg);
     const a = findA(drag.kind === "waypoint" ? sel : drag.label);
     if (!a) return;
@@ -1421,6 +1500,7 @@ function bindStage(svg){
   const end = () => { if (drag){ drag = null; renderAll(); } };
   svg.addEventListener("pointerup", end);
   svg.addEventListener("pointercancel", end);
+  svg.addEventListener("pointerleave", () => { hover = null; drawPreview(svg); });
 
   svg.addEventListener("dblclick", evt => {
     const t = evt.target;
@@ -1798,7 +1878,7 @@ function renderInspector(){
     inspectorEnter(box, "none");
     box.innerHTML = `<div class="empty">
       <div><span class="lead">Nothing selected.</span>Pick a player on the field or on the bench.</div>
-      <div class="legend"><b>Click</b> the field to add a route point · <b>Drag</b> a player, or a yellow handle
+      <div class="legend"><b>Click</b> the field to add a route point · <b>Drag</b> a player or a handle
         · <b>Double-click</b> a handle to delete it · <b>Arrows</b> nudge, <kbd>Shift</kbd> for a yard
         · <kbd>F</kbd> flips · <kbd>Ctrl</kbd>+<kbd>K</kbd> commands</div></div>`;
     return;
@@ -2031,6 +2111,7 @@ function renderStage(){
   const svg = renderSvg();
   stage.appendChild(svg);
   bindStage(svg);
+  drawPreview(svg);
   renderFieldInfo();
 }
 
@@ -2067,7 +2148,7 @@ function slug(s){
 
 function exportSvg(){
   const svg = renderSvg();
-  svg.querySelector("#ui").remove();
+  svg.querySelector("#ui").remove(); svg.querySelector("#preview").remove();
   return '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.outerHTML;
 }
 
@@ -2203,6 +2284,7 @@ function startBook(){
     book = stored.book; bookIndex = stored.index;
   } else {
     book = normalizeBook(null); bookIndex = 0;
+    bootedFresh = true;
   }
   bookIndex = clampIndex(bookIndex);
   play = book.plays[bookIndex];
@@ -2305,26 +2387,51 @@ function setBook(open, quiet){
 }
 
 /* ─── the panel ─────────────────────────────────────────────────────────── */
-// A page in miniature: the routes and the dots, in the current look.
+// A page in miniature, framed on what is drawn — a run play is a tight picture,
+// four verticals a wide one — in the current look.
 function playThumb(p){
   const W = 96, H = 50, t = T();
-  const px = x => (x + 29) / 58 * W, py = y => H - ((y + 8) / 30) * H;
+  // Frame on the action: every route, the line, and anyone in the box. A split
+  // end who only stalk-blocks should not shrink a power play to a row of dots.
+  const inBox = x => Math.abs(x) <= 10;
+  const pts = [], routes = [], blocks = [];
+  for (const a of p.assignments){
+    const counts = OL.has(a.player.position) || inBox(a.player.x);
+    if (counts) pts.push([a.player.x, a.player.y]);
+    if (a.route && a.route.route_type !== "block" && a.route.waypoints.length > 1){
+      const r = a.route.waypoints.map(w => wpAbs(a.player, w));
+      routes.push([r, a.is_ball_carrier || a.route.route_type === "run"]); pts.push(...r);
+    } else if (a.block && a.block.path && a.block.path.length > 1){
+      const b = a.block.path.map(w => [a.player.x + w.x, a.player.y + w.y]);
+      blocks.push(b); if (counts) pts.push(...b);
+    }
+  }
+  if (p.defense) for (const d of p.defense.players) if (inBox(d.x)) pts.push([d.x, d.y]);
+  if (!pts.length) pts.push([0, 0]);
+  let x0 = Math.min(...pts.map(q => q[0])) - 2, x1 = Math.max(...pts.map(q => q[0])) + 2;
+  let y0 = Math.min(...pts.map(q => q[1])) - 1.5, y1 = Math.max(...pts.map(q => q[1])) + 1.5;
+  let fw = Math.max(x1 - x0, 24), fh = Math.max(y1 - y0, 10);
+  if (fw / fh > W / H) fh = fw * H / W; else fw = fh * W / H;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  x0 = cx - fw / 2; y0 = cy - fh / 2;
+  const k = W / fw;
+  const px = x => (x - x0) * k, py = y => H - (y - y0) * k;
   const los = py(0).toFixed(1);
   let s = `<svg class="pthumb" viewBox="0 0 ${W} ${H}" aria-hidden="true">`
         + `<rect width="${W}" height="${H}" rx="3" fill="${t.field}"/>`
         + `<line x1="0" y1="${los}" x2="${W}" y2="${los}" stroke="${t.los}" stroke-width="0.8"/>`;
-  for (const a of p.assignments){
-    if (!a.route || a.route.route_type === "block" || a.route.waypoints.length < 2) continue;
-    const pts = a.route.waypoints.map(w => { const [ax, ay] = wpAbs(a.player, w); return [px(ax), py(ay)]; });
-    const runner = a.is_ball_carrier || a.route.route_type === "run";
-    s += `<path d="${smoothPath(pts)}" fill="none" stroke="${runner ? t.run : t.route}" `
-       + `stroke-width="${runner ? 1.4 : 1}" stroke-linecap="round" opacity="0.95"/>`;
-  }
+  for (const b of blocks)
+    s += `<path d="${smoothPath(b.map(q => [px(q[0]), py(q[1])]))}" fill="none" stroke="${t.block}" `
+       + `stroke-width="0.9" stroke-linecap="round" opacity="0.75"/>`;
+  for (const [r, runner] of routes)
+    s += `<path d="${smoothPath(r.map(q => [px(q[0]), py(q[1])]))}" fill="none" `
+       + `stroke="${runner ? t.run : t.route}" stroke-width="${runner ? 1.5 : 1.1}" `
+       + `stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>`;
   if (p.defense) for (const d of p.defense.players)
-    s += `<rect x="${(px(d.x) - 1.4).toFixed(1)}" y="${(py(d.y) - 1.4).toFixed(1)}" width="2.8" height="2.8" `
+    s += `<rect x="${(px(d.x) - 1.5).toFixed(1)}" y="${(py(d.y) - 1.5).toFixed(1)}" width="3" height="3" `
        + `fill="${t.defense_fill}" stroke="${t.defense_stroke}" stroke-width="0.4"/>`;
   for (const a of p.assignments)
-    s += `<circle cx="${px(a.player.x).toFixed(1)}" cy="${py(a.player.y).toFixed(1)}" r="1.7" `
+    s += `<circle cx="${px(a.player.x).toFixed(1)}" cy="${py(a.player.y).toFixed(1)}" r="1.8" `
        + `fill="${t.offense_fill}" stroke="${t.offense_stroke}" stroke-width="0.4"/>`;
   return s + "</svg>";
 }
@@ -2423,7 +2530,7 @@ function printBook(){
   const pages = book.plays.map((p, i) => {
     play = p;
     const svg = renderSvg();
-    svg.querySelector("#ui").remove();
+    svg.querySelector("#ui").remove(); svg.querySelector("#preview").remove();
     svg.removeAttribute("width"); svg.removeAttribute("height");
     const notes = [p.protection, ...(p.alerts || []).map(a => "! " + a)].filter(Boolean).map(esc).join(" · ");
     return `<figure><figcaption><b>${i + 1}.</b> ${esc(p.name || "Untitled")}</figcaption>${svg.outerHTML}`
@@ -2451,6 +2558,44 @@ function printBook(){
   const win = window.open(url, "_blank");
   if (!win) toast("The browser blocked the print window — allow pop-ups for this page");
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/* ─── start screen: the first open, and on request ───────────────────── */
+const LS_WELCOMED = "chalktalk.designer.welcomed";
+const FEATURED = ["mesh_concept", "four_verticals", "power_right", "inside_zone",
+                  "fade_corner", "counter_trey"];
+let bootedFresh = false;
+const welcomeOpen = () => !$("welcome").hidden;
+function welcomed(){ try { return localStorage.getItem(LS_WELCOMED) === "1"; } catch(e){ return false; } }
+
+function showWelcome(){
+  closePop();
+  const grid = $("welcomeGrid"); grid.innerHTML = "";
+  const keys = FEATURED.filter(k => CATALOG.plays[k]);
+  for (const k of Object.keys(CATALOG.plays)) if (keys.length < 4 && !keys.includes(k)) keys.push(k);
+  for (const k of keys.slice(0, 4)){
+    const p = CATALOG.plays[k];
+    grid.appendChild(pick("wtile",
+      playThumb(p) + `<span class="nm">${esc(p.name)}</span><span class="sub">${esc(p.formation.name)}</span>`,
+      () => { dismissWelcome(); openPlay(clone(p)); }, p.description || p.name));
+  }
+  $("welcomeCount").textContent = Object.keys(CATALOG.plays).length;
+  $("welcome").hidden = false;
+  $("canvas").classList.add("welcoming");
+  const first = grid.querySelector("button");
+  if (first) first.focus({preventScroll:true});
+}
+function dismissWelcome(){
+  if (!welcomeOpen()) return;
+  $("welcome").hidden = true;
+  $("canvas").classList.remove("welcoming");
+  try { localStorage.setItem(LS_WELCOMED, "1"); } catch(e){}
+}
+
+async function openFile(file){
+  if (!file) return;
+  try { openAny(JSON.parse(await file.text())); }
+  catch(err){ toast("That file isn't a play or a playbook"); }
 }
 
 /* ─── boot ──────────────────────────────────────────────────────────────── */
@@ -2512,6 +2657,8 @@ function commands(){
   add("File", "Save playbook (.json)", () => download(slug(book.name) + ".json", bookJson()));
   add("File", "Print playbook", printBook);
   add("File", "Restore the previous working copy", restorePrevious);
+  add("File", "Open a file", () => $("fileInput").click());
+  add("Help", "Show the start screen", showWelcome);
   add("File", "Download SVG", () => download(slug(play.name) + ".svg", exportSvg(), "image/svg+xml"));
   add("File", "Download PNG", () => exportPng(2));
   add("File", "View JSON", () => openIo("JSON", playJson()));
@@ -2651,6 +2798,22 @@ function boot(){
   $("btnNewPlay").onclick = newPagePlay;
   $("btnBookLib").onclick = () => openPop("library");
   $("btnUndelete").onclick = undeletePlay;
+  $("welcomeLib").onclick = () => { dismissWelcome(); openPop("library"); };
+  $("welcomeFile").onclick = () => { dismissWelcome(); $("fileInput").click(); };
+  $("welcomeBlank").onclick = () => { dismissWelcome();
+    toast("Pick a player, then click the field to draw a route"); };
+  $("ioFile").onclick = () => { $("ioDialog").close(); $("fileInput").click(); };
+  $("fileInput").onchange = e => { const f = e.target.files && e.target.files[0];
+    openFile(f); e.target.value = ""; };
+  // Drop a .json anywhere to open it. Row drags in the playbook carry text, not files.
+  window.addEventListener("dragover", e => {
+    if (e.dataTransfer && [...e.dataTransfer.types].includes("Files")) e.preventDefault();
+  });
+  window.addEventListener("drop", e => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    e.preventDefault(); dismissWelcome(); openFile(f);
+  });
   $("bookName").oninput = e => { book.name = e.target.value; save(); renderBook(); };
   $("bookTeam").oninput = e => { book.team = e.target.value || null; save(); };
   $("bookSeason").oninput = e => { const y = parseInt(e.target.value, 10); book.season = Number.isFinite(y) ? y : null; save(); };
@@ -2663,7 +2826,8 @@ function boot(){
   for (const b of $("rail").querySelectorAll("button[data-pop]"))
     b.onclick = () => openPop(b.dataset.pop);
   document.addEventListener("pointerdown", e => {
-    if (!e.target.closest("#pop, #rail, #btnBookLib")) closePop();
+    if (!e.target.closest("#pop, #rail, #btnBookLib, #welcome")) closePop();
+    if (!e.target.closest("#welcome")) dismissWelcome();
     if (!e.target.closest(".menu-wrap")) $("exportMenu").hidden = true;
   });
 
@@ -2695,6 +2859,7 @@ function boot(){
     else if (e.key === "["){ gotoPlay(bookIndex - 1); }
     else if (e.key === "]"){ gotoPlay(bookIndex + 1); }
     else if (e.key === "Escape"){
+      if (welcomeOpen()) return dismissWelcome();
       if (pop) return closePop();
       if (!$("exportMenu").hidden) return ($("exportMenu").hidden = true);
       sel = null; selDef = null; selWp = -1; renderAll();
@@ -2717,6 +2882,7 @@ function boot(){
   try { setSheet(localStorage.getItem(LS_SHEET) === "1", true); } catch(e){}
   try { setBook(localStorage.getItem(LS_BOOKPANEL) === "1" || (INITIAL_BOOK && book.plays.length > 1), true); } catch(e){}
   renderAll();
+  if (bootedFresh && !welcomed()) showWelcome();
 }
 
 function openIo(title, text){
