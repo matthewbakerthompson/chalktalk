@@ -11,9 +11,13 @@ from .defense import (DefensePlayer, DefensePosition, DefensiveFormation,
                       DL_POSITIONS, LB_POSITIONS, DB_POSITIONS)
 from .situation import Situation, Hash, Tempo, FieldZone, Distance
 from .field import Level, FieldSpec, field_for
-from .play import Play, PlayType, Playbook
+from .play import Play, PlayType, Playbook, play_slug
+from .gameplan import (GamePlan, Role, Mode, When, PlanSection, CallSystem,
+                       CallMethod, DriveState, Outcome, Snap)
 
 __all__ = [
+    "GamePlan", "Role", "Mode", "When", "PlanSection", "CallSystem",
+    "CallMethod", "DriveState", "Outcome", "Snap", "play_slug",
     "Point",
     "Player", "Position", "OL_POSITIONS", "SKILL_POSITIONS",
     "Route", "RouteType",

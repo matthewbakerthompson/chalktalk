@@ -21,6 +21,74 @@
 - The designer's formation picker follows the same rules and no longer drops
   the quarterback's plan. A node test holds it to the Python.
 
+## 0.8.0
+
+**The game plan.** Plays tagged with their jobs, a drive planner to rehearse
+with during the week, three coded ways to get the call in, and a designer that
+works on a phone.
+
+### Game plan
+- Plays carry a series, a role in it (base, complement, constraint,
+  play-action, shot, trick, answer), the tell that calls for them, a line word
+  and a difficulty override. `Playbook.game_plan` keeps the week's plan with
+  the book: the level, what the team runs, the call-sheet sections, the
+  opening script, how calls get in, and the drive log.
+- Every play in a book has a stable id. Books saved before ids existed get them
+  on load, in Python and in the designer, and in the same order.
+- `chalktalk.planner` sorts the book into sections (down and distance, field
+  zones, two- and four-minute) and checks the plan. It flags a constraint with no
+  base play, a play above the team's level, no opening script, 3rd and short
+  with no run, and too many board symbols to learn.
+
+### Drive planner
+- The Drive tab (`D`) rehearses a drive: set the situation, read the next three
+  calls with every point explained, call one, tap what happened. Each call
+  says what follows a gain and what follows no gain. The script comes first;
+  a constraint waits until its base play has been shown; a tell the defense
+  showed brings up its answer; a trick is used once; and a play that worked
+  gets another look.
+- The log marks each snap on or off schedule. The bar depends on the level:
+  high school 40/50/100, college 50/70/100, NFL 45/60/100 (percent of the
+  distance on 1st, 2nd, and 3rd and 4th down).
+- Difficulty: an additive score from what a play asks of the players (motion,
+  reads, progression, pullers, screen timing, tags, alerts, checks at the line),
+  with tiers Basic 0-3, Standard 4-7 and Advanced 8+. The planner takes a point
+  off for every point a play scores above what the team runs, and a tier the
+  coach sets counts as repped.
+- Print drive cards (the first calls from six common starts), the staff game
+  plan, the QB card and sign boards.
+
+### Calling the plays
+- `chalktalk.codes`, twinned in the designer: everything comes from a key
+  through HMAC-SHA256, so matching copies print on any machine with a shared
+  fingerprint. The key is never saved in the book, the plan or a printout.
+- Wristband numbers: fresh cards every half (or quarter, or game), extra codes
+  for the top calls, dead codes, and no code keeps its play from one card to
+  the next.
+- Line calls: a code word per play for the game, a live colour that changes
+  every half ("Blue... Tiger": only the live colour's call is real), dummy
+  words, and burned words that become decoys.
+- Sign boards: two or four symbols a board with one live cell that changes
+  every half, decoys from the same symbols, and one rack for the whole game.
+  Eight outlined shapes in five colours that stay distinct for colour-blind
+  players. Prints the rack, the players' key and the signaler's sheet, with how
+  far the boards read.
+
+### On a phone
+- The tools move to a tab bar, and each opens as a sheet from the bottom of
+  the screen. The playbook, the play sheet and the drive planner take the
+  screen, and arrows beside the name turn pages. Under the diagram are the
+  description, the reads, each player's coaching point and the tags.
+- Tap to draw, drag to move, double-tap to delete a handle, and pinch to zoom
+  in on the line. On its side the phone gives the field the height. Hints say
+  tap where a mouse would click.
+- Exports and paper made on a phone are drawn at desk size.
+
+### Fixed
+- The game plan's title no longer names the opponent twice ("Wk 3 vs Central
+  vs Central").
+- Escape closes an open dialog in browsers that don't do it themselves.
+
 ## 0.7.0
 
 **The designer goes to the sideline.** An installable web app that opens with

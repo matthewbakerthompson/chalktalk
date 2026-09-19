@@ -1,7 +1,8 @@
 from __future__ import annotations
+import re
 from enum import Enum
 from typing import Optional, TYPE_CHECKING  # TYPE_CHECKING used for SVGRenderer
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from .block import Block
 from .formation import Formation
 from .qb import QBPlan
@@ -10,6 +11,7 @@ from .player import Player
 from .route import Route
 from .defense import DefensiveFormation
 from .situation import Situation, Tempo
+from .gameplan import GamePlan, Role
 
 if TYPE_CHECKING:
     from ..renderer.svg import SVGRenderer
@@ -42,6 +44,14 @@ class Play(BaseModel):
     situation: Optional[Situation] = None    # when this play is meant to be called
     install_day: Optional[int] = None        # install/teaching progression day
     call_number: Optional[int] = None        # wristband / call-sheet number
+
+    # ── Game plan ─────────────────────────────────────────────────────────────
+    id: Optional[str] = None                 # stable identity inside a book
+    series: Optional[str] = None             # the series it belongs to: "Inside Zone"
+    role: Optional[Role] = None              # its job there: base, constraint, ...
+    tell: Optional[str] = None               # what the defense does that calls for it
+    word: Optional[str] = None               # the team's one-word call for it
+    difficulty: Optional[int] = None         # coach's override: 1 Basic .. 3 Advanced
 
     # ── Rendering ─────────────────────────────────────────────────────────────
 
@@ -340,14 +350,55 @@ def _carry(prev: Assignment, player: Player, on_field: set[str]) -> Assignment:
     return prev.model_copy(update=updates)
 
 
+def play_slug(name: str) -> str:
+    """The id a play gets from its name. The designer uses the same rule."""
+    return re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-") or "play"
+
+
 class Playbook(BaseModel):
     name: str
     team: Optional[str] = None
     season: Optional[int] = None
     plays: list[Play] = []
+    game_plan: Optional[GamePlan] = None     # the week's plan, kept with the book
+
+    @model_validator(mode="after")
+    def _every_play_has_an_id(self) -> "Playbook":
+        # A plan, a log and a code sheet point at plays by id, so a book built
+        # or loaded without them (every book saved before ids existed) gets
+        # them here, the way the designer gives them on load.
+        ids = [p.id for p in self.plays]
+        if not all(ids) or len(set(ids)) < len(ids):
+            self.plays = self.with_ids().plays
+        return self
+
+    def with_ids(self) -> "Playbook":
+        """
+        Give every play a unique id, keeping the ones it has. New ids come
+        from the name (`mesh-concept`, then `mesh-concept-2`), in book order.
+        """
+        taken = {p.id for p in self.plays if p.id}
+        seen: set[str] = set()
+        plays = []
+        for p in self.plays:
+            if p.id and p.id not in seen:
+                seen.add(p.id)
+                plays.append(p)
+                continue
+            base, n = play_slug(p.name), 1
+            new = base
+            while new in taken or new in seen:
+                n += 1
+                new = f"{base}-{n}"
+            seen.add(new)
+            plays.append(p.model_copy(update={"id": new}))
+        return self.model_copy(update={"plays": plays})
+
+    def play(self, play_id: str) -> Optional[Play]:
+        return next((p for p in self.plays if p.id == play_id), None)
 
     def add(self, *plays: Play) -> "Playbook":
-        return self.model_copy(update={"plays": [*self.plays, *plays]})
+        return self.model_copy(update={"plays": [*self.plays, *plays]}).with_ids()
 
     def get(self, name: str) -> Optional[Play]:
         """Find a play by exact name, then by case-insensitive substring."""
