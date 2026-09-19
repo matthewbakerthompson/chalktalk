@@ -110,7 +110,9 @@ LAYERS: tuple[str, ...] = ("motion", "blocks", "qb", "routes", "reads",
                            "defense", "coverage", "zones", "title")
 
 #: The typeface every renderer sets — system sans, so nothing is fetched.
-FONT = "Inter,'Segoe UI',Helvetica,Arial,sans-serif"
+# DIN: the lettering of signs and scoreboards, from fonts the platforms ship
+# (Bahnschrift on Windows, DIN Alternate on Apple). Nothing is embedded.
+FONT = "Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif"
 
 
 def theme_for(theme: Union[Theme, str, None]) -> Theme:

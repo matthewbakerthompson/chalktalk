@@ -51,6 +51,7 @@ class Play(BaseModel):
     tell: Optional[str] = None               # what the defense does that calls for it
     word: Optional[str] = None               # the team's one-word call for it
     difficulty: Optional[int] = None         # coach's override: 1 Basic .. 3 Advanced
+    favorite: bool = False                   # one of the coach's go-to calls
 
     # ── Rendering ─────────────────────────────────────────────────────────────
 

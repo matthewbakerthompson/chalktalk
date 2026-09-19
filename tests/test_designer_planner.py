@@ -32,6 +32,7 @@ def tag(play, **kw):
 
 
 def _book(**plan) -> Playbook:
+    plan = {"starters": ["power-right", "stick"], **plan}
     return Playbook(name="Wk 3", game_plan=GamePlan(**plan), plays=[
         tag(running.inside_zone(), series="Zone", role=Role.BASE,
             situation=S.Situation(label="Openers")),
@@ -42,7 +43,7 @@ def _book(**plan) -> Playbook:
         tag(running.power_right(), situation=S.Situation(down=3, distance=2)),
         tag(passing.four_verticals(), series="Zone", role=Role.SHOT, difficulty=3,
             situation=S.Situation(down=3, distance=9)),
-        tag(passing.stick(), situation=S.Situation(down=3, distance=5, yard_line=15)),
+        tag(passing.stick(), favorite=True, situation=S.Situation(down=3, distance=5, yard_line=15)),
         tag(passing.smash(), series="Zone", role=Role.TRICK),
         tag(passing.mesh_concept(), situation=S.Situation(label="Two Minute")),
     ]).with_ids()
@@ -82,6 +83,8 @@ def _log(book):
 
 STATES = [
     DriveState(),
+    DriveState(drive=2, yard_line=60),                 # a later drive's first snap: the starters
+    DriveState(down=2, distance=5, yard_line=40, snap=1),
     DriveState(down=2, distance=6, yard_line=71, hash_mark=Hash.LEFT),
     DriveState(down=3, distance=2, yard_line=45),
     DriveState(down=3, distance=9, yard_line=30),

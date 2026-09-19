@@ -518,14 +518,18 @@ Two jobs, two places in the app: **Plan** is the week, **Game** is game day.
 3. **Situations**: a grid of plays against call-sheet sections. Tick where each
    play goes. A play can go in several places, and a play you add later lands
    in Base.
-4. **Openers**: the opening script, in order.
+4. **Openers**: the opening script, in order, and the **drive starters**, your
+   go-to first calls for each new drive once the script is done. Star a play
+   (★ beside its name) to make it a **favorite**. The planner lifts favorites
+   wherever they fit, and lists them first when you pick.
 5. **Drive scripts**: drive patterns scripted in the week. A script covers a
    set of downs: the 1st-down call, the 2nd-down call if it stays on schedule
    and if it doesn't, then 3rd down under each. Every slot shows where it will
    be called ("2nd & 4, Own 31") and lists the book in the planner's order for
    that spot, reading the calls above it as the drive so far. **Fill empty calls
-   from the planner** drafts the rest. Start a script at the own 25, backed up,
-   midfield, the red zone, goal to go or in two-minute.
+   from the planner** drafts the rest. A script can start anywhere from backed
+   up on the 3 to the goal line, after a turnover, in two-minute, at the end of
+   the half or in four-minute.
 6. **Calling**: how calls get in (below).
 7. **Check and print**: what a coordinator would flag, and the paper.
 

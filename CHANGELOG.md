@@ -40,6 +40,12 @@ phone.
   - 3rd and short with no run;
   - more board symbols than players can learn.
 - A staff's own call sheet catches a play added later in Base.
+- **Favorites and drive starters.** Star a play (★ beside its name) and the
+  planner gives it +2 wherever it fits. Drive starters (`GamePlan.starters`)
+  are the go-to first calls of a drive: once the opening script is done they
+  get +4 on each drive's first snap.
+- Scripts start from any of 13 spots, from backed up on the 3 to the goal line,
+  plus two-minute, end of half and four-minute.
 
 ### Game: game day
 - The **Game** panel (`D`) follows a drive script from each result: "From
@@ -114,6 +120,13 @@ phone.
 - The plan builder works on a phone. Its wide steps say they are easier on a
   tablet or a laptop, and printing points to a computer.
 - Exports and paper made on a phone are drawn at desk size.
+
+### Lettering
+- The designer, the diagrams and the paper letter in DIN, the type of signs
+  and scoreboards. The fonts come from what each platform already has:
+  Bahnschrift on Windows, DIN Alternate and DIN Condensed on Apple, and Roboto
+  Condensed on Android. Nothing is embedded or fetched. Titles, the situation
+  and the big numbers use the condensed cut.
 
 ### Fixed
 - The game plan's title no longer names the opponent twice.

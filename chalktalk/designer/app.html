@@ -46,7 +46,11 @@
   --ease:cubic-bezier(.2,.7,.2,1);
   --t:150ms var(--ease);
   --z-hud:2; --z-dock:3; --z-pop:20; --z-sheet:25; --z-toast:30;
-  --sans:"Inter",ui-sans-serif,system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  /* DIN, the lettering of signs and scoreboards, from fonts each platform ships:
+     Bahnschrift on Windows, DIN Alternate and DIN Condensed on Apple, Roboto
+     Condensed on Android. Nothing is embedded or fetched. */
+  --sans:Bahnschrift,"DIN Alternate","D-DIN","DIN Next LT Pro",Barlow,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --display:Bahnschrift,"DIN Condensed","D-DIN Condensed","Barlow Condensed","Roboto Condensed","Arial Narrow",sans-serif-condensed,sans-serif;
   --mono:ui-monospace,"Cascadia Code","SF Mono",Consolas,monospace;
 }
 *{box-sizing:border-box}
@@ -63,6 +67,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
 h1,h2,h3,p{margin:0}
 code{font-family:var(--mono);font-size:.92em;color:var(--ink-2)}
+.title,.brand,.sheet-head h2,.dlg-head h2,.welcome h2,.dsit-label,.dpts,.pstep h3,.dnode .dsitn,.ihead .who,.pnav,.rail button{font-family:var(--display);font-stretch:condensed;letter-spacing:.005em}
 
 /* ─── controls ──────────────────────────────────────────────────────── */
 button{
@@ -516,6 +521,11 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
    fingers pinch in for close work on the line. */
 #stage svg{touch-action:pinch-zoom}
 .pnav{display:none;align-items:center;gap:2px;flex:none;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.fav{flex:none;width:30px;height:30px;padding:0;color:var(--muted)}
+.fav svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linejoin:round}
+.fav.on{color:var(--accent)}
+.fav.on svg{fill:currentColor}
+.favmark{color:var(--accent);margin-right:3px}
 .pnav button{width:30px;height:30px;padding:0}
 .pnav button svg{width:14px;height:14px}
 .touch-only{display:none}
@@ -748,6 +758,8 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
               <div class="seg sm" id="playTypeSeg" role="group" aria-label="Play type"></div>
             </div>
           </div>
+          <button type="button" class="ghost icon fav" id="btnFav" aria-pressed="false" title="Favorite: one of your go-to calls">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"/></svg></button>
           <div class="pnav" id="playNav" hidden>
             <button class="ghost icon" id="btnPrevPlay" aria-label="Previous play">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -1079,8 +1091,11 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
 
       <section class="pstep" data-step="openers" hidden>
         <h3 class="first">Opening script</h3>
-        <p class="note pintro">The first calls of the game, in order. The drive planner calls them first.</p>
+        <p class="note pintro">The first calls of the game, in order. The Game panel calls them first.</p>
         <div id="planOpeners"></div>
+        <h3>Drive starters</h3>
+        <p class="note pintro">Your go-to first calls for a new drive. Once the opening script is done they come up on each drive's first snap; favorites (★) are listed first.</p>
+        <div id="planStarters"></div>
       </section>
 
       <section class="pstep" data-step="drives" hidden>
@@ -1194,7 +1209,7 @@ const FALLBACK_THEME = {
   def_assign:"#f0806a", zone_fill:"rgba(240,128,106,0.13)", zone_stroke:"rgba(240,128,106,0.35)",
   title:"#ffffff", subtitle:"rgba(255,255,255,0.62)", ball:"#c2703a",
 };
-const FONT = "Inter,'Segoe UI',Helvetica,Arial,sans-serif";
+const FONT = "Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif";
 const ZONE_SCALE = 0.7;
 const OL = new Set(["C","LG","RG","LT","RT"]);
 const DL = new Set(["DE","DT","NT"]);
@@ -2732,6 +2747,8 @@ function renderReads(){
 
 function renderTitle(){
   $("playName").value = play.name || "";
+  $("btnFav").classList.toggle("on", !!play.favorite);
+  $("btnFav").setAttribute("aria-pressed", String(!!play.favorite));
   $("formationName").value = play.formation.name || "";
   $("formationName").style.width = Math.min(30, Math.max(9, (play.formation.name || "").length + 1)) + "ch";
   $("personnel").value = play.formation.personnel || "";
@@ -3206,7 +3223,7 @@ function renderBook(){
     const bits = [p.formation.name, p.play_type === "rpo" ? "RPO" : p.play_type];
     if (p.install_day) bits.push(`day ${p.install_day}`);
     row.innerHTML = `<span class="num">${i + 1}</span>${playThumb(p)}`
-      + `<span class="pmeta"><span class="nm">${esc(p.name || "Untitled")}</span>`
+      + `<span class="pmeta"><span class="nm">${p.favorite ? '<span class="favmark" aria-label="favorite">★</span>' : ""}${esc(p.name || "Untitled")}</span>`
       + `<span class="sub">${esc(bits.filter(Boolean).join(" · "))}</span></span>`
       + `<span class="acts"><button type="button" data-act="dup" title="Duplicate" aria-label="Duplicate ${esc(p.name)}">`
       + `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/></svg></button>`
@@ -3940,6 +3957,11 @@ function planOpeners(b){
   if (plan.openers && plan.openers.length) return plan.openers.filter(i => ids.has(i));
   return b.plays.filter(p => p.situation && p.situation.label === PLANDATA().openers_label).map(p => p.id);
 }
+// planner.starters: the staff's go-to first calls of a drive.
+function planStarters(b){
+  const ids = new Set(b.plays.map(p => p.id));
+  return (planOf(b).starters || []).filter(i => ids.has(i));
+}
 // planner.numbers: the call order, openers first; a play's number is its place.
 function planCallOrder(b){
   const out = [];
@@ -4225,10 +4247,12 @@ function renderPlanSeries(){
   const series = [...new Set(book.plays.map(p => String(p.series || "").trim()).filter(Boolean))];
   const roles = PLANDATA().roles || [];
   box.innerHTML = `<datalist id="planSeriesList">${series.map(s => `<option value="${esc(s)}">`).join("")}</datalist>`
-    + `<div class="pscroll"><table class="ptable"><thead><tr><th></th><th>Play</th><th>Series</th><th>Role</th>`
+    + `<div class="pscroll"><table class="ptable"><thead><tr><th></th><th title="Favorite">★</th><th>Play</th><th>Series</th><th>Role</th>`
     + `<th>Tell <span class="sub">what calls for it</span></th><th>Difficulty</th></tr></thead><tbody>`
     + book.plays.map((p, i) => { const d = difficultyOf(p);
         return `<tr data-i="${i}"><td class="pth">${playThumb(p)}</td>`
+          + `<td><button type="button" class="ghost icon fav${p.favorite ? " on" : ""}" data-fav aria-pressed="${!!p.favorite}" aria-label="Favorite ${esc(p.name)}">`
+          + `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"/></svg></button></td>`
           + `<td><b>${esc(p.name)}</b><div class="sub">${esc(p.formation.name)} · ${esc(p.play_type)}</div></td>`
           + `<td><input data-f="series" list="planSeriesList" value="${esc(p.series || "")}" placeholder="—" aria-label="Series of ${esc(p.name)}"></td>`
           + `<td><select data-f="role" aria-label="Role of ${esc(p.name)}"><option value="">—</option>`
@@ -4239,6 +4263,11 @@ function renderPlanSeries(){
   box.querySelectorAll("[data-f]").forEach(inp => inp.onchange = e => {
     const p = book.plays[+inp.closest("tr").dataset.i];
     p[inp.dataset.f] = String(e.target.value).trim() || null;
+    planEdited(p);
+  });
+  box.querySelectorAll("[data-fav]").forEach(b => b.onclick = () => {
+    const p = book.plays[+b.closest("tr").dataset.i];
+    if (p.favorite) delete p.favorite; else p.favorite = true;
     planEdited(p);
   });
 }
@@ -4276,26 +4305,32 @@ function renderPlanSituations(){
   });
 }
 
-// Step 4: the opening script, in order.
-function renderPlanOpeners(){
-  const box = $("planOpeners");
-  const script = planOpeners(book), byId = Object.fromEntries(book.plays.map(p => [p.id, p]));
-  const rest = book.plays.filter(p => !script.includes(p.id));
-  box.innerHTML = (script.length ? `<ol class="pscript">${script.map((id, i) => `<li data-i="${i}"><span class="n">${i + 1}</span>`
-      + `<span class="nm">${esc(playCall(byId[id]))}</span>`
+// Step 4: the opening script, in order, and the drive starters.
+function playListEditor(box, list, save, empty, addLabel){
+  const byId = Object.fromEntries(book.plays.map(p => [p.id, p]));
+  const rest = book.plays.filter(p => !list.includes(p.id));
+  const star = p => p.favorite ? '<span class="favmark">★</span>' : "";
+  box.innerHTML = (list.length ? `<ol class="pscript">${list.map((id, i) => `<li data-i="${i}"><span class="n">${i + 1}</span>`
+      + `<span class="nm">${star(byId[id])}${esc(playCall(byId[id]))}</span>`
       + `<button type="button" data-act="up" aria-label="Earlier"${i === 0 ? " disabled" : ""}>↑</button>`
-      + `<button type="button" data-act="down" aria-label="Later"${i === script.length - 1 ? " disabled" : ""}>↓</button>`
+      + `<button type="button" data-act="down" aria-label="Later"${i === list.length - 1 ? " disabled" : ""}>↓</button>`
       + `<button type="button" data-act="del" aria-label="Take it out">×</button></li>`).join("")}</ol>`
-      : `<p class="note">No script yet. Add plays in the order you want to call them, or draft the plan in the first step.</p>`)
-    + `<h4>Add to the script</h4><div class="chips">${rest.map(p =>
-        `<button type="button" class="chip" data-add="${esc(p.id)}">${esc(p.name)}</button>`).join("")}</div>`;
-  const edit = fn => { const s = planOpeners(book).slice(); fn(s); gp().openers = s; planEdited(); };
+      : `<p class="note">${empty}</p>`)
+    + `<h4>${addLabel}</h4><div class="chips">${rest.slice().sort((x, y) => (!!y.favorite) - (!!x.favorite)).map(p =>
+        `<button type="button" class="chip" data-add="${esc(p.id)}">${star(p)}${esc(p.name)}</button>`).join("")}</div>`;
+  const edit = fn => { const s = list.slice(); fn(s); save(s); planEdited(); };
   box.querySelectorAll("[data-act]").forEach(b => b.onclick = () => {
     const i = +b.closest("li").dataset.i;
     edit(s => { if (b.dataset.act === "del") s.splice(i, 1);
                 else { const j = b.dataset.act === "up" ? i - 1 : i + 1; [s[i], s[j]] = [s[j], s[i]]; } });
   });
   box.querySelectorAll("[data-add]").forEach(b => b.onclick = () => edit(s => s.push(b.dataset.add)));
+}
+function renderPlanOpeners(){
+  playListEditor($("planOpeners"), planOpeners(book), s => { gp().openers = s; },
+    "No script yet. Add plays in the order you want to call them, or draft the plan in the first step.", "Add to the script");
+  playListEditor($("planStarters"), planStarters(book), s => { gp().starters = s; },
+    "No drive starters yet. They come up on the first snap of each drive once the script is done.", "Add a drive starter");
 }
 
 // Step 5: drive scripts, as a tree the coach fills.
@@ -4327,7 +4362,7 @@ function renderPlanDrives(){
   const list = $("planDriveList"), edit = $("planDriveEdit");
   const drives = gp().drives = gp().drives || [];
   planScript = Math.max(0, Math.min(planScript, drives.length - 1));
-  const starts = PLANDATA().card_starts || [];
+  const starts = PLANDATA().script_starts || PLANDATA().card_starts || [];
   list.innerHTML = drives.map((d, i) => `<button type="button" class="dlist-btn${i === planScript ? " on" : ""}" data-i="${i}">`
       + `<span class="nm">${esc(d.name)}</span><span class="sub">${esc(driveStateLabel(scriptStart(d)))}</span></button>`).join("")
     + `<select id="planNewScript" aria-label="Start a new drive script"><option value="">New script at…</option>`
@@ -4522,7 +4557,10 @@ function suggestCalls(b, state, log, k, withBranches){
   const special = state.down >= 3 || state.yard_line <= 20 || state.mode != null;
   const remaining = script.filter(id => !called.includes(id));
   const nextOpener = remaining.length && !special ? remaining[0] : null;
-  const candidates = b.plays.filter(p => fit[p.id] || p.id === nextOpener);
+  // A drive's first snap, with no opener leading: the drive starters come up.
+  const firstSnap = (state.snap || 0) === 0 && state.down === 1 && nextOpener === null;
+  const starting = new Set(firstSnap ? planStarters(b) : []);
+  const candidates = b.plays.filter(p => fit[p.id] || p.id === nextOpener || starting.has(p.id));
   const seenTells = {};
   log.forEach((s, i) => (s.tells || []).forEach(tell => {
     const key = tell.trim().toLowerCase();
@@ -4545,6 +4583,8 @@ function suggestCalls(b, state, log, k, withBranches){
     }
     // script
     if (p.id === nextOpener) add(6, `Next on the opening script (${script.indexOf(p.id) + 1} of ${script.length})`);
+    if (starting.has(p.id)) add(4, "A drive starter");
+    if (p.favorite) add(2, "One of your favorites");
     // series and tells
     const key = seriesKey(p);
     if (key && p.role){
@@ -5241,7 +5281,7 @@ function gamePlanHtml(b, codes, boards, lines){
   const table = (title, ids, sub) => ids.length ? `<div class="section"><h2>${esc(title)}</h2>${sub || ""}`
     + `<table><thead><tr><th>#</th><th>Call</th>${words ? "<th>Word</th>" : ""}${boards ? "<th>Board</th>" : ""}`
     + periods.map(p => `<th>${esc(p)}</th>`).join("") + `</tr></thead><tbody>`
-    + ids.map(id => { const p = byId[id]; return `<tr><td class="n">${num(id)}</td><td class="call">${esc(playCall(p))}`
+    + ids.map(id => { const p = byId[id]; return `<tr><td class="n">${num(id)}</td><td class="call">${p.favorite ? "★ " : ""}${esc(playCall(p))}`
         + (p.series || p.role ? `<div class="note">${esc([p.series, p.role ? ROLE_WORDS(p.role) : null].filter(Boolean).join(" · "))}</div>` : "")
         + `</td>${words ? `<td>${esc((wordOf ? wordOf[id] : p.word) || "—")}</td>` : ""}`
         + (boards ? `<td>${boards.symbols[unitOf(id)] ? symbolSvg(boards.symbols[unitOf(id)], 22) : ""}</td>` : "")
@@ -5259,6 +5299,7 @@ function gamePlanHtml(b, codes, boards, lines){
     `${cellMap(boards.cells, c)} ${esc(p)} <b>${esc(cellName(boards.cells, c))}</b>`).join(" · "));
   let body = live.length ? `<p class="note">${live.join("<br>")}</p>` : "";
   body += table("Openers", planOpeners(b), `<div class="note">The script, in order</div>`);
+  body += table("Drive starters", planStarters(b), `<div class="note">The first call of a new drive</div>`);
   for (const [section, ids] of planSections(b)) body += table(section.title, ids);
   const dead = (codes ? `<div class="section"><h2>Dead codes</h2>` + codes.cards.map(card =>
     `<div class="note">${esc(card.period)}: ${card.dead.join(" ")}</div>`).join("") + `</div>` : "")
@@ -5899,6 +5940,8 @@ function boot(){
   });
 
   window.addEventListener("resize", () => { fitScale(); renderStage(); renderPhoneCard(); });
+  $("btnFav").onclick = () => { play.favorite = !play.favorite || null; if (!play.favorite) delete play.favorite;
+    save(); renderAll(); toast(play.favorite ? "A favorite: the planner lifts it wherever it fits" : "No longer a favorite"); };
   $("btnPrevPlay").onclick = () => gotoPlay(bookIndex - 1);
   $("btnNextPlay").onclick = () => gotoPlay(bookIndex + 1);
   // A phone opens on the field; the panels are a tap away and would cover it.
