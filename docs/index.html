@@ -837,25 +837,51 @@ function newPlay(formationKey){
   };
 }
 
+/* mirrors chalktalk/models/play.py::Play.with_formation — every job goes
+   across by label, reads and the mesh drop anyone the new formation lacks,
+   and motion is kept on the same spot, re-run if it is a preset, else dropped */
+const SAME_SPOT = 1e-6;
+function formationSwap(p, formation){
+  const f = clone(formation);
+  const byLabel = {};
+  p.assignments.forEach(a => byLabel[a.player.label] = a);
+  const onField = new Set(f.players.map(q => q.label));
+  const assignments = f.players.map(q => {
+    const prev = byLabel[q.label];
+    if (!prev) return {
+      player: q, route: null,
+      block: OL.has(q.position) ? clone(CATALOG.blocks.BASE["1"]) : null,
+      qb: null, is_ball_carrier: false, motion_from: null, motion_type: null, note: null,
+    };
+    const a = {...clone(prev), player: q};
+    const moved = Math.abs(prev.player.x - q.x) > SAME_SPOT
+               || Math.abs(prev.player.y - q.y) > SAME_SPOT;
+    if (prev.motion_from && moved){
+      if (CATALOG.motions.includes(prev.motion_type)){
+        const [origin, snapPos] = motionGeometry(prev.motion_type, q.x, q.y);
+        q.x = snapPos[0]; q.y = snapPos[1];
+        a.motion_from = origin;
+      } else { a.motion_from = null; a.motion_type = null; }
+    }
+    if (a.qb){
+      a.qb.reads = (a.qb.reads || []).filter(l => onField.has(l));
+      if (!onField.has(a.qb.mesh_with)) a.qb.mesh_with = null;
+    }
+    return a;
+  });
+  return {
+    formation: {name: f.name, personnel: f.personnel,
+                players: assignments.map(a => clone(a.player)),
+                description: f.description ?? null},
+    assignments,
+  };
+}
+
 function setFormation(key){
   pushUndo();
-  const f = clone(CATALOG.formations[key]);
-  const byLabel = {};
-  play.assignments.forEach(a => byLabel[a.player.label] = a);
-  play.formation = {name: f.name, personnel: f.personnel, players: clone(f.players),
-                    description: f.description ?? null};
-  play.assignments = f.players.map(p => {
-    const prev = byLabel[p.label];
-    return {
-      player: p,
-      route: prev ? prev.route : null,
-      block: prev ? prev.block
-                  : (OL.has(p.position) ? clone(CATALOG.blocks.BASE["1"]) : null),
-      is_ball_carrier: prev ? prev.is_ball_carrier : false,
-      motion_from: null, motion_type: null,
-      note: prev ? prev.note : null,
-    };
-  });
+  const next = formationSwap(play, CATALOG.formations[key]);
+  play.formation = next.formation;
+  play.assignments = next.assignments;
   sel = null; selWp = -1; renderAll();
 }
 
