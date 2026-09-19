@@ -24,9 +24,12 @@ _CSS = """
 * { box-sizing: border-box; }
 body {
   margin: 0; padding: 18px 20px; background: var(--paper); color: var(--ink);
-  font: 13px/1.4 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font: 13px/1.4 Bahnschrift, "DIN Alternate", "D-DIN", Barlow, "Segoe UI", Roboto, Helvetica,
+        Arial, sans-serif;
 }
-h1 { font-size: 19px; margin: 0 0 2px; letter-spacing: -.01em; }
+h1, h2, .insert { font-family: Bahnschrift, "DIN Condensed", "Barlow Condensed",
+  "Roboto Condensed", "Arial Narrow", sans-serif; font-stretch: condensed; }
+h1 { font-size: 21px; margin: 0 0 2px; letter-spacing: 0; }
 h2 { font-size: 12px; margin: 0; text-transform: uppercase; letter-spacing: .09em; }
 .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
 header { border-bottom: 2px solid var(--ink); padding-bottom: 8px; margin-bottom: 14px;

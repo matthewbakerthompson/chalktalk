@@ -448,6 +448,38 @@ def test_the_draft_keeps_what_the_coach_set():
     assert P.openers(d.book) == P.openers(b)
 
 
+# ── favorites and drive starters ─────────────────────────────────────────────
+
+def test_a_favorite_is_lifted_wherever_it_fits():
+    b = book()
+    favs = Playbook(name="x", plays=[tag(p, favorite=True) if p.id == "mesh-concept" else p for p in b.plays],
+                    game_plan=b.game_plan)
+    state = DriveState(down=2, distance=8, yard_line=60, snap=1)
+    before = {s.play: s.points for s in P.suggest(b, state, k=20)}
+    after = {s.play: s for s in P.suggest(favs, state, k=20)}
+    assert after["mesh-concept"].points == before["mesh-concept"] + 2          # Base fits anywhere
+    assert any(r.text == "One of your favorites" for r in after["mesh-concept"].reasons)
+
+
+def test_drive_starters_come_up_on_a_drives_first_snap():
+    b = book()
+    plan = (b.game_plan or GamePlan()).model_copy(update={"starters": ["power-right"], "openers": []})
+    b = b.model_copy(update={"game_plan": plan,
+                             "plays": [tag(p, situation=None) if p.id != "power-right" else tag(p, situation=None)
+                                       for p in b.plays]})
+    first = {s.play: s for s in P.suggest(b, DriveState(drive=2, yard_line=60), k=20)}
+    assert "power-right" in first
+    assert any(r.text == "A drive starter" and r.points == 4 for r in first["power-right"].reasons)
+    later = {s.play: s for s in P.suggest(b, DriveState(drive=2, down=2, distance=6, yard_line=56, snap=1), k=20)}
+    assert not any(r.text == "A drive starter" for s in later.values() for r in s.reasons)
+    assert P.starters(b) == ["power-right"]
+
+
+def test_scripts_can_start_all_over_the_field():
+    assert len(P.SCRIPT_STARTS) >= 12
+    assert {st.mode for _, st in P.SCRIPT_STARTS} >= {None, Mode.TWO_MINUTE, Mode.FOUR_MINUTE}
+
+
 # ── drive scripts ────────────────────────────────────────────────────────────
 
 def test_a_script_fills_its_empty_calls_and_keeps_the_coachs():

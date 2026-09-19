@@ -22,6 +22,8 @@ The rules, in the order their reasons are listed:
     situation   the play is in a section that fits the down, distance and spot
     script      the next opener leads until the script is used or a special
                 situation (3rd down, red zone, two-minute) takes over
+    starters    on a drive's first snap, the staff's drive starters come up
+    favorites   the coach's go-to calls, wherever they fit
     series      constraints, play-action and shots wait for their base; the
                 play whose tell the defense just showed is lifted
     same look   a pass from a formation the defense has seen run
@@ -135,6 +137,12 @@ def openers(book: Playbook) -> list[str]:
         return [i for i in plan.openers if i in ids]
     return [p.id for p in book.plays
             if p.situation is not None and p.situation.label == OPENERS_LABEL]
+
+
+def starters(book: Playbook) -> list[str]:
+    """The staff's go-to first calls of a drive, once the opening script is done."""
+    ids = {p.id for p in book.plays}
+    return [i for i in plan_of(book).starters if i in ids]
 
 
 def numbers(book: Playbook) -> dict[str, int]:
@@ -435,8 +443,11 @@ def suggest(book: Playbook, state: DriveState, log: Optional[list[Snap]] = None,
     special = state.down >= 3 or state.yard_line <= 20 or state.mode is not None
     remaining = [pid for pid in script if pid not in called]
     next_opener = remaining[0] if remaining and not special else None
+    # A drive's first snap, with no opener leading: the drive starters come up.
+    first_snap = state.snap == 0 and state.down == 1 and next_opener is None
+    starting = set(starters(book)) if first_snap else set()
 
-    candidates = [p for p in book.plays if p.id in fit or p.id == next_opener]
+    candidates = [p for p in book.plays if p.id in fit or p.id == next_opener or p.id in starting]
     seen_tells: dict[str, int] = {}
     for n, s in enumerate(log, 1):
         for t in s.tells:
@@ -458,6 +469,10 @@ def suggest(book: Playbook, state: DriveState, log: Optional[list[Snap]] = None,
         # script
         if p.id == next_opener:
             add(6, f"Next on the opening script ({script.index(p.id) + 1} of {len(script)})")
+        if p.id in starting:
+            add(4, "A drive starter")
+        if p.favorite:
+            add(2, "One of your favorites")
 
         # series and tells
         key = _series_key(p)
@@ -672,6 +687,23 @@ DRIVE_CARD_STARTS: list[tuple[str, DriveState]] = [
     ("Red zone · opp 18", DriveState(yard_line=18)),
     ("Goal to go · opp 7", DriveState(distance=7, yard_line=7)),
     ("Two minute · own 30", DriveState(yard_line=70, mode=Mode.TWO_MINUTE)),
+]
+# Where a staff can start a scripted drive: the card starts and the rest of
+# the field, from coming out of the end zone to first and goal.
+SCRIPT_STARTS: list[tuple[str, DriveState]] = [
+    ("Drive starter · own 25", DriveState(yard_line=75)),
+    ("Backed up · own 3", DriveState(yard_line=97)),
+    ("Coming out · own 10", DriveState(yard_line=90)),
+    ("Own 40", DriveState(yard_line=60)),
+    ("Midfield", DriveState(yard_line=50)),
+    ("After a turnover · opp 35", DriveState(yard_line=35)),
+    ("Fringe · opp 30", DriveState(yard_line=30)),
+    ("Red zone · opp 18", DriveState(yard_line=18)),
+    ("Low red · opp 8", DriveState(distance=8, yard_line=8)),
+    ("Goal line · opp 2", DriveState(distance=2, yard_line=2)),
+    ("Two minute · own 30", DriveState(yard_line=70, mode=Mode.TWO_MINUTE)),
+    ("End of half · own 45", DriveState(yard_line=55, mode=Mode.TWO_MINUTE)),
+    ("Four minute · opp 45", DriveState(yard_line=45, mode=Mode.FOUR_MINUTE)),
 ]
 
 

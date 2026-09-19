@@ -249,6 +249,7 @@ class GamePlan(BaseModel):
     success: Optional[tuple[int, int, int]] = None  # None: the level's default
     sections: list[PlanSection] = []                 # empty: derived from the book
     openers: list[str] = []                          # empty: plays labelled "Openers"
+    starters: list[str] = []                         # go-to first calls of a drive
     drives: list[DriveScript] = []                   # drive patterns scripted in the week
     calls: CallSystem = CallSystem()
     log: list[Snap] = []

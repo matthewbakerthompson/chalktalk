@@ -130,6 +130,7 @@ def catalog() -> dict:
             "success_by_level": {k.value: list(v) for k, v in GP.SUCCESS_BY_LEVEL.items()},
             "kind_points": PL.KIND_POINTS,
             "card_starts": [[t, st.model_dump(mode="json")] for t, st in PL.DRIVE_CARD_STARTS],
+            "script_starts": [[t, st.model_dump(mode="json")] for t, st in PL.SCRIPT_STARTS],
             "roles": [r.value for r in GP.Role],
             "run_schemes": PL.RUN_SCHEMES, "draft_tags": PL.DRAFT_TAGS,
             "script_length": PL.SCRIPT_LENGTH,
