@@ -22,6 +22,22 @@ the numbers, the tendencies a scout would see, and what the staff has left.
   on, and the **Halftime sheet** prints it in two columns.
 - The designer carries a twin, held to Python by a test.
 
+### Variations
+- **Make variations** (the More menu, or the command palette) offers the alts
+  a coach reaches for first, each as a thumbnail: the play flipped, the slot
+  and the flanker in jet, orbit and across motion, and the same concept from
+  other formations with the same personnel. Tick the ones you want and they
+  land in the book as their own pages, built the way the Python adjustments
+  build them.
+
+### Fixed
+- **Flip mirrored the players but not their jobs.** A play flipped in the
+  designer kept every block path and the quarterback's footwork pointing the
+  old way, so a flipped Power had its guard pulling away from the play. Flip
+  now turns blocks (paths and targets) and the quarterback's plan over, the
+  way `Play.mirror()` always has, and eight catalog plays hold the two
+  together in a test.
+
 ## 0.10.0
 
 **Twenty-four more plays.** The catalog goes from 54 concepts to 78, each one

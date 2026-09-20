@@ -415,6 +415,10 @@ formation. Drop a play or playbook `.json` anywhere on the window to open it.
   vs Cover 2 can differ from vs Cover 3. Select the quarterback and **Set
   reads** to tap them on the field instead. The diagram numbers the reads for
   the coverage on it, in the designer, the SVG and the PDF alike.
+- **Make variations** (in **More**) offers the alts you reach for first: the
+  play flipped, the slot or the flanker in jet, orbit or across motion, and the
+  same concept from another formation with the same personnel. Pick from
+  thumbnails and they join the book as their own pages.
 - <kbd>Ctrl</kbd>+<kbd>K</kbd> opens a command palette: every concept,
   formation, look, coverage and scheme is two keystrokes away. <kbd>F</kbd>
   flips the play, <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.

@@ -233,6 +233,7 @@ svg *{-webkit-user-select:none;user-select:none}
 .card-pick .pers{font-size:11px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card-pick.on .pers{color:var(--accent)}
 .card-pick.none{justify-content:center;align-items:center;min-height:70px}
+#varyGrid .pthumb{width:100%;height:auto;display:block;border-radius:4px;margin-bottom:5px}
 .thumb{width:100%;height:auto;display:block;color:var(--ink-2);margin-bottom:5px;border-radius:4px;background:oklch(1 0 0 / .045)}
 .card-pick.on .thumb{color:var(--accent)}
 .thumb .los{stroke:currentColor;stroke-opacity:.35;stroke-width:1;stroke-dasharray:3 2}
@@ -795,6 +796,7 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
             <div class="card menu" id="exportMenu" role="menu" hidden>
               <button id="btnSaveAs" role="menuitem">Save as…</button>
+              <button id="btnVary" role="menuitem">Make variations…</button>
               <button id="btnSavePlay" role="menuitem">Save a copy of this play…</button>
               <button id="btnSvg" role="menuitem">Download SVG</button>
               <button id="btnPng" role="menuitem">Download PNG</button>
@@ -1047,6 +1049,24 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
   <div class="dlg-foot">
     <span class="note" id="printSummary"></span>
     <button class="primary" id="printGo">Print</button>
+  </div>
+</dialog>
+
+<dialog id="varyDialog" class="printdlg" aria-labelledby="varyTitle">
+  <div class="dlg-head">
+    <h2 id="varyTitle">Make variations</h2>
+    <button class="ghost icon" id="varyClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="dlg-body">
+    <p class="note" id="varyNote" style="margin:0 0 12px"></p>
+    <div class="cards" id="varyGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
+  </div>
+  <div class="dlg-foot">
+    <span class="note" id="varySum"></span>
+    <button type="button" id="varyCancel">Cancel</button>
+    <button type="button" class="primary" id="varyGo">Add to the book</button>
   </div>
 </dialog>
 
@@ -1493,17 +1513,46 @@ function applyScheme(name, direction){
   toast(`${name.replace(/_/g," ")} ${direction > 0 ? "right" : "left"}`);
 }
 
-function flipPlay(){
-  pushUndo();
+/* mirrors models/block.py::_mirror_label - a side in a target flips, a gap doesn't */
+function mirrorTarget(target){
+  if (!target) return target;
+  for (const [a, b] of [["Rt", "Lt"], ["Right", "Left"], ["playside", "playside"]]){
+    if (target.includes(a)) return target.split(a).join(b);
+    if (target.includes(b)) return target.split(b).join(a);
+  }
+  return target;
+}
+const mirrorPath = path => (path || []).map(pt => ({x: -pt.x, y: pt.y}));
+
+/* Play.mirror(): players, motion, blocks and the quarterback all turn over.
+   Routes don't: they are authored to the right and mirrored as they are drawn. */
+function mirroredPlay(src){
+  const play = clone(src);
   play.assignments.forEach(a => {
     a.player.x = -a.player.x;
     if (a.motion_from) a.motion_from = [-a.motion_from[0], a.motion_from[1]];
+    if (a.block){
+      a.block.path = mirrorPath(a.block.path);
+      a.block.target = mirrorTarget(a.block.target);
+    }
+    if (a.qb){
+      a.qb.direction = -a.qb.direction;
+      a.qb.path = mirrorPath(a.qb.path);
+      if (a.qb.mesh_at) a.qb.mesh_at = {x: -a.qb.mesh_at.x, y: a.qb.mesh_at.y};
+    }
   });
   if (play.defense) play.defense.players.forEach(d => d.x = -d.x);
   const swap = s => s && s.replace(/Right|Left|\bRt\b|\bLt\b/g,
       m => ({Right:"Left",Left:"Right",Rt:"Lt",Lt:"Rt"}[m]));
   play.formation.name = swap(play.formation.name);
   play.name = swap(play.name);
+  return play;
+}
+function flipPlay(){
+  pushUndo();
+  const q = mirroredPlay(play);
+  play.assignments = q.assignments; play.formation = q.formation;
+  play.name = q.name; play.defense = q.defense;
   syncFormation(); renderAll();
 }
 
@@ -5494,6 +5543,87 @@ function renderScout(){
   for (const b2 of box.querySelectorAll("[data-print]")) b2.onclick = () => openPrint(b2.dataset.print);
 }
 
+/* --- variations: the same concept from another look ----------------------
+   A play is a base and its alts. These are the alts a coach reaches for
+   first: the flip, the two widest receivers in motion, and the same concept
+   from a formation with the same personnel. Each one is built the way the
+   Python adjustments build it, and lands in the book as its own page. */
+function motionedPlay(src, label, kind){
+  const play = clone(src);
+  const a = play.assignments.find(x => x.player.label === label);
+  if (!a) return play;
+  const [origin, snapPos] = motionGeometry(kind, a.player.x, a.player.y);
+  a.player.x = snapPos[0]; a.player.y = snapPos[1];
+  a.motion_from = origin; a.motion_type = kind;
+  play.formation = Object.assign({}, play.formation, {players: play.assignments.map(x => x.player)});
+  play.adjustments = [...(play.adjustments || []), `${label} ${titleWords(kind)}`];
+  return play;
+}
+function reformedPlay(src, key){
+  const play = clone(src), next = formationSwap(play, CATALOG.formations[key]);
+  play.formation = next.formation; play.assignments = next.assignments;
+  play.adjustments = [...(play.adjustments || []), `from ${CATALOG.formations[key].name}`];
+  return play;
+}
+// Formations with the same personnel as this one: the same players, a new picture.
+function sameGrouping(p, limit){
+  const here = p.formation.personnel;
+  return Object.keys(CATALOG.formations)
+    .filter(k => CATALOG.formations[k].personnel === here && CATALOG.formations[k].name !== p.formation.name)
+    .slice(0, limit || 3);
+}
+function variationsFor(p){
+  const flipped = () => { const q = mirroredPlay(p);
+    q.adjustments = [...(q.adjustments || []), "Flip"];   // the way A.FLIP stamps it
+    return q; };
+  const out = [{key: "flip", label: "Flipped", make: flipped}];
+  // Who goes in motion: the slot first, then the tight end, then the flanker.
+  const rank = {H: 0, Z: 1, Y: 2, TE: 2, FB: 3, X: 4};
+  const movers = (p.assignments || []).map(a => a.player)
+    .filter(x => !OL.has(x.position) && x.position !== "QB" && !x.label.startsWith("RB"))
+    .sort((a, b) => (rank[a.position] ?? 5) - (rank[b.position] ?? 5) || Math.abs(b.x) - Math.abs(a.x))
+    .slice(0, 2);
+  for (const m of movers)
+    for (const kind of ["jet", "orbit", "across"])
+      out.push({key: `m:${m.label}:${kind}`, label: `${m.label} ${titleWords(kind)}`,
+                make: () => motionedPlay(p, m.label, kind)});
+  for (const key of sameGrouping(p, 3))
+    out.push({key: `f:${key}`, label: CATALOG.formations[key].name, make: () => reformedPlay(p, key)});
+  return out;
+}
+
+let varyPicked = new Set(), varyList = [];
+function openVary(){
+  commit();
+  varyList = variationsFor(play).map(v => Object.assign({}, v, {play: v.make()}));
+  varyPicked = new Set();
+  renderVary();
+  $("varyDialog").showModal();
+}
+function renderVary(){
+  $("varyNote").textContent = `${play.name}: pick the ones you want. Each lands in the book as its own page, `
+    + `and you can change it there.`;
+  const grid = $("varyGrid");
+  grid.innerHTML = "";
+  for (const v of varyList){
+    const b = pick("card-pick" + (varyPicked.has(v.key) ? " on" : ""),
+      `${playThumb(v.play)}<span class="nm">${esc(v.label)}</span>`
+      + `<span class="pers">${esc(v.play.formation.name)}</span>`,
+      () => { varyPicked.has(v.key) ? varyPicked.delete(v.key) : varyPicked.add(v.key); renderVary(); });
+    b.setAttribute("aria-pressed", String(varyPicked.has(v.key)));
+    grid.appendChild(b);
+  }
+  $("varySum").textContent = varyPicked.size ? `${varyPicked.size} picked` : "Nothing picked yet";
+  $("varyGo").disabled = !varyPicked.size;
+}
+function addVariations(){
+  const picked = varyList.filter(v => varyPicked.has(v.key));
+  if (!picked.length) return;
+  $("varyDialog").close();
+  for (const v of picked) addPlay(v.play);
+  toast(`${picked.length} ${picked.length === 1 ? "variation" : "variations"} added to the book`);
+}
+
 /* ─── files: the coach's own disk or drive ──────────────────────────────────
    Nothing leaves the device. The browser keeps a working copy so a closed tab
    loses nothing; the real copy is a file the coach saves wherever they keep
@@ -5791,6 +5921,7 @@ function commands(){
   add("Help", "Show the start screen", showWelcome);
   add("Plan", driveOpen ? "Close the drive planner" : "Open the drive planner", () => setDrive(!driveOpen), "D");
   add("Plan", "New drive", newDrive);
+  add("Play", "Make variations", () => openVary());
   add("Plan", "Build the game plan", () => openPlanner());
   add("Plan", "Script a drive", () => openPlanner("drives"));
   add("Plan", "Print drive cards", () => openPrint("drivecards"));
@@ -6022,6 +6153,10 @@ function boot(){
   const closeMenu = () => { $("exportMenu").hidden = true; };
   $("btnSaveAs").onclick = () => { closeMenu(); saveFile(true); };
   $("btnSavePlay").onclick = () => { closeMenu(); savePlayCopy(); };
+  $("btnVary").onclick = () => { closeMenu(); openVary(); };
+  $("varyClose").onclick = () => $("varyDialog").close();
+  $("varyCancel").onclick = () => $("varyDialog").close();
+  $("varyGo").onclick = addVariations;
   $("btnPaste").onclick = () => { closeMenu(); openIo("Paste a play or a playbook JSON", ""); };
   $("btnBook").onclick = () => setBook(!bookOpen);
   $("btnBookClose").onclick = () => setBook(false);

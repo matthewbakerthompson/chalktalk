@@ -229,3 +229,24 @@ def test_the_designer_swaps_formations_the_same_way(name, adjust, formation):
     swapped = Play.model_validate({**play.model_dump(mode="json"), **got})
     assert swapped.assignments == expected.assignments
     assert swapped.formation.players == expected.formation.players
+
+
+# ── Flipping ─────────────────────────────────────────────────────────
+
+FLIPPED = ["power_right", "counter_trey", "buck_sweep", "mesh_concept", "pa_boot",
+           "speed_option", "rb_slip", "bubble"]
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+@pytest.mark.parametrize("name", FLIPPED)
+def test_the_designer_flips_a_play_the_way_python_mirrors_it(name):
+    """Flip in the browser and Play.mirror() must agree, blocks and all: a
+    pulling guard has to come around the other way."""
+    play = _catalog.play_builders()[name]()
+    got = _js(Playbook(name="Flip", plays=[play]),
+              "renderAll = () => {}; play = normalizePlay(__book.plays[0]); flipPlay();"
+              " return {assignments: play.assignments, formation: play.formation};")
+    flipped = Play.model_validate({**play.model_dump(mode="json"), **got})
+    mirrored = play.mirror()
+    assert flipped.assignments == mirrored.assignments
+    assert flipped.formation.players == mirrored.formation.players
