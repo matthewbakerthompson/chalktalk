@@ -1,5 +1,5 @@
 """
-Red zone / goal line catalog — 8 plays.
+Red zone / goal line catalog — 10 plays.
 """
 from __future__ import annotations
 from typing import Optional
@@ -7,7 +7,8 @@ from typing import Optional
 from ..models.formation import Formation
 from ..models.play import Play, PlayType
 from ..builder import play as _b
-from ..templates import routes as R, formations as F, schemes as SC, qb as Q
+from ..templates import (routes as R, formations as F, schemes as SC, qb as Q,
+                         blocking as B)
 
 
 def fade_corner(formation: Optional[Formation] = None) -> Play:
@@ -172,5 +173,51 @@ def fade_slant(formation: Optional[Formation] = None) -> Play:
         .tag("red-zone", "fade", "slant", "quick-game")
         .describe("Fade outside, slant inside on same side. QB reads off cornerback: "
                   "press = throw fade; bail = throw slant.")
+        .build()
+    )
+
+
+def goal_line_leak(formation: Optional[Formation] = None) -> Play:
+    """Goal line play action - sell the dive, the backside tight end leaks out."""
+    f = formation or F.GOAL_LINE()
+    return (
+        _b(f).scheme(SC.gap_down(1), protection="GL Pass - sell the run")
+        .blocks(Y=B.DOWN(-1, target="DE"),
+                RB=B.PASS_SET(1))               # fakes, then takes the edge
+        .routes(
+            TE=R.FLAT(depth=3, width=5),        # blocks a count, then leaks
+            FB=R.FLAT(depth=2, width=5),        # fakes the lead, then the flat
+            X=R.FADE(depth=9),                  # clears the corner off the leak
+        )
+        .qb(Q.PLAY_ACTION(1, back="RB", steps=3, reads=["TE", "FB", "X"],
+                          rule="Sell the dive, then find the tight end behind the flow"))
+        .name("Goal Line Leak")
+        .play_type(PlayType.PASS)
+        .tag("goal-line", "short-yardage", "play-action", "leak")
+        .describe("A goal-line dive fake pulls the defense to the right while the "
+                  "backside tight end blocks for a count and leaks into the flat "
+                  "they left.")
+        .build()
+    )
+
+
+def fade_out(formation: Optional[Formation] = None) -> Play:
+    """Fade + out - a high-low on the corner from the same side."""
+    f = formation or F.RED_ZONE_TRIPS_RIGHT()
+    return (
+        _b(f).pass_pro(SC.max_protect(1, extras=("RB",)), "Max - 6 Man")
+        .routes(
+            Z=R.FADE(depth=10),
+            H=R.OUT(stem=4, depth=6),
+            Y=R.SEAM(depth=8),
+            X=R.SLANT(stem=1.5, depth=5),
+        )
+        .qb(Q.GUN(3, reads=["Z", "H", "X"],
+                  rule="Corner squats on the out, throw the fade; he bails, take the out"))
+        .name("Fade / Out")
+        .play_type(PlayType.PASS)
+        .tag("red-zone", "fade", "end-zone", "hi-lo")
+        .describe("The outside receiver fades to the back pylon over the slot's quick "
+                  "out, a high-low on the corner that leaves him wrong either way.")
         .build()
     )

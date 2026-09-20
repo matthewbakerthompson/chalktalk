@@ -17,7 +17,8 @@ from typing import Optional
 from ..builder import play as _b
 from ..models.formation import Formation
 from ..models.play import Play, PlayType
-from ..templates import formations as F, qb as Q, routes as R, schemes as SC
+from ..templates import (blocking as B, formations as F, qb as Q, routes as R,
+                         schemes as SC)
 
 
 def bubble(formation: Optional[Formation] = None) -> Play:
@@ -115,4 +116,46 @@ def arrow(formation: Optional[Formation] = None) -> Play:
     )
 
 
-__all__ = ["bubble", "glance", "slant", "pop", "arrow"]
+def zone_stick(formation: Optional[Formation] = None) -> Play:
+    """Zone with stick-flat behind it - read the hook defender."""
+    f = formation or F.SHOTGUN_TRIPS_RIGHT()
+    return (
+        _b(f).scheme(SC.inside_zone(1), protection="Run action")
+        .block("X")
+        .routes(Y=R.HITCH(depth=5), H=R.FLAT(depth=2, width=6), Z=R.FLY(depth=16),
+                RB=R.RUN(dx=1.5, dy=6))
+        .bc("RB")
+        .qb(Q.MESH(1, back="RB", key="the hook defender", reads=["Y", "H"],
+                   rule="He fits the run, throw the stick; he walls it, hand it off"))
+        .name("RPO Stick")
+        .play_type(PlayType.RPO)
+        .tag("rpo", "stick", "quick")
+        .describe("Inside zone with the stick and flat behind it, reading the hook "
+                  "defender who has to either fit the run or wall the tight end.")
+        .build()
+    )
+
+
+def now(formation: Optional[Formation] = None) -> Play:
+    """Zone to the trips side, a now screen to the single receiver."""
+    f = formation or F.GUN_TRIPS_TE_RIGHT()
+    return (
+        _b(f).scheme(SC.inside_zone(1), protection="Run action")
+        .blocks(Y=B.BASE(target="DE"), H=B.BASE(target="N"), Z=B.BASE(target="CB"))
+        .routes(
+            X=R.SCREEN(depth=-1.0, width=1.5),
+            RB=R.RUN(dx=-5, dy=7),     # left-side back: mirrors to the right
+        )
+        .bc("RB")
+        .qb(Q.MESH(1, back="RB", key="the boundary corner", reads=["X"],
+                   rule="Corner off at seven or more, throw the now; pressed, give it"))
+        .name("RPO Now")
+        .play_type(PlayType.RPO)
+        .tag("rpo", "now", "quick")
+        .describe("Inside zone to the trips side with a now screen to the single "
+                  "receiver, thrown whenever the backside corner gives him a cushion.")
+        .build()
+    )
+
+
+__all__ = ["bubble", "glance", "slant", "pop", "arrow", "zone_stick", "now"]

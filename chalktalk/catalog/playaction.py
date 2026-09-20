@@ -174,5 +174,33 @@ def pa_dagger(formation: Optional[Formation] = None) -> Play:
     )
 
 
+def pa_post_wheel(formation: Optional[Formation] = None) -> Play:
+    """Post-wheel off power - the guard pulls, the fullback wheels behind the fake."""
+    f = formation or F.I_FORM_STRONG_RIGHT()
+    return (
+        _b(f).scheme(SC.power(1, kicker=None), protection="Power Pass Rt")
+        .blocks(
+            LG=B.KICK(1, target="EMLOS"),     # pulls like power, stays at the line
+            Y=B.DOWN(-1, target="DE"),
+            RB=B.PASS_SET(-1),                # fakes, then fills for the guard
+        )
+        .routes(
+            Z=R.POST(stem=12, depth=22),
+            FB=R.WHEEL(flat_width=9, flat_depth=1, total_depth=18),
+            X=R.DIG(stem=15, cross=12),
+        )
+        .qb(Q.PLAY_ACTION(1, back="RB", steps=5, reads=["Z", "FB", "X"],
+                          rule="Post if the safety bites; wheel if the corner "
+                               "carries the post"))
+        .name("PA Post Wheel")
+        .play_type(PlayType.PASS)
+        .tag("play-action", "post-wheel", "shot", "explosive")
+        .describe("Power action with the guard pulling brings the linebackers up, then "
+                  "the flanker's post clears the corner for the fullback wheeling up "
+                  "the sideline behind them.")
+        .build()
+    )
+
+
 __all__ = ["pa_boot", "pa_cross", "pa_shot", "pa_waggle", "naked",
-           "pa_keeper", "pa_dagger"]
+           "pa_keeper", "pa_dagger", "pa_post_wheel"]

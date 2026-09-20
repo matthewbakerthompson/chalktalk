@@ -172,4 +172,64 @@ def te_leak(formation: Optional[Formation] = None) -> Play:
     )
 
 
-__all__ = ["rb_slip", "tunnel", "bubble_screen", "jailbreak", "middle", "te_leak"]
+def swing_screen(formation: Optional[Formation] = None) -> Play:
+    """Swing screen - the back swings wide and two linemen release to lead him."""
+    f = formation or F.GUN_DOUBLES_LEFT()
+    return (
+        _b(f).pass_pro(SC.big_on_big(), "Swing Screen Rt")
+        .blocks(
+            RT=B.PULL(1, target="S", width=6.0),     # release flat to the edge
+            RG=B.PULL(1, target="M", width=4.5),
+            Z=B.BASE(target="CB"),
+            Y=B.CLIMB(1, target="SS"),
+        )
+        .routes(
+            RB=R.SWING(width=7, depth=2),
+            X=R.FLY(depth=18),
+            H=R.SEAM(depth=16),
+        )
+        .bc("RB")
+        .qb(Q.GUN(1, reads=["RB"],
+                  rule="Catch it and throw it now; lead him toward the sideline"))
+        .name("Swing Screen")
+        .play_type(PlayType.SCREEN)
+        .tag("screen", "swing", "rb-screen", "quick-screen")
+        .describe("The back swings wide on the snap and catches it behind the right "
+                  "tackle and guard, who release flat to lead him while the receivers "
+                  "block the corner and safety.")
+        .build()
+    )
+
+
+def double_screen(formation: Optional[Formation] = None) -> Play:
+    """Double screen - a screen set up on each side; throw to the one they left."""
+    f = formation or F.GUN_DOUBLES()
+    return (
+        _b(f).pass_pro(SC.big_on_big(), "Double Screen")
+        .blocks(
+            LT=B.CLIMB(-1, target="W"),              # release for the back
+            LG=B.CLIMB(-1, target="M"),
+            RT=B.CLIMB(1, target="N"),               # release for the flanker
+            X=B.BASE(target="CB"),
+            H=B.BASE(target="SS"),
+            Y=B.CLIMB(1, target="CB"),
+        )
+        .routes(
+            RB=R.SWING(width=6, depth=1),            # slip screen to the left
+            Z=R.SCREEN(depth=-1.0, width=-5.0),      # tunnel screen to the right
+        )
+        .bc("RB")
+        .qb(Q.SCREEN(-1, back="RB", reads=["RB", "Z"],
+                     rule="Sell the drop, then throw the screen they did not flow to"))
+        .name("Double Screen")
+        .play_type(PlayType.SCREEN)
+        .tag("screen", "double-screen", "rb-screen", "wr-screen")
+        .describe("A slip screen to the back on one side and a tunnel screen to the "
+                  "flanker on the other, so the quarterback throws to whichever side "
+                  "the defense did not flow to.")
+        .build()
+    )
+
+
+__all__ = ["rb_slip", "tunnel", "bubble_screen", "jailbreak", "middle", "te_leak",
+           "swing_screen", "double_screen"]
