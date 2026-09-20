@@ -448,6 +448,43 @@ def test_the_draft_keeps_what_the_coach_set():
     assert P.openers(d.book) == P.openers(b)
 
 
+# ── the look on the field ────────────────────────────────────────────────────
+
+def test_a_play_written_to_beat_the_coverage_comes_up():
+    from chalktalk.catalog import all_plays
+    plays = all_plays()
+    b = Playbook(name="x", plays=[plays["smash"], plays["inside_zone"], plays["dagger"]])
+    state = DriveState(down=3, distance=8, yard_line=40)
+    plain = {s.play: s.points for s in P.suggest(b, state, k=5)}
+    vs2 = {s.play: s for s in P.suggest(b, state.model_copy(update={"look": "Cover 2"}), k=5)}
+    assert vs2["smash"].points == plain["smash"] + 3       # cover-2-beater
+    assert any(r.text == "Beats Cover 2" for r in vs2["smash"].reasons)
+    assert vs2["inside-zone"].points == plain["inside-zone"]
+    vs3 = {s.play: s for s in P.suggest(b, state.model_copy(update={"look": "cover 3"}), k=5)}
+    assert vs3["smash"].points == plain["smash"]           # smash is not a Cover 3 answer
+    assert P.beats(plays["dagger"], "Cover 4") and not P.beats(plays["dagger"], "Cover 1")
+
+
+def test_an_order_of_its_own_against_the_look_counts_too():
+    p = tag(passing.mesh_concept(), id="mesh").progression("Z", "H").progression("H", "Z", vs="Cover 3")
+    b = Playbook(name="x", plays=[p])
+    vs3 = P.suggest(b, DriveState(look="Cover 3"), k=1)[0]
+    vs2 = P.suggest(b, DriveState(look="Cover 2"), k=1)[0]
+    assert any(r.text == "He has his own order vs Cover 3" and r.points == 1 for r in vs3.reasons)
+    assert not any("his own order" in r.text for r in vs2.reasons)
+
+
+def test_the_scout_counts_the_half_against_each_look():
+    from chalktalk.scout import report
+    b = book()
+    log = [Snap(before=DriveState(), play="inside-zone", call="IZ", gain=g, look=look)
+           for g, look in [(5, "Cover 3"), (1, "Cover 3"), (6, "Cover 3"), (7, "Cover 3"), (2, "Cover 1")]]
+    r = report(b, log)
+    assert [(s.label, s.calls, s.on) for s in r.by_look] == [("Cover 3", 4, 3), ("Cover 1", 1, 0)]
+    assert "vs Cover 3: 3 of 4 on schedule" in r.notes     # one call is not a trend
+    assert not any("vs Cover 1" in n for n in r.notes)
+
+
 # ── favorites and drive starters ─────────────────────────────────────────────
 
 def test_a_favorite_is_lifted_wherever_it_fits():

@@ -537,6 +537,11 @@ Two jobs, two places in the app: **Plan** is the week, **Game** is game day.
 6. **Calling**: how calls get in (below).
 7. **Check and print**: what a coordinator would flag, and the paper.
 
+Tell the Game panel what coverage the defense is showing and the planner lifts
+the plays written to beat it, and the ones the quarterback has his own read
+order against. Each snap remembers the look, so the halftime sheet counts the
+half by coverage too.
+
 **Game** (<kbd>D</kbd>) is game day, and rehearsal in the week. Pick a drive
 script, and after each result it shows the script's next call ("From Opening
 drive: off schedule"). The planner's picks sit underneath, and take over when

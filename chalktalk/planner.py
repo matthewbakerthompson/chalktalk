@@ -24,6 +24,8 @@ The rules, in the order their reasons are listed:
                 situation (3rd down, red zone, two-minute) takes over
     starters    on a drive's first snap, the staff's drive starters come up
     favorites   the coach's go-to calls, wherever they fit
+    the look    with a coverage on the field, the plays written to beat it, and
+                the ones the quarterback has his own order against
     series      constraints, play-action and shots wait for their base; the
                 play whose tell the defense just showed is lifted
     same look   a pass from a formation the defense has seen run
@@ -49,6 +51,25 @@ from .models.gameplan import (DEFAULT_SECTIONS, HELD_ROLES, MODE_LABELS, OPENERS
 from .models.play import Play, Playbook, PlayType
 
 KIND_POINTS = {"mode": 4, "down": 3, "zone": 3, "base": 0}
+# What beats what, in the tags the catalog already carries. A coverage the
+# staff can see from the sideline lifts the plays written to beat it.
+BEATER_TAGS = {
+    "cover 1": ["man-beater"],
+    "cover 2": ["cover-2-beater", "two-high-beater"],
+    "cover 2 man": ["cover-2-beater", "man-beater"],
+    "tampa 2": ["cover-2-beater", "two-high-beater"],
+    "cover 3": ["cover-3-beater"],
+    "cover 4": ["cover-4-beater", "two-high-beater"],
+    "cover 6": ["cover-4-beater", "two-high-beater"],
+}
+
+
+def beats(p: Play, look: Optional[str]) -> bool:
+    """Whether a play is written to beat the coverage on the field."""
+    tags = BEATER_TAGS.get((look or "").strip().lower(), [])
+    return any(t in p.tags for t in tags)
+
+
 _ORD = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th"}
 
 
@@ -473,6 +494,12 @@ def suggest(book: Playbook, state: DriveState, log: Optional[list[Snap]] = None,
             add(4, "A drive starter")
         if p.favorite:
             add(2, "One of your favorites")
+        if state.look:
+            if beats(p, state.look):
+                add(3, f"Beats {state.look}")
+            plan_qb = p.qb
+            if plan_qb is not None and plan_qb.reads_against(state.look) != plan_qb.reads:
+                add(1, f"He has his own order vs {state.look}")
 
         # series and tells
         key = _series_key(p)

@@ -965,7 +965,8 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
           <input id="dYard" type="number" min="1" max="50" aria-label="Yard line">
           <div class="seg sm" id="dHash" role="group" aria-label="Hash"></div>
         </div>
-        <div class="dsit-row"><div class="seg sm" id="dMode" role="group" aria-label="Clock"></div></div>
+        <div class="dsit-row"><div class="seg sm" id="dMode" role="group" aria-label="Clock"></div>
+          <select id="dLook" aria-label="The coverage they are showing" style="flex:1;min-width:120px"></select></div>
       </div>
   
       <div class="dopt dscriptrow" id="dScriptRow" hidden><label for="dScript">Drive script</label><select id="dScript"></select></div>
@@ -4048,6 +4049,11 @@ function planOpeners(b){
   if (plan.openers && plan.openers.length) return plan.openers.filter(i => ids.has(i));
   return b.plays.filter(p => p.situation && p.situation.label === PLANDATA().openers_label).map(p => p.id);
 }
+// planner.beats: the play is written to beat the coverage on the field.
+function beatsLook(p, look){
+  const tags = (PLANDATA().beater_tags || {})[String(look || "").trim().toLowerCase()] || [];
+  return tags.some(t => (p.tags || []).includes(t));
+}
 // planner.starters: the staff's go-to first calls of a drive.
 function planStarters(b){
   const ids = new Set(b.plays.map(p => p.id));
@@ -4598,9 +4604,10 @@ function scoutReport(b, log){
   const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
   const t = thresholdsOf(plan);
   const out = {game: plan.name || "", snaps: 0, on: 0, yards: 0, by_down: [],
-               thirds: {label: "3rd down", calls: 0, on: 0, yards: 0},
+               thirds: {label: "3rd down", calls: 0, on: 0, yards: 0}, by_look: [],
                explosives: [], best: [], tendencies: [], ready: [], unused: [], notes: []};
   const downs = new Map(), looks = new Map(), plays = new Map(), called = new Set();
+  const seenLooks = new Map();
   for (const snap of log){
     const p = byId[snap.play];
     called.add(snap.play);
@@ -4612,6 +4619,11 @@ function scoutReport(b, log){
     if (!downs.has(snap.before.down)) downs.set(snap.before.down, {calls: 0, on: 0, yards: 0});
     const d = downs.get(snap.before.down);
     d.calls++; d.on += ok ? 1 : 0; d.yards += gain;
+    if (snap.look){
+      if (!seenLooks.has(snap.look)) seenLooks.set(snap.look, {label: snap.look, calls: 0, on: 0, yards: 0});
+      const seen = seenLooks.get(snap.look);
+      seen.calls++; seen.on += ok ? 1 : 0; seen.yards += gain;
+    }
     if (snap.before.down === 3){
       const after = advanceState(snap.before, snap.outcome, snap.gain);
       out.thirds.calls++;
@@ -4632,6 +4644,8 @@ function scoutReport(b, log){
   }
   out.by_down = [...downs.entries()].sort((x, y) => x[0] - y[0])
     .map(([down, s]) => ({label: `${ORD_DOWN[down] || down} down`, calls: s.calls, on: s.on, yards: s.yards}));
+  out.by_look = [...seenLooks.values()]
+    .sort((x, y) => y.calls - x.calls || (x.label < y.label ? -1 : x.label > y.label ? 1 : 0));
   out.best = [...plays.values()].filter(l => l.calls >= 2)
     .sort((x, y) => (y.yards / y.calls) - (x.yards / x.calls) || (x.play < y.play ? -1 : x.play > y.play ? 1 : 0))
     .slice(0, 5);
@@ -4668,6 +4682,8 @@ function scoutReport(b, log){
     if (share >= S.tendency_share)
       out.notes.push(`From ${tend.look} you have ${what} ${n} of ${tend.calls}: a scout sees it`);
   }
+  for (const seen of out.by_look)
+    if (seen.calls >= S.tendency_calls) out.notes.push(`vs ${seen.label}: ${seen.on} of ${seen.calls} on schedule`);
   if (out.explosives.length)
     out.notes.push(`${out.explosives.length} explosive ${out.explosives.length === 1 ? "play" : "plays"}: `
       + out.explosives.slice(0, 3).map(e => `${e.call} ${Math.trunc(e.yards)}`).join(", "));
@@ -4767,6 +4783,12 @@ function suggestCalls(b, state, log, k, withBranches){
     if (p.id === nextOpener) add(6, `Next on the opening script (${script.indexOf(p.id) + 1} of ${script.length})`);
     if (starting.has(p.id)) add(4, "A drive starter");
     if (p.favorite) add(2, "One of your favorites");
+    if (state.look){
+      if (beatsLook(p, state.look)) add(3, `Beats ${state.look}`);
+      const qp = qbOf(p);
+      if (qp && String(readsAgainst(qp, state.look)) !== String(qp.reads || []))
+        add(1, `He has his own order vs ${state.look}`);
+    }
     // series and tells
     const key = seriesKey(p);
     if (key && p.role){
@@ -5287,6 +5309,7 @@ function renderDrive(){
   if (document.activeElement !== $("dYard")) $("dYard").value = driveYardNum(st.yard_line);
   setSeg($("dHash"), st.hash_mark || "M");
   setSeg($("dMode"), st.mode || "normal");
+  fillSelect($("dLook"), coverageNames().map(c => [c, `vs ${c}`]), st.look || null, "Any look");
   const lock = !!st.over;
   for (const id of ["dDist", "dYard"]) $(id).disabled = lock;
 
@@ -5394,7 +5417,7 @@ function logResult(outcome){
   const yards = Math.round(+($("dYards").value || 0));
   const snap = {before: Object.assign({}, driveState), play: pendingCall, call: p ? playCall(p) : pendingCall,
                 outcome, gain: outcome === "incomplete" || outcome === "turnover" ? 0 : yards,
-                tells: [...pendingTells]};
+                look: driveState.look || null, tells: [...pendingTells]};
   planLog().push(snap);
   driveState = advanceState(driveState, outcome, snap.gain);
   pendingCall = null; pendingTells = new Set(); $("dYards").value = "";
@@ -6075,6 +6098,7 @@ function boot(){
   segment($("dMode"), [["normal","Normal"],["two_minute","Two-minute"],["four_minute","Four-minute"]], "normal",
     v => { driveState = Object.assign({}, driveState, {mode: v === "normal" ? null : v}); renderDrive(); });
   $("dDist").onchange = readDriveSituation; $("dYard").onchange = readDriveSituation;
+  $("dLook").onchange = e => { driveState = Object.assign({}, driveState, {look: e.target.value || null}); renderDrive(); };
   for (const b of $("dResult").querySelectorAll("[data-out]")) b.onclick = () => logResult(b.dataset.out);
   $("dUndo").onclick = undoResult;
   $("dNewDrive").onclick = newDrive;

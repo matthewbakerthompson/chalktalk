@@ -64,6 +64,7 @@ class Report(BaseModel):
     on: int = 0
     yards: float = 0
     by_down: list[Split] = []
+    by_look: list[Split] = []      # how the half went against each coverage
     thirds: Split = Split(label="3rd down")
     explosives: list[PlayLine] = []
     best: list[PlayLine] = []
@@ -94,6 +95,7 @@ def report(book: Playbook, log: list[Snap] | None = None) -> Report:
     out = Report(game=plan.name)
 
     downs: dict[int, Split] = {}
+    looks_seen: dict[str, Split] = {}
     looks: dict[str, Tendency] = {}
     plays: dict[str, PlayLine] = {}
     called: set[str] = set()
@@ -112,6 +114,11 @@ def report(book: Playbook, log: list[Snap] | None = None) -> Report:
         down.calls += 1
         down.on += 1 if ok else 0
         down.yards += gain
+        if snap.look:
+            seen = looks_seen.setdefault(snap.look, Split(label=snap.look))
+            seen.calls += 1
+            seen.on += 1 if ok else 0
+            seen.yards += gain
         if snap.before.down == 3:
             after = advance(snap.before, snap.outcome, snap.gain)
             out.thirds.calls += 1
@@ -134,6 +141,7 @@ def report(book: Playbook, log: list[Snap] | None = None) -> Report:
     ordinal = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th"}
     out.by_down = [Split(label=f"{ordinal.get(d, d)} down", calls=s.calls, on=s.on, yards=s.yards)
                    for d, s in sorted(downs.items())]
+    out.by_look = [s for s in sorted(looks_seen.values(), key=lambda x: (-x.calls, x.label))]
     out.best = sorted([l for l in plays.values() if l.calls >= 2],
                       key=lambda l: (-(l.yards / l.calls), l.play))[:5]
     out.tendencies = [t for t in sorted(looks.values(), key=lambda x: (-x.calls, x.look))
@@ -175,6 +183,9 @@ def report(book: Playbook, log: list[Snap] | None = None) -> Report:
         if share >= TENDENCY_SHARE:
             out.notes.append(f"From {tend.look} you have {what} {n} of {tend.calls}: "
                              f"a scout sees it")
+    for seen in out.by_look:
+        if seen.calls >= TENDENCY_CALLS:
+            out.notes.append(f"vs {seen.label}: {seen.on} of {seen.calls} on schedule")
     if out.explosives:
         out.notes.append(f"{len(out.explosives)} explosive "
                          f"{'play' if len(out.explosives) == 1 else 'plays'}: "

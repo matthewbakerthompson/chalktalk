@@ -22,6 +22,15 @@ the numbers, the tendencies a scout would see, and what the staff has left.
   on, and the **Halftime sheet** prints it in two columns.
 - The designer carries a twin, held to Python by a test.
 
+### The look on the field
+- The Game panel has a **coverage** picker. Tell it what the defense is
+  showing and the planner lifts the plays written to beat it (+3, from the
+  `cover-2-beater`, `cover-3-beater`, `cover-4-beater`, `two-high-beater` and
+  `man-beater` tags the catalog already carries), and the ones whose
+  quarterback has his own order against that coverage (+1).
+- Each snap remembers the look it was called against, so the self-scout counts
+  the half by coverage: "vs Cover 3: 3 of 4 on schedule".
+
 ### Variations
 - **Make variations** (the More menu, or the command palette) offers the alts
   a coach reaches for first, each as a thumbnail: the play flipped, the slot

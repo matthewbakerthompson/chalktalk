@@ -133,6 +133,7 @@ def catalog() -> dict:
             "script_starts": [[t, st.model_dump(mode="json")] for t, st in PL.SCRIPT_STARTS],
             "roles": [r.value for r in GP.Role],
             "run_schemes": PL.RUN_SCHEMES, "draft_tags": PL.DRAFT_TAGS,
+            "beater_tags": PL.BEATER_TAGS,
             "script_length": PL.SCRIPT_LENGTH,
         },
         "difficulty": {"rubric": DF.RUBRIC, "tiers": list(DF.TIERS),
