@@ -177,6 +177,7 @@ class DriveState(BaseModel):
     yard_line: int = Field(default=75, ge=1, le=99)        # yards to the opponent's goal
     hash_mark: Optional[Hash] = None
     mode: Optional[Mode] = None
+    look: Optional[str] = None                             # the coverage they are showing
     drive: int = 1
     snap: int = 0                                          # plays run in this drive
     over: Optional[Literal["touchdown", "turnover", "downs", "safety"]] = None
@@ -226,6 +227,7 @@ class Snap(BaseModel):
     call: str                                 # the call as made
     outcome: Outcome = Outcome.GAIN
     gain: float = 0
+    look: Optional[str] = None                # the coverage they were in
     tells: list[str] = []                     # what the defense showed on this snap
 
 

@@ -85,6 +85,8 @@ STATES = [
     DriveState(),
     DriveState(drive=2, yard_line=60),                 # a later drive's first snap: the starters
     DriveState(down=2, distance=5, yard_line=40, snap=1),
+    DriveState(down=3, distance=8, yard_line=44, snap=2, look="Cover 2"),
+    DriveState(down=1, distance=10, yard_line=55, look="Cover 3"),
     DriveState(down=2, distance=6, yard_line=71, hash_mark=Hash.LEFT),
     DriveState(down=3, distance=2, yard_line=45),
     DriveState(down=3, distance=9, yard_line=30),
@@ -168,6 +170,35 @@ def test_filling_and_following_a_script_match_python(start):
                    " const [path, node] = followScript(__book, f, x.state, x.log);"
                    " return {first: f.first, path, node: node ? node.play : null};")
     assert js == {"first": py.first.model_dump(mode="json"), "path": path, "node": node.play if node else None}
+
+
+def _scout_log(book: Playbook) -> list[Snap]:
+    """A half with everything in it: a flag, a sack, an incompletion, a
+    turnover, explosives, a third down, and one look called over and over."""
+    ids = [p.id for p in book.plays]
+    out, state = [], DriveState()
+    script = [("inside-zone", Outcome.GAIN, 14), ("mesh-concept", Outcome.INCOMPLETE, 0),
+              ("inside-zone", Outcome.GAIN, 3), ("power-right", Outcome.PENALTY_US, 5),
+              ("stick", Outcome.GAIN, 8), ("inside-zone", Outcome.GAIN, 2),
+              ("speed-sweep", Outcome.SACK, 4), ("four-verticals", Outcome.GAIN, 22),
+              ("inside-zone", Outcome.GAIN, 1), ("y-cross", Outcome.TURNOVER, 0)]
+    looks = ["Cover 3", "Cover 2", None, "Cover 3", "Cover 2", "Cover 3", None, "Cover 3", "Cover 2", None]
+    for (pid, outcome, gain), look in zip(script, looks):
+        assert pid in ids, pid
+        out.append(Snap(before=state, play=pid, call=pid, outcome=outcome, gain=gain, look=look))
+        state = P.advance(state, outcome, gain)
+        if state.over:
+            state = DriveState(drive=state.drive + 1, yard_line=70)
+    return out
+
+
+def test_the_scout_report_matches_python():
+    from chalktalk.scout import report
+    book = _book()
+    log = _scout_log(book)
+    payload = json.dumps([s.model_dump(mode="json") for s in log])
+    js = _js(book, f"return scoutReport(__book, {payload});")
+    assert js == report(book, log).model_dump(mode="json")
 
 
 def _plan_view(book: Playbook, notes: list[str]) -> dict:

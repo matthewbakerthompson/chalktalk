@@ -415,6 +415,10 @@ formation. Drop a play or playbook `.json` anywhere on the window to open it.
   vs Cover 2 can differ from vs Cover 3. Select the quarterback and **Set
   reads** to tap them on the field instead. The diagram numbers the reads for
   the coverage on it, in the designer, the SVG and the PDF alike.
+- **Make variations** (in **More**) offers the alts you reach for first: the
+  play flipped, the slot or the flanker in jet, orbit or across motion, and the
+  same concept from another formation with the same personnel. Pick from
+  thumbnails and they join the book as their own pages.
 - <kbd>Ctrl</kbd>+<kbd>K</kbd> opens a command palette: every concept,
   formation, look, coverage and scheme is two keystrokes away. <kbd>F</kbd>
   flips the play, <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.
@@ -533,6 +537,11 @@ Two jobs, two places in the app: **Plan** is the week, **Game** is game day.
 6. **Calling**: how calls get in (below).
 7. **Check and print**: what a coordinator would flag, and the paper.
 
+Tell the Game panel what coverage the defense is showing and the planner lifts
+the plays written to beat it, and the ones the quarterback has his own read
+order against. Each snap remembers the look, so the halftime sheet counts the
+half by coverage too.
+
 **Game** (<kbd>D</kbd>) is game day, and rehearsal in the week. Pick a drive
 script, and after each result it shows the script's next call ("From Opening
 drive: off schedule"). The planner's picks sit underneath, and take over when
@@ -592,6 +601,26 @@ and the planner takes a point off for every point a play scores above that.
 Setting a play's tier yourself marks it as repped. The weights are a judgment
 from what coaches name as hard, not a published scale; the catalog comes out
 64 Basic and 14 Standard.
+
+### Halftime, and what a scout sees
+
+Every snap the Game panel logs is counted back in its **Halftime** section and
+on a printed sheet: how many snaps stayed on schedule and how that splits by
+down, third downs converted, the explosive plays (12 yards running, 16
+throwing), what is working by yards a call, and what a scout on the other
+sideline sees. Four calls from one look with eight in ten the same kind is a
+tendency, and it says so: "From I-Form Pro Right you have run 6 of 6: a scout
+sees it." It also lists what the staff hasn't used: the rest of the opening
+script, the drive starters, the favorites, and the plays a series has set up
+but never called.
+
+```python
+from chalktalk.scout import report
+
+r = report(book)                # or report(book, log)
+r.on, r.snaps, r.rate           # 29 of 53, 55%
+[n for n in r.notes]            # what a scout sees, in a coordinator's order
+```
 
 ### Calling the plays
 

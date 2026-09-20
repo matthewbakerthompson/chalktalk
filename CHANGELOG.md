@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.11.0
+
+**What the half says about you.** The game log now reads back as a self-scout:
+the numbers, the tendencies a scout would see, and what the staff has left.
+
+### Self-scout
+- `chalktalk.scout.report` counts the log back, with the plan's own thresholds:
+  - snaps on schedule, overall and by down, with yards a call;
+  - third downs converted;
+  - explosive plays, 12 yards running and 16 throwing;
+  - what is working, by yards a call;
+  - your looks, run against pass.
+- A tendency is four calls from one formation with eight in ten the same kind,
+  and it is written the way a scout would put it: "From I-Form Pro Right you
+  have run 6 of 6: a scout sees it."
+- It also lists what is set up and not called (a series whose base has been
+  shown), and what is left: the opening script, the drive starters, the
+  favorites.
+- The **Halftime** section in the Game panel shows it while the half is going
+  on, and the **Halftime sheet** prints it in two columns.
+- The designer carries a twin, held to Python by a test.
+
+### The look on the field
+- The Game panel has a **coverage** picker. Tell it what the defense is
+  showing and the planner lifts the plays written to beat it (+3, from the
+  `cover-2-beater`, `cover-3-beater`, `cover-4-beater`, `two-high-beater` and
+  `man-beater` tags the catalog already carries), and the ones whose
+  quarterback has his own order against that coverage (+1).
+- Each snap remembers the look it was called against, so the self-scout counts
+  the half by coverage: "vs Cover 3: 3 of 4 on schedule".
+
+### Variations
+- **Make variations** (the More menu, or the command palette) offers the alts
+  a coach reaches for first, each as a thumbnail: the play flipped, the slot
+  and the flanker in jet, orbit and across motion, and the same concept from
+  other formations with the same personnel. Tick the ones you want and they
+  land in the book as their own pages, built the way the Python adjustments
+  build them.
+
+### Fixed
+- **Flip mirrored the players but not their jobs.** A play flipped in the
+  designer kept every block path and the quarterback's footwork pointing the
+  old way, so a flipped Power had its guard pulling away from the play. Flip
+  now turns blocks (paths and targets) and the quarterback's plan over, the
+  way `Play.mirror()` always has, and eight catalog plays hold the two
+  together in a test.
+
 ## 0.10.0
 
 **Twenty-four more plays.** The catalog goes from 54 concepts to 78, each one

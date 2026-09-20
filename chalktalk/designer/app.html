@@ -233,6 +233,7 @@ svg *{-webkit-user-select:none;user-select:none}
 .card-pick .pers{font-size:11px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card-pick.on .pers{color:var(--accent)}
 .card-pick.none{justify-content:center;align-items:center;min-height:70px}
+#varyGrid .pthumb{width:100%;height:auto;display:block;border-radius:4px;margin-bottom:5px}
 .thumb{width:100%;height:auto;display:block;color:var(--ink-2);margin-bottom:5px;border-radius:4px;background:oklch(1 0 0 / .045)}
 .card-pick.on .thumb{color:var(--accent)}
 .thumb .los{stroke:currentColor;stroke-opacity:.35;stroke-width:1;stroke-dasharray:3 2}
@@ -436,6 +437,7 @@ dialog.printdlg{max-width:min(660px,94vw)}
 .dres .outs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
 .dres .outs button{height:26px;padding:0 6px;font-size:12px}
 .dlog{display:flex;flex-direction:column;gap:1px;font-size:12px}
+.dnotes{margin:0 0 8px;padding-left:16px;font-size:12px;color:var(--ink-2);display:flex;flex-direction:column;gap:3px}
 .drow{display:grid;grid-template-columns:18px 64px minmax(0,1fr) auto;gap:6px;align-items:center;height:24px;padding:0 4px;border-radius:4px}
 .drow .dn{color:var(--muted);font-variant-numeric:tabular-nums}
 .drow .dsit{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -794,6 +796,7 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></button>
             <div class="card menu" id="exportMenu" role="menu" hidden>
               <button id="btnSaveAs" role="menuitem">Save as…</button>
+              <button id="btnVary" role="menuitem">Make variations…</button>
               <button id="btnSavePlay" role="menuitem">Save a copy of this play…</button>
               <button id="btnSvg" role="menuitem">Download SVG</button>
               <button id="btnPng" role="menuitem">Download PNG</button>
@@ -962,7 +965,8 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
           <input id="dYard" type="number" min="1" max="50" aria-label="Yard line">
           <div class="seg sm" id="dHash" role="group" aria-label="Hash"></div>
         </div>
-        <div class="dsit-row"><div class="seg sm" id="dMode" role="group" aria-label="Clock"></div></div>
+        <div class="dsit-row"><div class="seg sm" id="dMode" role="group" aria-label="Clock"></div>
+          <select id="dLook" aria-label="The coverage they are showing" style="flex:1;min-width:120px"></select></div>
       </div>
   
       <div class="dopt dscriptrow" id="dScriptRow" hidden><label for="dScript">Drive script</label><select id="dScript"></select></div>
@@ -991,6 +995,8 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
         <button type="button" id="dClear" class="danger">Clear log</button>
       </div>
       <p class="phint" id="dWarn" hidden></p>
+  
+      <details class="dsec"><summary>Halftime <span id="dScoutSum"></span></summary><div class="body" id="dScout"></div></details>
   
       <details class="dsec"><summary>Plan check <span id="dCheckCount"></span></summary><ul id="dCheck"></ul></details>
   
@@ -1044,6 +1050,24 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
   <div class="dlg-foot">
     <span class="note" id="printSummary"></span>
     <button class="primary" id="printGo">Print</button>
+  </div>
+</dialog>
+
+<dialog id="varyDialog" class="printdlg" aria-labelledby="varyTitle">
+  <div class="dlg-head">
+    <h2 id="varyTitle">Make variations</h2>
+    <button class="ghost icon" id="varyClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="dlg-body">
+    <p class="note" id="varyNote" style="margin:0 0 12px"></p>
+    <div class="cards" id="varyGrid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>
+  </div>
+  <div class="dlg-foot">
+    <span class="note" id="varySum"></span>
+    <button type="button" id="varyCancel">Cancel</button>
+    <button type="button" class="primary" id="varyGo">Add to the book</button>
   </div>
 </dialog>
 
@@ -1490,17 +1514,46 @@ function applyScheme(name, direction){
   toast(`${name.replace(/_/g," ")} ${direction > 0 ? "right" : "left"}`);
 }
 
-function flipPlay(){
-  pushUndo();
+/* mirrors models/block.py::_mirror_label - a side in a target flips, a gap doesn't */
+function mirrorTarget(target){
+  if (!target) return target;
+  for (const [a, b] of [["Rt", "Lt"], ["Right", "Left"], ["playside", "playside"]]){
+    if (target.includes(a)) return target.split(a).join(b);
+    if (target.includes(b)) return target.split(b).join(a);
+  }
+  return target;
+}
+const mirrorPath = path => (path || []).map(pt => ({x: -pt.x, y: pt.y}));
+
+/* Play.mirror(): players, motion, blocks and the quarterback all turn over.
+   Routes don't: they are authored to the right and mirrored as they are drawn. */
+function mirroredPlay(src){
+  const play = clone(src);
   play.assignments.forEach(a => {
     a.player.x = -a.player.x;
     if (a.motion_from) a.motion_from = [-a.motion_from[0], a.motion_from[1]];
+    if (a.block){
+      a.block.path = mirrorPath(a.block.path);
+      a.block.target = mirrorTarget(a.block.target);
+    }
+    if (a.qb){
+      a.qb.direction = -a.qb.direction;
+      a.qb.path = mirrorPath(a.qb.path);
+      if (a.qb.mesh_at) a.qb.mesh_at = {x: -a.qb.mesh_at.x, y: a.qb.mesh_at.y};
+    }
   });
   if (play.defense) play.defense.players.forEach(d => d.x = -d.x);
   const swap = s => s && s.replace(/Right|Left|\bRt\b|\bLt\b/g,
       m => ({Right:"Left",Left:"Right",Rt:"Lt",Lt:"Rt"}[m]));
   play.formation.name = swap(play.formation.name);
   play.name = swap(play.name);
+  return play;
+}
+function flipPlay(){
+  pushUndo();
+  const q = mirroredPlay(play);
+  play.assignments = q.assignments; play.formation = q.formation;
+  play.name = q.name; play.defense = q.defense;
   syncFormation(); renderAll();
 }
 
@@ -3699,6 +3752,7 @@ const PRINT_KINDS = [
   ["gameplan", "Game plan", "The staff's master: numbers, words, codes"],
   ["qbcard", "QB card", "Coded wristband and line calls"],
   ["boards", "Sign boards", "The rack, the players' key, the signaler's sheet"],
+  ["scout", "Halftime sheet", "What the log says: the numbers, the tendencies, what is left"],
 ];
 const LS_PRINT = "chalktalk.designer.print";
 const printOpts = {kind: "playbook", perRow: 2, sheetCols: 2, bandCols: 3, bandSize: "adult", bandCopies: 1, reps: 1, hashes: false};
@@ -3766,6 +3820,11 @@ function renderPrint(){
     summary = `${count} ${count === 1 ? "day" : "days"}` + (later ? ` · ${later.plays.length} not scheduled` : "");
     if (!count) hint = "No play has an install day yet. Set it in the play sheet.";
   }
+  if (k === "scout"){
+    const r = scoutReport(book, planLog());
+    summary = r.snaps ? `${r.on} of ${r.snaps} snaps on schedule` : "nothing logged yet";
+    if (!r.snaps) hint = "Log a drive in the Game panel and the halftime sheet fills itself.";
+  }
   if (k === "drivecards"){
     summary = `${(PLANDATA().card_starts || []).length} starts, three calls each`;
     if (!planOpeners(book).length) hint = "No opening script yet: label plays \"Openers\" in the play sheet.";
@@ -3799,6 +3858,7 @@ function printNow(){
   else if (k === "script") doc = scriptHtml(scriptData(book, printOpts.reps, printOpts.hashes), "Practice script");
   else if (k === "install") doc = installBookHtml(book, printOpts.perRow);
   else if (k === "drivecards") doc = driveCardsHtml(book);
+  else if (k === "scout") doc = scoutHtml(book);
   else {
     const plan = planOf(book), methods = plan.calls.methods || [];
     let codes = null, boards = null, lines = null;
@@ -3988,6 +4048,11 @@ function planOpeners(b){
   const plan = planOf(b), ids = new Set(b.plays.map(p => p.id));
   if (plan.openers && plan.openers.length) return plan.openers.filter(i => ids.has(i));
   return b.plays.filter(p => p.situation && p.situation.label === PLANDATA().openers_label).map(p => p.id);
+}
+// planner.beats: the play is written to beat the coverage on the field.
+function beatsLook(p, look){
+  const tags = (PLANDATA().beater_tags || {})[String(look || "").trim().toLowerCase()] || [];
+  return tags.some(t => (p.tags || []).includes(t));
 }
 // planner.starters: the staff's go-to first calls of a drive.
 function planStarters(b){
@@ -4524,6 +4589,107 @@ function scriptCardsHtml(b){
   }).join("");
 }
 
+/* --- scout: what the half says about you (chalktalk/scout.py) -------------
+   The log holds every snap; this reads it back. The numbers by down, what a
+   scout on the other sideline sees, what worked, and what the staff has not
+   used yet. Counting only, with the plan's own thresholds. */
+const SCOUT = () => CATALOG.scout || {explosive: {run: 12, pass: 16}, tendency_calls: 4, tendency_share: 0.8};
+const scoutKind = p => (p.play_type === "run" || p.play_type === "rpo") ? "run" : "pass";
+const ORD_DOWN = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th"};
+const rateOf = s => s.calls ? pyRound(100 * s.on / s.calls) : 0;
+
+function scoutReport(b, log){
+  const plan = planOf(b), S = SCOUT();
+  log = (log || plan.log || []).slice();
+  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
+  const t = thresholdsOf(plan);
+  const out = {game: plan.name || "", snaps: 0, on: 0, yards: 0, by_down: [],
+               thirds: {label: "3rd down", calls: 0, on: 0, yards: 0}, by_look: [],
+               explosives: [], best: [], tendencies: [], ready: [], unused: [], notes: []};
+  const downs = new Map(), looks = new Map(), plays = new Map(), called = new Set();
+  const seenLooks = new Map();
+  for (const snap of log){
+    const p = byId[snap.play];
+    called.add(snap.play);
+    const ok = isSuccess(snap.before, snap.outcome, snap.gain, t);
+    if (ok === null) continue;                       // a flag is not a play
+    const gain = (snap.outcome === "incomplete" || snap.outcome === "turnover") ? 0
+      : (snap.outcome === "sack" ? -Math.abs(snap.gain) : snap.gain);
+    out.snaps++; out.on += ok ? 1 : 0; out.yards += gain;
+    if (!downs.has(snap.before.down)) downs.set(snap.before.down, {calls: 0, on: 0, yards: 0});
+    const d = downs.get(snap.before.down);
+    d.calls++; d.on += ok ? 1 : 0; d.yards += gain;
+    if (snap.look){
+      if (!seenLooks.has(snap.look)) seenLooks.set(snap.look, {label: snap.look, calls: 0, on: 0, yards: 0});
+      const seen = seenLooks.get(snap.look);
+      seen.calls++; seen.on += ok ? 1 : 0; seen.yards += gain;
+    }
+    if (snap.before.down === 3){
+      const after = advanceState(snap.before, snap.outcome, snap.gain);
+      out.thirds.calls++;
+      out.thirds.on += (after.down === 1 || after.over === "touchdown") ? 1 : 0;
+    }
+    if (p){
+      const look = p.formation.name;
+      if (!looks.has(look)) looks.set(look, {look, calls: 0, runs: 0, passes: 0});
+      const tend = looks.get(look);
+      tend.calls++;
+      if (scoutKind(p) === "run") tend.runs++; else tend.passes++;
+      if (!plays.has(snap.play)) plays.set(snap.play, {play: snap.play, call: playCall(p), calls: 0, yards: 0, on: 0});
+      const line = plays.get(snap.play);
+      line.calls++; line.yards += gain; line.on += ok ? 1 : 0;
+      if (gain >= S.explosive[scoutKind(p)])
+        out.explosives.push({play: snap.play, call: playCall(p), calls: 1, yards: gain, on: 1});
+    }
+  }
+  out.by_down = [...downs.entries()].sort((x, y) => x[0] - y[0])
+    .map(([down, s]) => ({label: `${ORD_DOWN[down] || down} down`, calls: s.calls, on: s.on, yards: s.yards}));
+  out.by_look = [...seenLooks.values()]
+    .sort((x, y) => y.calls - x.calls || (x.label < y.label ? -1 : x.label > y.label ? 1 : 0));
+  out.best = [...plays.values()].filter(l => l.calls >= 2)
+    .sort((x, y) => (y.yards / y.calls) - (x.yards / x.calls) || (x.play < y.play ? -1 : x.play > y.play ? 1 : 0))
+    .slice(0, 5);
+  out.tendencies = [...looks.values()]
+    .sort((x, y) => y.calls - x.calls || (x.look < y.look ? -1 : x.look > y.look ? 1 : 0))
+    .filter(x => x.calls >= S.tendency_calls);
+
+  // What the staff has set up, and what it has not used.
+  const shown = new Set();
+  for (const id of called){
+    const p = byId[id];
+    if (p && p.role === "base" && p.series) shown.add(String(p.series).trim());
+  }
+  for (const p of b.plays){
+    const key = String(p.series || "").trim();
+    if (shown.has(key) && p.role && p.role !== "base" && !called.has(p.id))
+      out.ready.push(`${key} has been shown: ${p.name} hasn't been called`);
+  }
+  const left = planOpeners(b).filter(i => !called.has(i));
+  if (left.length) out.unused.push(`${left.length} of the opening script left: `
+    + left.slice(0, 4).map(i => byId[i].name).join(", "));
+  const start = planStarters(b).filter(i => !called.has(i));
+  if (start.length) out.unused.push("Drive starters not used: " + start.slice(0, 4).map(i => byId[i].name).join(", "));
+  const favs = b.plays.filter(p => p.favorite && !called.has(p.id));
+  if (favs.length) out.unused.push("Favorites not used: " + favs.slice(0, 4).map(p => p.name).join(", "));
+
+  if (out.snaps)
+    out.notes.push(`${out.on} of ${out.snaps} snaps on schedule (${pyRound(100 * out.on / out.snaps)}%), `
+      + `${pyRound(out.yards / out.snaps * 10) / 10} yards a snap`);
+  if (out.thirds.calls) out.notes.push(`${out.thirds.on} of ${out.thirds.calls} on third down`);
+  for (const tend of out.tendencies){
+    let share = tend.runs / tend.calls, what = "run", n = tend.runs;
+    if (tend.passes > tend.runs){ share = tend.passes / tend.calls; what = "thrown"; n = tend.passes; }
+    if (share >= S.tendency_share)
+      out.notes.push(`From ${tend.look} you have ${what} ${n} of ${tend.calls}: a scout sees it`);
+  }
+  for (const seen of out.by_look)
+    if (seen.calls >= S.tendency_calls) out.notes.push(`vs ${seen.label}: ${seen.on} of ${seen.calls} on schedule`);
+  if (out.explosives.length)
+    out.notes.push(`${out.explosives.length} explosive ${out.explosives.length === 1 ? "play" : "plays"}: `
+      + out.explosives.slice(0, 3).map(e => `${e.call} ${Math.trunc(e.yards)}`).join(", "));
+  return out;
+}
+
 // ── the football arithmetic ────────────────────────────────────────────────
 function advanceState(state, outcome, gain){
   gain = +gain || 0;
@@ -4617,6 +4783,12 @@ function suggestCalls(b, state, log, k, withBranches){
     if (p.id === nextOpener) add(6, `Next on the opening script (${script.indexOf(p.id) + 1} of ${script.length})`);
     if (starting.has(p.id)) add(4, "A drive starter");
     if (p.favorite) add(2, "One of your favorites");
+    if (state.look){
+      if (beatsLook(p, state.look)) add(3, `Beats ${state.look}`);
+      const qp = qbOf(p);
+      if (qp && String(readsAgainst(qp, state.look)) !== String(qp.reads || []))
+        add(1, `He has his own order vs ${state.look}`);
+    }
     // series and tells
     const key = seriesKey(p);
     if (key && p.role){
@@ -5137,6 +5309,7 @@ function renderDrive(){
   if (document.activeElement !== $("dYard")) $("dYard").value = driveYardNum(st.yard_line);
   setSeg($("dHash"), st.hash_mark || "M");
   setSeg($("dMode"), st.mode || "normal");
+  fillSelect($("dLook"), coverageNames().map(c => [c, `vs ${c}`]), st.look || null, "Any look");
   const lock = !!st.over;
   for (const id of ["dDist", "dYard"]) $(id).disabled = lock;
 
@@ -5207,6 +5380,8 @@ function renderDrive(){
   const warn = alternationWarning(book, log);
   $("dWarn").hidden = !warn; $("dWarn").textContent = warn || "";
 
+  renderScout();
+
   // plan check
   const notes = planCheck(book);
   $("dCheckCount").textContent = notes.length ? `(${notes.length})` : "";
@@ -5242,7 +5417,7 @@ function logResult(outcome){
   const yards = Math.round(+($("dYards").value || 0));
   const snap = {before: Object.assign({}, driveState), play: pendingCall, call: p ? playCall(p) : pendingCall,
                 outcome, gain: outcome === "incomplete" || outcome === "turnover" ? 0 : yards,
-                tells: [...pendingTells]};
+                look: driveState.look || null, tells: [...pendingTells]};
   planLog().push(snap);
   driveState = advanceState(driveState, outcome, snap.gain);
   pendingCall = null; pendingTells = new Set(); $("dYards").value = "";
@@ -5341,6 +5516,135 @@ function gamePlanHtml(b, codes, boards, lines){
     sheetHeader(planTitle(plan), ["Game plan · staff only"],
                 [b.team, keyed ? `Fingerprint ${keyed.fingerprint}` : null, `${order.length} calls`])
     + body + dead + sheetFooter(keyed ? "Staff only. The key is not printed." : ""));
+}
+
+// The halftime sheet: the numbers, what a scout sees, and what is left.
+function scoutHtml(b){
+  const plan = planOf(b), r = scoutReport(b, planLog());
+  const split = rows => `<table><thead><tr><th>Down</th><th class="n">Calls</th><th class="n">On schedule</th>`
+    + `<th class="n">Yards</th><th class="n">A call</th></tr></thead><tbody>`
+    + rows.map(s => `<tr><td>${esc(s.label)}</td><td class="n">${s.calls}</td>`
+        + `<td class="n">${s.on} (${rateOf(s)}%)</td><td class="n">${Math.round(s.yards)}</td>`
+        + `<td class="n">${s.calls ? pyRound(s.yards / s.calls * 10) / 10 : 0}</td></tr>`).join("")
+    + `</tbody></table>`;
+  const section = (title, inner) => inner ? `<div class="section"><h2>${esc(title)}</h2>${inner}</div>` : "";
+  const list = items => items.length ? `<ol>${items.map(i => `<li><span></span><span>${esc(i)}</span></li>`).join("")}</ol>` : "";
+  // A number and the call, the way the rest of the sheet lists things.
+  const calls = (lines, each) => lines.length ? `<ol>` + lines.map(l =>
+      `<li><span class="num">${pyRound(l.yards / l.calls * 10) / 10}</span><span>${esc(l.call)}`
+      + (each ? `<div class="note">${l.calls} calls</div>` : "") + `</span></li>`).join("") + `</ol>` : "";
+  const looks = r.tendencies.length ? `<table><thead><tr><th>Look</th><th class="n">Calls</th>`
+      + `<th class="n">Run</th><th class="n">Pass</th></tr></thead><tbody>`
+      + r.tendencies.map(x => `<tr><td>${esc(x.look)}</td><td class="n">${x.calls}</td>`
+          + `<td class="n">${x.runs}</td><td class="n">${x.passes}</td></tr>`).join("") + `</tbody></table>` : "";
+  const head = sheetHeader(planTitle(plan), ["Halftime: what the log says"],
+    [b.team, `${r.on} of ${r.snaps} on schedule`, `${r.thirds.on} of ${r.thirds.calls} on third down`]);
+  const body = section("What a scout sees", list(r.notes))
+    + section("By down", r.by_down.length ? split(r.by_down) : "")
+    + section("What is working", calls(r.best, true))
+    + section("Explosives", calls(r.explosives, false))
+    + section("Your looks", looks)
+    + section("Set up and not called", list(r.ready))
+    + section("Left on the sheet", list(r.unused));
+  return sheetPage(`${planTitle(plan)} - Halftime`, head + `<div class="cols">${body}</div>`
+    + sheetFooter("Counted from the game log."), ".cols{column-count:2;column-gap:20px}");
+}
+// The same numbers in the Game panel, while the half is going on.
+function renderScout(){
+  const box = $("dScout");
+  if (!box) return;
+  const r = scoutReport(book, planLog());
+  $("dScoutSum").textContent = r.snaps ? `(${r.on}/${r.snaps} on schedule)` : "";
+  if (!r.snaps){ box.innerHTML = `<p class="note" style="margin:0">Nothing logged yet.</p>`; return; }
+  box.innerHTML = `<ul class="dnotes">${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>`
+    + `<div class="dlog">${r.by_down.map(s => `<div class="drow"><span class="dn"></span>`
+        + `<span class="dsit">${esc(s.label)}</span><span class="dplay">${s.on} of ${s.calls} on schedule</span>`
+        + `<span class="dres2">${pyRound(s.yards / s.calls * 10) / 10} a call</span></div>`).join("")}</div>`
+    + (r.ready.length ? `<p class="note">${esc(r.ready[0])}</p>` : "")
+    + (r.unused.length ? `<p class="note">${esc(r.unused[0])}</p>` : "")
+    + `<div class="row" style="margin-top:8px"><button type="button" data-print="scout">Print the halftime sheet</button></div>`;
+  for (const b2 of box.querySelectorAll("[data-print]")) b2.onclick = () => openPrint(b2.dataset.print);
+}
+
+/* --- variations: the same concept from another look ----------------------
+   A play is a base and its alts. These are the alts a coach reaches for
+   first: the flip, the two widest receivers in motion, and the same concept
+   from a formation with the same personnel. Each one is built the way the
+   Python adjustments build it, and lands in the book as its own page. */
+function motionedPlay(src, label, kind){
+  const play = clone(src);
+  const a = play.assignments.find(x => x.player.label === label);
+  if (!a) return play;
+  const [origin, snapPos] = motionGeometry(kind, a.player.x, a.player.y);
+  a.player.x = snapPos[0]; a.player.y = snapPos[1];
+  a.motion_from = origin; a.motion_type = kind;
+  play.formation = Object.assign({}, play.formation, {players: play.assignments.map(x => x.player)});
+  play.adjustments = [...(play.adjustments || []), `${label} ${titleWords(kind)}`];
+  return play;
+}
+function reformedPlay(src, key){
+  const play = clone(src), next = formationSwap(play, CATALOG.formations[key]);
+  play.formation = next.formation; play.assignments = next.assignments;
+  play.adjustments = [...(play.adjustments || []), `from ${CATALOG.formations[key].name}`];
+  return play;
+}
+// Formations with the same personnel as this one: the same players, a new picture.
+function sameGrouping(p, limit){
+  const here = p.formation.personnel;
+  return Object.keys(CATALOG.formations)
+    .filter(k => CATALOG.formations[k].personnel === here && CATALOG.formations[k].name !== p.formation.name)
+    .slice(0, limit || 3);
+}
+function variationsFor(p){
+  const flipped = () => { const q = mirroredPlay(p);
+    q.adjustments = [...(q.adjustments || []), "Flip"];   // the way A.FLIP stamps it
+    return q; };
+  const out = [{key: "flip", label: "Flipped", make: flipped}];
+  // Who goes in motion: the slot first, then the tight end, then the flanker.
+  const rank = {H: 0, Z: 1, Y: 2, TE: 2, FB: 3, X: 4};
+  const movers = (p.assignments || []).map(a => a.player)
+    .filter(x => !OL.has(x.position) && x.position !== "QB" && !x.label.startsWith("RB"))
+    .sort((a, b) => (rank[a.position] ?? 5) - (rank[b.position] ?? 5) || Math.abs(b.x) - Math.abs(a.x))
+    .slice(0, 2);
+  for (const m of movers)
+    for (const kind of ["jet", "orbit", "across"])
+      out.push({key: `m:${m.label}:${kind}`, label: `${m.label} ${titleWords(kind)}`,
+                make: () => motionedPlay(p, m.label, kind)});
+  for (const key of sameGrouping(p, 3))
+    out.push({key: `f:${key}`, label: CATALOG.formations[key].name, make: () => reformedPlay(p, key)});
+  return out;
+}
+
+let varyPicked = new Set(), varyList = [];
+function openVary(){
+  commit();
+  varyList = variationsFor(play).map(v => Object.assign({}, v, {play: v.make()}));
+  varyPicked = new Set();
+  renderVary();
+  $("varyDialog").showModal();
+}
+function renderVary(){
+  $("varyNote").textContent = `${play.name}: pick the ones you want. Each lands in the book as its own page, `
+    + `and you can change it there.`;
+  const grid = $("varyGrid");
+  grid.innerHTML = "";
+  for (const v of varyList){
+    const b = pick("card-pick" + (varyPicked.has(v.key) ? " on" : ""),
+      `${playThumb(v.play)}<span class="nm">${esc(v.label)}</span>`
+      + `<span class="pers">${esc(v.play.formation.name)}</span>`,
+      () => { varyPicked.has(v.key) ? varyPicked.delete(v.key) : varyPicked.add(v.key); renderVary(); });
+    b.setAttribute("aria-pressed", String(varyPicked.has(v.key)));
+    grid.appendChild(b);
+  }
+  $("varySum").textContent = varyPicked.size ? `${varyPicked.size} picked` : "Nothing picked yet";
+  $("varyGo").disabled = !varyPicked.size;
+}
+function addVariations(){
+  const picked = varyList.filter(v => varyPicked.has(v.key));
+  if (!picked.length) return;
+  $("varyDialog").close();
+  for (const v of picked) addPlay(v.play);
+  toast(`${picked.length} ${picked.length === 1 ? "variation" : "variations"} added to the book`);
 }
 
 /* ─── files: the coach's own disk or drive ──────────────────────────────────
@@ -5640,6 +5944,7 @@ function commands(){
   add("Help", "Show the start screen", showWelcome);
   add("Plan", driveOpen ? "Close the drive planner" : "Open the drive planner", () => setDrive(!driveOpen), "D");
   add("Plan", "New drive", newDrive);
+  add("Play", "Make variations", () => openVary());
   add("Plan", "Build the game plan", () => openPlanner());
   add("Plan", "Script a drive", () => openPlanner("drives"));
   add("Plan", "Print drive cards", () => openPrint("drivecards"));
@@ -5793,6 +6098,7 @@ function boot(){
   segment($("dMode"), [["normal","Normal"],["two_minute","Two-minute"],["four_minute","Four-minute"]], "normal",
     v => { driveState = Object.assign({}, driveState, {mode: v === "normal" ? null : v}); renderDrive(); });
   $("dDist").onchange = readDriveSituation; $("dYard").onchange = readDriveSituation;
+  $("dLook").onchange = e => { driveState = Object.assign({}, driveState, {look: e.target.value || null}); renderDrive(); };
   for (const b of $("dResult").querySelectorAll("[data-out]")) b.onclick = () => logResult(b.dataset.out);
   $("dUndo").onclick = undoResult;
   $("dNewDrive").onclick = newDrive;
@@ -5871,6 +6177,10 @@ function boot(){
   const closeMenu = () => { $("exportMenu").hidden = true; };
   $("btnSaveAs").onclick = () => { closeMenu(); saveFile(true); };
   $("btnSavePlay").onclick = () => { closeMenu(); savePlayCopy(); };
+  $("btnVary").onclick = () => { closeMenu(); openVary(); };
+  $("varyClose").onclick = () => $("varyDialog").close();
+  $("varyCancel").onclick = () => $("varyDialog").close();
+  $("varyGo").onclick = addVariations;
   $("btnPaste").onclick = () => { closeMenu(); openIo("Paste a play or a playbook JSON", ""); };
   $("btnBook").onclick = () => setBook(!bookOpen);
   $("btnBookClose").onclick = () => setBook(false);

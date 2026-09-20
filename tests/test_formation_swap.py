@@ -229,3 +229,44 @@ def test_the_designer_swaps_formations_the_same_way(name, adjust, formation):
     swapped = Play.model_validate({**play.model_dump(mode="json"), **got})
     assert swapped.assignments == expected.assignments
     assert swapped.formation.players == expected.formation.players
+
+
+# ── Flipping ─────────────────────────────────────────────────────────
+
+FLIPPED = ["power_right", "counter_trey", "buck_sweep", "mesh_concept", "pa_boot",
+           "speed_option", "rb_slip", "bubble"]
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+@pytest.mark.parametrize("name", FLIPPED)
+def test_the_designer_flips_a_play_the_way_python_mirrors_it(name):
+    """Flip in the browser and Play.mirror() must agree, blocks and all: a
+    pulling guard has to come around the other way."""
+    play = _catalog.play_builders()[name]()
+    got = _js(Playbook(name="Flip", plays=[play]),
+              "renderAll = () => {}; play = normalizePlay(__book.plays[0]); flipPlay();"
+              " return {assignments: play.assignments, formation: play.formation};")
+    flipped = Play.model_validate({**play.model_dump(mode="json"), **got})
+    mirrored = play.mirror()
+    assert flipped.assignments == mirrored.assignments
+    assert flipped.formation.players == mirrored.formation.players
+
+
+MOTIONS = [("mesh_concept", "H", "jet"), ("mesh_concept", "Z", "orbit"),
+           ("inside_zone", "Z", "across"), ("smash", "H", "short"),
+           ("power_right", "Z", "in"), ("mesh_concept", "X", "return")]
+
+
+@pytest.mark.skipif(NODE is None, reason="node is not installed")
+@pytest.mark.parametrize("name,label,kind", MOTIONS, ids=["-".join(m) for m in MOTIONS])
+def test_the_designer_puts_a_man_in_motion_the_way_python_does(name, label, kind):
+    """Where he starts, where he is at the snap, and what it is called."""
+    play = _catalog.play_builders()[name]()
+    got = _js(Playbook(name="Motion", plays=[play]),
+              f"renderAll = () => {{}}; play = normalizePlay(__book.plays[0]);"
+              f" applyMotion({label!r}, {kind!r});"
+              " return {assignments: play.assignments, formation: play.formation};")
+    moved = Play.model_validate({**play.model_dump(mode="json"), **got})
+    expected = play.adjust(A.MOTION(label, kind))
+    assert moved.assignment(label) == expected.assignment(label)
+    assert moved.formation.player(label) == expected.formation.player(label)
