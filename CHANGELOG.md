@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.11.0
+
+**What the half says about you.** The game log now reads back as a self-scout:
+the numbers, the tendencies a scout would see, and what the staff has left.
+
+### Self-scout
+- `chalktalk.scout.report` counts the log back, with the plan's own thresholds:
+  - snaps on schedule, overall and by down, with yards a call;
+  - third downs converted;
+  - explosive plays, 12 yards running and 16 throwing;
+  - what is working, by yards a call;
+  - your looks, run against pass.
+- A tendency is four calls from one formation with eight in ten the same kind,
+  and it is written the way a scout would put it: "From I-Form Pro Right you
+  have run 6 of 6: a scout sees it."
+- It also lists what is set up and not called (a series whose base has been
+  shown), and what is left: the opening script, the drive starters, the
+  favorites.
+- The **Halftime** section in the Game panel shows it while the half is going
+  on, and the **Halftime sheet** prints it in two columns.
+- The designer carries a twin, held to Python by a test.
+
 ## 0.10.0
 
 **Twenty-four more plays.** The catalog goes from 54 concepts to 78, each one

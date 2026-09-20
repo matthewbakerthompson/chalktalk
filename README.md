@@ -593,6 +593,26 @@ Setting a play's tier yourself marks it as repped. The weights are a judgment
 from what coaches name as hard, not a published scale; the catalog comes out
 64 Basic and 14 Standard.
 
+### Halftime, and what a scout sees
+
+Every snap the Game panel logs is counted back in its **Halftime** section and
+on a printed sheet: how many snaps stayed on schedule and how that splits by
+down, third downs converted, the explosive plays (12 yards running, 16
+throwing), what is working by yards a call, and what a scout on the other
+sideline sees. Four calls from one look with eight in ten the same kind is a
+tendency, and it says so: "From I-Form Pro Right you have run 6 of 6: a scout
+sees it." It also lists what the staff hasn't used: the rest of the opening
+script, the drive starters, the favorites, and the plays a series has set up
+but never called.
+
+```python
+from chalktalk.scout import report
+
+r = report(book)                # or report(book, log)
+r.on, r.snaps, r.rate           # 29 of 53, 55%
+[n for n in r.notes]            # what a scout sees, in a coordinator's order
+```
+
 ### Calling the plays
 
 A plan can use any mix of four ways to get the call in:

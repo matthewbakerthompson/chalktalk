@@ -49,7 +49,7 @@ def catalog() -> dict:
     from ..renderer.theme import LAYERS, themes_json
     from ..renderer.sheets import _CSS as SHEET_CSS, BAND_WORDS, INSERT_SIZES
     from ..callsheet import STANDARD_BUCKETS
-    from .. import codes as K, difficulty as DF, planner as PL
+    from .. import codes as K, difficulty as DF, planner as PL, scout as SC_
     from ..models import gameplan as GP
 
     plays = {name: play.model_dump(mode="json")
@@ -142,6 +142,8 @@ def catalog() -> dict:
                   "board_shapes": K.BOARD_SHAPES, "board_colors": K.BOARD_COLORS,
                   "board_memory": K.BOARD_MEMORY, "letters": K.LETTERS,
                   "word_lists": K.WORD_LISTS, "live_signals": K.LIVE_SIGNALS},
+        "scout": {"explosive": SC_.EXPLOSIVE, "tendency_calls": SC_.TENDENCY_CALLS,
+                  "tendency_share": SC_.TENDENCY_SHARE},
         "layers": list(LAYERS),
     }
 
