@@ -144,7 +144,8 @@ def catalog() -> dict:
                   "board_memory": K.BOARD_MEMORY, "letters": K.LETTERS,
                   "word_lists": K.WORD_LISTS, "live_signals": K.LIVE_SIGNALS},
         "scout": {"explosive": SC_.EXPLOSIVE, "tendency_calls": SC_.TENDENCY_CALLS,
-                  "tendency_share": SC_.TENDENCY_SHARE},
+                  "tendency_share": SC_.TENDENCY_SHARE, "dimensions": list(SC_.DIMENSIONS),
+                  "hashes": SC_.HASHES, "field": SC_.FIELD, "field_words": SC_.FIELD_WORDS},
         "layers": list(LAYERS),
     }
 

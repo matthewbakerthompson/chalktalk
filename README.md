@@ -608,11 +608,27 @@ Every snap the Game panel logs is counted back in its **Halftime** section and
 on a printed sheet: how many snaps stayed on schedule and how that splits by
 down, third downs converted, the explosive plays (12 yards running, 16
 throwing), what is working by yards a call, and what a scout on the other
-sideline sees. Four calls from one look with eight in ten the same kind is a
-tendency, and it says so: "From I-Form Pro Right you have run 6 of 6: a scout
-sees it." It also lists what the staff hasn't used: the rest of the opening
-script, the drive starters, the favorites, and the plays a series has set up
-but never called.
+sideline sees. It also lists what the staff hasn't used: the rest of the
+opening script, the drive starters, the favorites, and the plays a series has
+set up but never called.
+
+A scout breaks the half down by what the defense sees before the snap:
+- formation;
+- personnel;
+- down and distance;
+- hash;
+- where the ball is;
+- and any two of those together.
+
+Down and distance and the part of the field use the plan's own sections, so a
+tendency points at the part of the call sheet that breaks it. Four calls from
+one look with eight in ten the same kind is a tendency.
+
+A look is said only when nothing broader says it already:
+- a formation that is the whole of its personnel is one note, not two;
+- a half that runs 20 of 24 says so once;
+- the one place that half throws is still said: "On 2nd & 7+, from the left
+  hash, you have thrown 4 of 4: a scout sees it."
 
 ```python
 from chalktalk.scout import report
@@ -620,6 +636,7 @@ from chalktalk.scout import report
 r = report(book)                # or report(book, log)
 r.on, r.snaps, r.rate           # 29 of 53, 55%
 [n for n in r.notes]            # what a scout sees, in a coordinator's order
+[(t.by, t.look, t.runs, t.passes) for t in r.tendencies]   # every look, by dimension
 ```
 
 ### Calling the plays
@@ -813,17 +830,15 @@ a clean SVG render, and every adjustment for immutability and JSON round-trippin
 
 ## Roadmap
 
-- Self-scout: tendency reports by down, distance, hash, personnel and formation
-- A concept taxonomy for the pass game, so a call sheet can be checked for the
-  answers it is missing
-- Coverage *checks* against trips and bunch, the way modern two-high defenses
-  actually adjust, rather than one call for every formation
+- Tendency breakers in the Game panel: the planner lifts the play that breaks
+  a tendency the self-scout has found for this down, hash and spot
 - A concept taxonomy for the pass game — horizontal, vertical and three-level
   stretches, isolation concepts — so plays are classified by what they attack
+  and a call sheet can be checked for the answers it is missing
 - Pressure checks and hot answers as first-class objects next to alerts
-- Modern two-high defensive structures: coverage tools and checks against
-  trips and bunch, rather than only named base fronts
-- Self-scout: tendency reports by down, distance, hash, personnel and formation
+- Modern two-high defensive structures: coverage checks against trips and
+  bunch, the way two-high defenses actually adjust, rather than one call for
+  every formation
 - Flag football (5v5, 7v7) field sizes and formation sets
 - Special teams: kickoff, punt, field goal, return units
 - Import from Hudl / Pro Quick Draw exports

@@ -4592,11 +4592,48 @@ function scriptCardsHtml(b){
 /* --- scout: what the half says about you (chalktalk/scout.py) -------------
    The log holds every snap; this reads it back. The numbers by down, what a
    scout on the other sideline sees, what worked, and what the staff has not
-   used yet. Counting only, with the plan's own thresholds. */
-const SCOUT = () => CATALOG.scout || {explosive: {run: 12, pass: 16}, tendency_calls: 4, tendency_share: 0.8};
+   used yet. Counting only, with the plan's own thresholds. A look is the
+   formation, the personnel, the down and distance, the hash, the part of the
+   field, or two of them; it is said only when nothing broader says it. */
+const SCOUT = () => CATALOG.scout || {explosive: {run: 12, pass: 16}, tendency_calls: 4, tendency_share: 0.8,
+  dimensions: ["formation", "personnel", "down", "hash", "field"],
+  hashes: {L: "Left hash", M: "Middle", R: "Right hash"},
+  field: [[90, "Backed up"], [60, "Coming out"], [41, "Midfield"], [21, "Fringe"], [11, "Red zone"], [4, "Low red"], [1, "Goal line"]],
+  field_words: {"Backed up": "backed up", "Coming out": "coming out", "Midfield": "around midfield",
+                "Fringe": "on the fringe", "Red zone": "in the red zone", "Low red": "in the low red",
+                "Goal line": "on the goal line"}};
 const scoutKind = p => (p.play_type === "run" || p.play_type === "rpo") ? "run" : "pass";
 const ORD_DOWN = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th"};
 const rateOf = s => s.calls ? pyRound(100 * s.on / s.calls) : 0;
+// Every look one snap was called from, the down and the spot named by the plan's own sections.
+function scoutLooks(plan, snap, p){
+  const S = SCOUT(), st = snap.before, hash = st.hash_mark || null, mode = st.mode || null;
+  const secs = (plan.sections && plan.sections.length) ? plan.sections : (PLANDATA().sections || []);
+  const section = kind => {
+    const s = secs.find(s => whenKind(s.when || {}) === kind
+      && whenMatches(s.when || {}, st.down, st.distance, st.yard_line, hash, mode));
+    return s ? s.title : null;
+  };
+  const bucket = st.distance <= 3 ? "1-3" : st.distance <= 6 ? "4-6" : "7+";
+  const out = [["formation", p.formation.name]];
+  if (p.formation.personnel) out.push(["personnel", `${p.formation.personnel} personnel`]);
+  out.push(["down", section("down") || `${ORD_DOWN[st.down]} & ${bucket}`]);
+  if (hash) out.push(["hash", S.hashes[hash]]);
+  out.push(["field", section("zone") || S.field.find(([line]) => st.yard_line >= line)[1]]);
+  return out;
+}
+// A look the way a scout puts it: "From Trips Right, on 3rd & 7+".
+function scoutSay(parts){
+  const S = SCOUT(), words = {formation: "from ", personnel: "in ", down: "on "};
+  const text = parts.map(([by, look]) => by === "hash" ? `from the ${look.toLowerCase()}`
+    : by === "field" ? (S.field_words[look] || `in ${look}`) : words[by] + look).join(", ") || "overall";
+  return text[0].toUpperCase() + text.slice(1);
+}
+// Which way a look leans, and how many calls say so, once it is a tendency.
+function scoutLean(row){
+  const S = SCOUT(), [what, n] = row.passes > row.runs ? ["thrown", row.passes] : ["run", row.runs];
+  return (row.calls >= S.tendency_calls && n / row.calls >= S.tendency_share) ? [what, n] : null;
+}
 
 function scoutReport(b, log){
   const plan = planOf(b), S = SCOUT();
@@ -4605,7 +4642,7 @@ function scoutReport(b, log){
   const t = thresholdsOf(plan);
   const out = {game: plan.name || "", snaps: 0, on: 0, yards: 0, by_down: [],
                thirds: {label: "3rd down", calls: 0, on: 0, yards: 0}, by_look: [],
-               explosives: [], best: [], tendencies: [], ready: [], unused: [], notes: []};
+               explosives: [], best: [], tendencies: [], leans: [], ready: [], unused: [], notes: []};
   const downs = new Map(), looks = new Map(), plays = new Map(), called = new Set();
   const seenLooks = new Map();
   for (const snap of log){
@@ -4630,11 +4667,21 @@ function scoutReport(b, log){
       out.thirds.on += (after.down === 1 || after.over === "touchdown") ? 1 : 0;
     }
     if (p){
-      const look = p.formation.name;
-      if (!looks.has(look)) looks.set(look, {look, calls: 0, runs: 0, passes: 0});
-      const tend = looks.get(look);
-      tend.calls++;
-      if (scoutKind(p) === "run") tend.runs++; else tend.passes++;
+      const one = scoutLooks(plan, snap, p), every = [[], ...one.map(x => [x])];
+      one.forEach((a, i) => one.slice(i + 1).forEach(b => {
+        if (!(a[0] === "formation" && b[0] === "personnel")) every.push([a, b]);
+      }));
+      for (const these of every){
+        const by = these.map(x => x[0]).join("+") || "overall";
+        const look = these.map(x => x[1]).join(", ") || "Overall";
+        const key = `${by}|${look}`;
+        if (!looks.has(key))
+          looks.set(key, {row: {look, by, calls: 0, runs: 0, passes: 0, on: 0}, parts: these, covers: new Set()});
+        const L = looks.get(key);
+        L.row.calls++; L.row.on += ok ? 1 : 0;
+        if (scoutKind(p) === "run") L.row.runs++; else L.row.passes++;
+        L.covers.add(out.snaps);
+      }
       if (!plays.has(snap.play)) plays.set(snap.play, {play: snap.play, call: playCall(p), calls: 0, yards: 0, on: 0});
       const line = plays.get(snap.play);
       line.calls++; line.yards += gain; line.on += ok ? 1 : 0;
@@ -4649,9 +4696,18 @@ function scoutReport(b, log){
   out.best = [...plays.values()].filter(l => l.calls >= 2)
     .sort((x, y) => (y.yards / y.calls) - (x.yards / x.calls) || (x.play < y.play ? -1 : x.play > y.play ? 1 : 0))
     .slice(0, 5);
-  out.tendencies = [...looks.values()]
-    .sort((x, y) => y.calls - x.calls || (x.look < y.look ? -1 : x.look > y.look ? 1 : 0))
-    .filter(x => x.calls >= S.tendency_calls);
+  // The whole half first, then one look at a time in dimension order, then two.
+  const cmp = (x, y) => x < y ? -1 : x > y ? 1 : 0;
+  const digits = L => L.parts.map(([by]) => S.dimensions.indexOf(by)).join("");
+  const order = [...looks.values()].sort((x, y) => x.parts.length - y.parts.length
+    || cmp(digits(x), digits(y)) || y.row.calls - x.row.calls || cmp(x.row.look, y.row.look));
+  out.tendencies = order.filter(L => L.parts.length === 1 && L.row.calls >= S.tendency_calls).map(L => L.row);
+  // Said only when no look covering all its snaps (or the same ones, listed first) leans the same way.
+  const leaning = order.filter(L => scoutLean(L.row));
+  const said = leaning.filter((L, i) => !leaning.some((U, j) => U !== L
+    && scoutLean(U.row)[0] === scoutLean(L.row)[0] && [...L.covers].every(n => U.covers.has(n))
+    && (U.covers.size > L.covers.size || j < i)));
+  out.leans = said.map(L => L.row);
 
   // What the staff has set up, and what it has not used.
   const shown = new Set();
@@ -4676,11 +4732,9 @@ function scoutReport(b, log){
     out.notes.push(`${out.on} of ${out.snaps} snaps on schedule (${pyRound(100 * out.on / out.snaps)}%), `
       + `${pyRound(out.yards / out.snaps * 10) / 10} yards a snap`);
   if (out.thirds.calls) out.notes.push(`${out.thirds.on} of ${out.thirds.calls} on third down`);
-  for (const tend of out.tendencies){
-    let share = tend.runs / tend.calls, what = "run", n = tend.runs;
-    if (tend.passes > tend.runs){ share = tend.passes / tend.calls; what = "thrown"; n = tend.passes; }
-    if (share >= S.tendency_share)
-      out.notes.push(`From ${tend.look} you have ${what} ${n} of ${tend.calls}: a scout sees it`);
+  for (const L of said){
+    const [what, n] = scoutLean(L.row);
+    out.notes.push(`${scoutSay(L.parts)}, you have ${what} ${n} of ${L.row.calls}: a scout sees it`);
   }
   for (const seen of out.by_look)
     if (seen.calls >= S.tendency_calls) out.notes.push(`vs ${seen.label}: ${seen.on} of ${seen.calls} on schedule`);
@@ -5533,10 +5587,13 @@ function scoutHtml(b){
   const calls = (lines, each) => lines.length ? `<ol>` + lines.map(l =>
       `<li><span class="num">${pyRound(l.yards / l.calls * 10) / 10}</span><span>${esc(l.call)}`
       + (each ? `<div class="note">${l.calls} calls</div>` : "") + `</span></li>`).join("") + `</ol>` : "";
+  // Every look called four times or more, under the thing a scout breaks the half down by.
+  const dims = {formation: "Formation", personnel: "Personnel", down: "Down & distance", hash: "Hash", field: "Field"};
   const looks = r.tendencies.length ? `<table><thead><tr><th>Look</th><th class="n">Calls</th>`
-      + `<th class="n">Run</th><th class="n">Pass</th></tr></thead><tbody>`
-      + r.tendencies.map(x => `<tr><td>${esc(x.look)}</td><td class="n">${x.calls}</td>`
-          + `<td class="n">${x.runs}</td><td class="n">${x.passes}</td></tr>`).join("") + `</tbody></table>` : "";
+      + `<th class="n">Run</th><th class="n">Pass</th><th class="n">On schedule</th></tr></thead><tbody>`
+      + r.tendencies.map((x, i) => (i && r.tendencies[i - 1].by === x.by ? "" : `<tr><th colspan="5">${dims[x.by]}</th></tr>`)
+          + `<tr><td>${esc(x.look)}</td><td class="n">${x.calls}</td><td class="n">${x.runs}</td>`
+          + `<td class="n">${x.passes}</td><td class="n">${x.on}</td></tr>`).join("") + `</tbody></table>` : "";
   const head = sheetHeader(planTitle(plan), ["Halftime: what the log says"],
     [b.team, `${r.on} of ${r.snaps} on schedule`, `${r.thirds.on} of ${r.thirds.calls} on third down`]);
   const body = section("What a scout sees", list(r.notes))
