@@ -176,7 +176,7 @@ def _scout_log(book: Playbook) -> list[Snap]:
     """A half with everything in it: a flag, a sack, an incompletion, a
     turnover, explosives, a third down, and one look called over and over."""
     ids = [p.id for p in book.plays]
-    out, state = [], DriveState()
+    out, state = [], DriveState(hash_mark=Hash.LEFT)
     script = [("inside-zone", Outcome.GAIN, 14), ("mesh-concept", Outcome.INCOMPLETE, 0),
               ("inside-zone", Outcome.GAIN, 3), ("power-right", Outcome.PENALTY_US, 5),
               ("stick", Outcome.GAIN, 8), ("inside-zone", Outcome.GAIN, 2),
@@ -188,17 +188,61 @@ def _scout_log(book: Playbook) -> list[Snap]:
         out.append(Snap(before=state, play=pid, call=pid, outcome=outcome, gain=gain, look=look))
         state = P.advance(state, outcome, gain)
         if state.over:
-            state = DriveState(drive=state.drive + 1, yard_line=70)
+            state = DriveState(drive=state.drive + 1, yard_line=70, hash_mark=Hash.RIGHT)
     return out
 
 
-def test_the_scout_report_matches_python():
+def _scout_half() -> list[Snap]:
+    """A half split every way a scout splits it: runs that lean by personnel,
+    a formation that is all of its personnel, a down and hash that only throw
+    together, every part of the field, the middle of the field, a two-minute
+    drive, and a flag."""
+    def at(pid, down, distance, yard_line, hash_=None, outcome=Outcome.GAIN, gain=5, **kw):
+        return Snap(before=DriveState(down=down, distance=distance, yard_line=yard_line,
+                                      hash_mark=Hash(hash_) if hash_ else None, **kw),
+                    play=pid, call=pid, outcome=outcome, gain=gain)
+    return [
+        *[at("inside-zone", 1, 10, 75, "L", gain=3) for _ in range(2)],
+        *[at("speed-sweep", 1, 10, 60, "L", gain=7) for _ in range(2)],
+        at("mesh-concept", 2, 8, 70, "L", Outcome.INCOMPLETE),
+        at("stick", 2, 7, 55, "L", gain=9),
+        at("smash", 2, 9, 45, "L", gain=4),
+        at("four-verticals", 2, 10, 35, "L", gain=31),
+        at("inside-zone", 2, 8, 65, "R", gain=2),
+        at("power-right", 2, 7, 40, "R", gain=6),
+        *[at("speed-sweep", 2, 9, 50, "R", gain=1) for _ in range(2)],
+        at("inside-zone", 1, 2, 2, "M", gain=2),
+        at("power-right", 1, 10, 95, "M", gain=4),
+        at("power-right", 1, 10, 95, "M", Outcome.PENALTY_US, 5),
+        at("y-cross", 3, 6, 15, "R", gain=7),
+        at("stick", 1, 10, 18, "M", gain=3),
+        at("four-verticals", 2, 10, 12, "R", Outcome.SACK, 6),
+        at("mesh-concept-2", 1, 10, 60, "R", gain=12, mode=Mode.TWO_MINUTE),
+        at("smash", 3, 12, 80, "M", Outcome.TURNOVER),
+        at("inside-zone", 3, 1, 28, None, gain=2),
+    ]
+
+
+@pytest.mark.parametrize("which", ["chained", "half", "own sections"])
+def test_the_scout_report_matches_python(which):
+    from chalktalk.models import PlanSection, When
     from chalktalk.scout import report
     book = _book()
-    log = _scout_log(book)
+    if which == "own sections":
+        book.game_plan.sections = [
+            PlanSection(title="3rd & short", when=When(downs=[3], distance=(0, 2))),
+            PlanSection(title="Long", when=When(downs=[1, 2], distance=(7, 99), hash_mark=Hash.LEFT)),
+            PlanSection(title="Scoring zone", when=When(yard_line=(1, 25))),
+            PlanSection(title="Base")]
+    log = _scout_log(book) if which == "chained" else _scout_half()
+    py = report(book, log)
+    if which != "chained":
+        # The half says something from every kind of look, or the test says little.
+        assert {t.by for t in py.tendencies} == {"formation", "personnel", "down", "hash", "field"}
+        assert any("+" in t.by for t in py.leans), py.notes
     payload = json.dumps([s.model_dump(mode="json") for s in log])
     js = _js(book, f"return scoutReport(__book, {payload});")
-    assert js == report(book, log).model_dump(mode="json")
+    assert js == py.model_dump(mode="json")
 
 
 def _plan_view(book: Playbook, notes: list[str]) -> dict:

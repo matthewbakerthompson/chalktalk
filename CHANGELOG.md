@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.12.0
+
+**The half the way the other sideline breaks it down.** The self-scout now
+counts run against pass by every look a defense sees before the snap, and it
+says a tendency only once, from the broadest look that shows it.
+
+### Self-scout
+- Every snap is counted by:
+  - formation;
+  - personnel;
+  - down and distance;
+  - hash;
+  - where the ball is;
+  - and any two of those together.
+- Down and distance, and the part of the field, use the plan's own sections,
+  so a tendency names the part of the call sheet that breaks it: "2nd & 7+",
+  "Red zone". A spot the plan has no section for gets the stock name:
+  "1st & 4-6", "Coming out", "Midfield", "Fringe".
+- **A look is said only when nothing broader says it already.** Four runs
+  from I-Form and a power from I-Form Strong, when those are every 21
+  personnel snap, make one note ("In 21 personnel, you have run 5 of 5"), not
+  a second one for I-Form. When a formation is the whole of its personnel,
+  the formation is the one said. A half that runs 20 of 24 says that once,
+  and still says the one place it throws: "On 2nd & 7+, from the left hash,
+  you have thrown 4 of 4: a scout sees it."
+- Two looks together are said only when neither says it alone. Those are the
+  tendencies a staff misses and a scout catches.
+- The halftime sheet's **Your looks** table groups every look called four
+  times or more under formation, personnel, down and distance, hash and
+  field, with how many stayed on schedule.
+- In Python, `Report.tendencies` carries every look by dimension (`by`), and
+  `Report.leans` carries the ones the notes say.
+- The designer's twin is held to Python on three halves, one of them with a
+  staff's own sections.
+
+### Changed
+- The formation note has a comma now, like the rest: "From I-Form Pro Right,
+  you have run 6 of 6: a scout sees it."
+- When the whole half leans one way, it is said as "Overall, ..." in place of
+  a formation note that said the same thing.
+
 ## 0.11.0
 
 **What the half says about you.** The game log now reads back as a self-scout:
