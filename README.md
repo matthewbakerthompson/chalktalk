@@ -400,10 +400,14 @@ formation. Drop a play or playbook `.json` anywhere on the window to open it.
 - **Click a player** on the field or on the bench to select it, **drag** to
   move (snapped to half yards). The strip above the bench edits the selection:
   route, block, target, direction, motion, ball carrier, note.
-- **Click the field** to add route points, **drag** the yellow handles to shape
-  the route, **double-click** one to delete it. Or pick a stock route. While a
-  player is selected a faint line runs from the end of his route to the cursor,
-  with the depth of the next point.
+- **Click the field** to add route points to a player with nothing drawn yet;
+  for anyone else, press **Draw** or **Extend** first. While you draw, a faint
+  line runs from the end of his route to the cursor, with the depth of the next
+  point. **Double-click** the last point, press **Done** or <kbd>Enter</kbd> to
+  finish. Otherwise a click on open field lets go of the selection and never
+  changes the play.
+- **Drag** the yellow handles to shape the route, **double-click** one to delete
+  it. Or pick a stock route.
 - **Arrow keys** nudge the selected player, defender or route point by half a
   yard; hold <kbd>Shift</kbd> for a full yard.
 - **Layers** hide whatever you are not working on: routes, blocks, motion, the
@@ -498,7 +502,8 @@ from the bottom of the screen. The playbook, the play sheet and the drive
 planner take the whole screen. Arrows beside the play name turn the pages.
 Under the diagram are what a coach reads when reviewing: the description,
 alerts, the quarterback's reads, each player's coaching point and the tags.
-**Tap** a player, then tap the field to draw his route. **Drag** to move, and
+**Tap** a player, then tap the field to draw his route, and tap **Done** when
+it's finished; a tap on open field lets go of him. **Drag** to move, and
 **double-tap** a handle to delete it. Pinch the field to zoom in on the line. On
 its side the phone gives the field the whole height. Files you export from a
 phone are drawn at desk size.

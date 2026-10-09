@@ -624,6 +624,9 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
   .pop{left:52px;top:44px;max-height:calc(100% - 50px)}
   .stage-box{top:40px;left:52px;right:2px;bottom:2px}
   .inspector{min-height:0;max-height:64px;overflow-y:auto;padding:4px 10px}
+  /* the strip shows one row: Done has to be in it */
+  .ihead{order:-2}
+  .ifield.iacts{order:-1}
   .bench{padding:0 6px}
   .tok{padding:2px 0}
   .book,.sheet,#drive{position:fixed;top:0;bottom:0;z-index:var(--z-sheet)}
@@ -1254,6 +1257,7 @@ let selWp = -1;          // selected waypoint index
 let drag = null;         // {kind:'player'|'waypoint'|'motion', ...}
 let blockDir = 1;        // which way the next block or scheme points
 let selDef = null;       // selected defender label
+let drawFor = null;      // the player a click on open field draws for; anywhere else that click lets go
 let qbDir = 1;           // which way the quarterback's action points
 const LAYER_KEYS = ["routes","blocks","motion","qb","reads","defense","coverage","zones","title"];
 const layers = Object.fromEntries(LAYER_KEYS.map(k => [k, true]));  // what the diagram shows; exports follow it
@@ -1295,6 +1299,14 @@ function nudge(dx, dy){
     }
   }
   renderAll();
+}
+
+// Drawing is a mode a coach enters on purpose: picking a player with nothing drawn,
+// Draw or Extend. Picking someone else ends it, so does Done, Enter or Escape.
+function drawing(){ return sel !== null && drawFor === sel; }
+function drawIfBlank(label){
+  const a = findA(label);
+  drawFor = a && !a.route && !a.block ? label : null;
 }
 
 function undo(){
@@ -2090,9 +2102,10 @@ function renderSvg(){
 
 /* ─── live route preview: where the next click puts a point ───────────── */
 let hover = null;            // the snapped field point under the pointer, over open grass
+// Null unless a click on open field would add a point, so the preview never lies about it.
 function previewFrom(){
   const a = selA();
-  if (!a || !layers.routes) return null;
+  if (!a || !layers.routes || !drawing()) return null;
   const wps = a.route && a.route.route_type !== "block" ? a.route.waypoints : null;
   return wps && wps.length ? wpAbs(a.player, wps[wps.length - 1]) : [a.player.x, a.player.y];
 }
@@ -2124,24 +2137,36 @@ function stagePoint(evt, svg){
   return [ix(evt.clientX - r.left), iy(evt.clientY - r.top)];
 }
 
+// Every press redraws the stage, so the browser never sees two clicks land on one
+// element and never fires dblclick. Presses are paired here, which gives touch its
+// double-tap as well.
+let lastPress = null;        // {at, x, y} and, when it hit one, the handle (wp) or the point it placed
+function pairPress(evt){
+  const prev = lastPress, now = Date.now();
+  lastPress = {at:now, x:evt.clientX, y:evt.clientY};
+  const near = prev && now - prev.at < 450 && Math.hypot(evt.clientX - prev.x, evt.clientY - prev.y) < 12;
+  return near ? prev : null;
+}
+
 function bindStage(svg){
   svg.addEventListener("pointerdown", evt => {
     const t = evt.target;
     const [fx, fy] = stagePoint(evt, svg);
+    const again = pairPress(evt);       // the first press, when this one makes a double-click
     if (readPick){
       if (t.dataset && t.dataset.player !== undefined && playerKind(findA(t.dataset.player).player) !== "quarterback")
         return toggleRead(t.dataset.player, fieldCoverage());
       readPick = false; renderAll(); return;
     }
     if (t.dataset && t.dataset.player !== undefined){
-      sel = t.dataset.player; selDef = null; selWp = -1;
+      sel = t.dataset.player; selDef = null; selWp = -1; drawFor = null;
       pushUndo();
-      drag = {kind:"player", label:sel};
+      drag = {kind:"player", label:sel, moved:false};
       svg.setPointerCapture(evt.pointerId);
       renderAll(); return;
     }
     if (t.dataset && t.dataset.motion !== undefined){
-      sel = t.dataset.motion; pushUndo();
+      sel = t.dataset.motion; drawFor = null; pushUndo();
       drag = {kind:"motion", label:sel};
       svg.setPointerCapture(evt.pointerId);
       renderAll(); return;
@@ -2154,14 +2179,28 @@ function bindStage(svg){
       renderAll(); return;
     }
     if (t.dataset && t.dataset.wp !== undefined){
-      selWp = +t.dataset.wp; pushUndo();
+      const i = +t.dataset.wp, a = selA();
+      lastPress.wp = i;
+      if (again && a && a.route && (again.placed === i || again.wp === i)){
+        lastPress = null;
+        // A double-click on open field lands its second press on the point the first
+        // one placed: that is the last point, and the route is done.
+        if (again.placed === i){ drawFor = null; selWp = -1; renderAll(); return; }
+        pushUndo();
+        a.route.waypoints.splice(i, 1);
+        if (a.route.waypoints.length < 2) a.route = null;
+        selWp = -1; renderAll(); return;
+      }
+      selWp = i; pushUndo();
       drag = {kind:"waypoint", index:selWp};
       svg.setPointerCapture(evt.pointerId);
       renderAll(); return;
     }
-    // empty field: extend the selected player's route
+    // Open field: while drawing, a point on the selected player's route. Otherwise it
+    // is how a coach clicks off, and it must never touch the play.
     const a = selA();
-    if (a){
+    if (a && previewFrom()){
+      if (again && again.placed !== undefined){ lastPress = null; drawFor = null; selWp = -1; renderAll(); return; }
       pushUndo();
       if (!a.route || a.route.route_type === "block"){
         a.route = {route_type:"custom", waypoints:[{x:0, y:0}], depth:null};
@@ -2170,9 +2209,10 @@ function bindStage(svg){
       a.route.waypoints.push(wpRel(a.player, snap(fx), snap(fy)));
       a.route.route_type = "custom";
       selWp = a.route.waypoints.length - 1;
+      lastPress.placed = selWp;
       renderAll();
     } else {
-      sel = null; selWp = -1; renderAll();
+      sel = null; selDef = null; selWp = -1; drawFor = null; renderAll();
     }
   });
 
@@ -2195,6 +2235,7 @@ function bindStage(svg){
       renderStage(); renderInspector(); return;
     }
     if (drag.kind === "player"){
+      if (snap(fx) !== a.player.x || snap(fy) !== a.player.y) drag.moved = true;
       a.player.x = snap(fx); a.player.y = snap(fy);
       syncFormation();
     } else if (drag.kind === "motion"){
@@ -2206,28 +2247,15 @@ function bindStage(svg){
     renderStage(); renderInspector();
   });
 
-  const end = () => { if (drag){ drag = null; renderAll(); } };
-  svg.addEventListener("pointerup", end);
-  svg.addEventListener("pointercancel", end);
+  const end = clicked => {
+    if (!drag) return;
+    // Clicking a player with nothing drawn picks him to draw; dragging him only moves him.
+    if (clicked && drag.kind === "player" && !drag.moved) drawIfBlank(drag.label);
+    drag = null; renderAll();
+  };
+  svg.addEventListener("pointerup", () => end(true));
+  svg.addEventListener("pointercancel", () => end(false));
   svg.addEventListener("pointerleave", () => { hover = null; drawPreview(svg); });
-
-  svg.addEventListener("dblclick", evt => {
-    const t = evt.target;
-    if (t.dataset && t.dataset.defender !== undefined){
-      selDef = t.dataset.defender; sel = null; selWp = -1;
-      pushUndo();
-      drag = {kind:"defender", label:selDef};
-      svg.setPointerCapture(evt.pointerId);
-      renderAll(); return;
-    }
-    if (t.dataset && t.dataset.wp !== undefined){
-      const a = selA(); if (!a || !a.route) return;
-      pushUndo();
-      a.route.waypoints.splice(+t.dataset.wp, 1);
-      if (a.route.waypoints.length < 2) a.route = null;
-      selWp = -1; renderAll();
-    }
-  });
 }
 
 /* ─── panels ────────────────────────────────────────────────────────────── */
@@ -2520,7 +2548,7 @@ function benchToken(label, cls, glyph, caption, title, onPick){
 function renderBench(){
   const box = $("playerList"); box.innerHTML = "";
   const all = assignments();
-  const pickOffense = label => { sel = label; selDef = null; selWp = -1; renderAll(); };
+  const pickOffense = label => { sel = label; selDef = null; selWp = -1; drawIfBlank(label); renderAll(); };
 
   // The line: one group, five dots, one caption.
   const line = all.filter(a => OL.has(a.player.position));
@@ -2656,7 +2684,7 @@ function renderInspector(){
     inspectorEnter(box, "none");
     box.innerHTML = `<div class="empty">
       <div><span class="lead">Nothing selected.</span>Pick a player on the field or on the bench.</div>
-      <div class="legend kbd-only"><b>Click</b> the field to add a route point · <b>Drag</b> a player or a handle
+      <div class="legend kbd-only"><b>Click</b> a player, then the field, to draw · <b>Drag</b> a player or a handle
         · <b>Double-click</b> a handle to delete it · <b>Arrows</b> nudge, <kbd>Shift</kbd> for a yard
         · <kbd>F</kbd> flips · <kbd>Ctrl</kbd>+<kbd>K</kbd> commands</div>
       <div class="legend touch-only"><b>Tap</b> a player, then tap the field to draw his route · <b>Drag</b> to move
@@ -2665,13 +2693,19 @@ function renderInspector(){
   }
   const p = a.player, kind = playerKind(p);
   const isOL = kind === "lineman", isQB = kind === "quarterback";
-  const drawing = !!(a.route && a.route.route_type !== "block");
+  const routed = !!(a.route && a.route.route_type !== "block");
   inspectorEnter(box, "off:" + p.label);
   const what = p.position !== p.label ? `${esc(p.position)} · ${kind}` : kind;
   const tap = isTouch() ? "tap" : "click";
-  const tip = drawing ? `${capFirst(tap)} the field to extend the route · drag a handle to bend it`
-            : isOL   ? `Pick a block here, or ${tap} the field to pull him`
-                     : `${capFirst(tap)} the field to start a route`;
+  const tip = drawing() ? (routed ? `${capFirst(tap)} the field to add points · double-${tap} or Done to finish`
+                         : isOL   ? `${capFirst(tap)} the field to pull him`
+                                  : `${capFirst(tap)} the field to start a route`)
+            : routed ? "Drag a handle to bend it · Extend to add points"
+            : isOL   ? "Pick a block here, or Draw to pull him"
+                     : "Draw to start a route";
+  const drawBtn = drawing()
+    ? `<button id="btnDraw" class="on" title="Stop adding points (Enter)">Done</button>`
+    : `<button id="btnDraw" title="${routed ? "Add points to the end of his route" : "Draw his route on the field, point by point"}">${routed ? "Extend" : "Draw"}</button>`;
   box.innerHTML = `
     <div class="ihead">
       <div class="top"><span class="glyph"></span><span class="who">${esc(p.label)}</span><span class="what">${what}</span></div>
@@ -2695,14 +2729,15 @@ function renderInspector(){
       <button id="btnReadPick" class="${readPick ? "on" : ""}" title="Tap receivers on the field in the order he works them">${readPick ? "Done" : "Set reads"}</button>
     </div></div>` : ""}
     <div class="isep"></div>
-    <div class="ifield"><label>&nbsp;</label><div class="btns">
+    <div class="ifield iacts"><label>&nbsp;</label><div class="btns">
+      ${drawBtn}
       <button id="btnBc" class="${a.is_ball_carrier ? "on" : ""}" title="Give this player the ball">Ball carrier</button>
       ${a.block ? "" : `<button id="btnBlock" title="Base block, route cleared">Block</button>`}
       ${(a.route || a.block) ? `<button id="btnClearRoute" class="danger" title="Clear the route and the block">Clear</button>` : ""}
     </div></div>
     <div class="ifield grow"><label for="pNote">Note</label><input id="pNote" value="${esc(a.note ?? "")}"
       placeholder="Coaching point" autocomplete="off"></div>
-    ${drawing ? `<div class="ifield"><label>Waypoints</label><div class="wps" id="wpList"></div></div>` : ""}`;
+    ${routed ? `<div class="ifield"><label>Waypoints</label><div class="wps" id="wpList"></div></div>` : ""}`;
 
   fillSelect($("routeSel"),
     Object.keys(CATALOG.routes).map(k => [k, words(k)]),
@@ -2712,7 +2747,7 @@ function renderInspector(){
     pushUndo();
     a.route = clone(CATALOG.routes[e.target.value]);
     a.block = null;                       // a player blocks or runs, not both
-    selWp = -1; renderAll();
+    selWp = -1; drawFor = null; renderAll();
   };
   fillSelect($("blockSel"),
     Object.keys(CATALOG.blocks).map(k => [k, words(k)]),
@@ -2722,7 +2757,7 @@ function renderInspector(){
     pushUndo();
     a.block = clone(CATALOG.blocks[e.target.value][String(blockDir)]);
     a.route = null;                       // a player blocks or runs, not both
-    renderAll();
+    drawFor = null; renderAll();
   };
   if (a.block){
     $("blockDir").value = String(blockDir);
@@ -2762,11 +2797,12 @@ function renderInspector(){
     pushUndo();
     a.block = clone(CATALOG.blocks.BASE[String(blockDir)]);
     a.route = null;
-    renderAll();
+    drawFor = null; renderAll();
   });
   bind("btnClearRoute", "onclick", () => {
-    pushUndo(); a.route = null; a.block = null; selWp = -1; renderAll();
+    pushUndo(); a.route = null; a.block = null; selWp = -1; drawFor = null; renderAll();
   });
+  $("btnDraw").onclick = () => { drawFor = drawing() ? null : p.label; selWp = -1; renderAll(); };
 
   const wl = $("wpList");
   if (wl){
@@ -6322,7 +6358,12 @@ function boot(){
       if (welcomeOpen()) return dismissWelcome();
       if (pop) return closePop();
       if (!$("exportMenu").hidden) return ($("exportMenu").hidden = true);
+      if (drawing()){ drawFor = null; return renderAll(); }
       sel = null; selDef = null; selWp = -1; renderAll();
+    }
+    // A focused button takes its own Enter.
+    else if (e.key === "Enter" && drawing() && !(e.target.closest && e.target.closest("button,a"))){
+      drawFor = null; renderAll();
     }
     else if (e.key.startsWith("Arrow") && (sel || selDef)){
       e.preventDefault();
