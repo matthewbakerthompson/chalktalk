@@ -179,21 +179,17 @@ def test_designer_is_self_contained():
     assert "https://" not in html
     assert "<script src=" not in html
     assert "<link rel=" not in html
-    assert "fetch(" not in html
+    # the one thing it asks for is its own `chalk design` server, by a relative path
+    assert re.findall(r"fetch\(([^,)]*)", html) == ['"api/" + name']
 
 
-def test_write_creates_the_file(tmp_path):
-    path = designer.write(str(tmp_path / "d" / "designer.html"))
-    with open(path, encoding="utf-8") as fh:
-        assert len(fh.read()) > 50_000
-
-
-def test_app_template_keeps_both_placeholders():
+def test_app_template_keeps_its_placeholders():
     with open(designer._TEMPLATE, encoding="utf-8") as fh:
         src = fh.read()
     assert src.count("/*__CATALOG__*/{}") == 1
     assert src.count("/*__PLAY__*/null") == 1
     assert src.count("/*__BOOK__*/null") == 1
+    assert src.count("/*__SERVER__*/null") == 1
 
 
 def test_designer_mirrors_the_python_motion_geometry():
@@ -312,16 +308,6 @@ def test_a_designer_book_is_a_python_playbook(tmp_path):
     again = Playbook.load(str(path))
     assert [p.name for p in again.plays] == ["Mesh Concept", "Power Right"]
     assert again.team == "Owls" and again.season == 2026
-
-
-def test_cli_opens_a_playbook_in_the_designer(tmp_path, capsys):
-    from chalktalk import cli
-    book = tmp_path / "book.json"
-    _book().save(str(book))
-    out = tmp_path / "designer.html"
-    assert cli.main(["design", str(book), "--out", str(out), "--no-open"]) == 0
-    assert "Week 3 (2 plays)" in capsys.readouterr().out
-    assert "/*__BOOK__*/null" not in out.read_text(encoding="utf-8")
 
 
 def test_cli_prints_a_playbook(tmp_path):

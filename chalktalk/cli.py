@@ -305,45 +305,28 @@ def cmd_book(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_site(args: argparse.Namespace) -> int:
-    """The designer as an installable web app, ready for any static host."""
-    from .designer.site import build_site
-    out = build_site(args.out, level=args.level, theme=args.theme)
-    print(f"Site: {out}")
-    print("Serve the folder over https (GitHub Pages, Netlify, Cloudflare Pages) and")
-    print("browsers will offer to install it. Plays stay on each coach's device.")
-    return 0
-
-
 def cmd_design(args: argparse.Namespace) -> int:
-    """Open the visual designer, optionally on an existing play."""
-    from .designer import open_in_browser, write
+    """Run the designer on this machine and open it in the browser."""
+    from .designer.server import Session, serve
 
-    play = None
-    playbook = None
-    if args.play:
-        if os.path.exists(args.play):
-            with open(args.play, encoding="utf-8") as fh:
-                raw = fh.read()
-            import json
-            if isinstance(json.loads(raw).get("plays"), list):
-                playbook = Playbook.from_json(raw)       # a whole book
-            else:
-                play = Play.from_json(raw)
-        else:
-            play = _build_play(args.play, args.formation, args.defense, args.flip,
-                               getattr(args, "coverage", None))
-
-    out = args.out or os.path.join("output", "designer.html")
-    path = write(out, play=play, level=args.level, theme=args.theme,
-                 playbook=playbook)
-    print(f"Designer: {path}")
+    file = play = None
+    if args.play and (os.path.exists(args.play) or args.play.lower().endswith(".json")):
+        file = args.play                        # a file to edit, or one Save will create
+    elif args.play:
+        play = _build_play(args.play, args.formation, args.defense, args.flip,
+                           getattr(args, "coverage", None))
+    try:
+        session = Session(os.getcwd(), file=file, play=play, level=args.level, theme=args.theme)
+    except (OSError, ValueError) as e:
+        print(f"Can't open {file}: {e}", file=sys.stderr)
+        return 1
     if play is not None:
         print(f"Loaded:   {play.call}")
-    if playbook is not None:
-        print(f"Loaded:   {playbook.name} ({len(playbook.plays)} plays)")
-    if not args.no_open:
-        open_in_browser(path)
+    try:
+        serve(session, port=args.port, open_browser=not args.no_open)
+    except OSError as e:
+        print(f"Can't start the designer on port {args.port}: {e}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -364,9 +347,9 @@ def cmd_demo(args: argparse.Namespace) -> int:
             fh.write(series_html(s))
 
     book = Playbook(name="Demo Playbook", team=args.team, plays=plays)
-    book.save_html(os.path.join(out, "playbook.html"))
+    book.save_html(os.path.join(out, "playbook.html"), level=args.level)
     book.save(os.path.join(out, "playbook.json"))
-    book.save_pdf(os.path.join(out, "playbook.pdf"), plays_per_page=4)
+    book.save_pdf(os.path.join(out, "playbook.pdf"), plays_per_page=4, level=args.level)
 
     sheet = CallSheet.from_playbook(book, name="Game Plan").number()
     sheet.save_html(os.path.join(out, "call_sheet.html"))
@@ -379,12 +362,10 @@ def cmd_demo(args: argparse.Namespace) -> int:
         fh.write(practice.to_html())
     practice.save_csv(os.path.join(out, "practice.csv"))
 
-    from .designer import write as write_designer
-    write_designer(os.path.join(out, "designer.html"), level=args.level)
-
     print(f"{len(plays)} plays across {len(all_series)} series -> {os.path.abspath(out)}")
     for f in sorted(os.listdir(out)):
         print(f"  {f}")
+    print(f"\nOpen the playbook in the designer: chalk design {os.path.join(out, 'playbook.json')}")
     return 0
 
 
@@ -467,16 +448,11 @@ def build_parser() -> argparse.ArgumentParser:
     bk.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
     bk.set_defaults(func=cmd_book)
 
-    site = sub.add_parser("site", help="build the designer as an installable web app")
-    site.add_argument("-o", "--out", default="site", help="folder to write (default: site)")
-    site.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
-    site.add_argument("--theme", default="turf", choices=["turf", "paper"])
-    site.set_defaults(func=cmd_site)
-
-    des = sub.add_parser("design", help="open the visual play designer")
+    from .designer.server import DEFAULT_PORT
+    des = sub.add_parser("design", help="open the visual play designer in your browser")
     des.add_argument("play", nargs="?",
-                     help="a saved play or playbook .json, or a catalog play name")
-    des.add_argument("-o", "--out", help="where to write the designer HTML")
+                     help="a play or playbook .json to edit (Save creates it if it doesn't "
+                          "exist yet), or a catalog play name to start from")
     des.add_argument("-f", "--formation", help="override the formation")
     des.add_argument("-d", "--defense", help="draw a defensive look")
     des.add_argument("--flip", action="store_true")
@@ -484,14 +460,17 @@ def build_parser() -> argparse.ArgumentParser:
     des.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
     des.add_argument("--theme", default="turf", choices=["turf", "paper"],
                      help="the look the designer opens in")
+    des.add_argument("--port", type=int, default=DEFAULT_PORT,
+                     help=f"the port on this machine to serve it from (default: {DEFAULT_PORT})")
     des.add_argument("--no-open", action="store_true",
-                     help="write the file without launching a browser")
+                     help="start the designer without opening a browser")
     des.set_defaults(func=cmd_design)
 
     dem = sub.add_parser("demo", help="generate a full example package")
     dem.add_argument("--out", default="output/demo")
     dem.add_argument("--team")
-    dem.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
+    dem.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"],
+                     help="hash marks on the playbook pages")
     dem.set_defaults(func=cmd_demo)
     return p
 

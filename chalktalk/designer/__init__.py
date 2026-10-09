@@ -1,22 +1,21 @@
 """
 chalktalk.designer — the visual play designer.
 
-Builds a single self-contained HTML file: the app template with the whole
-catalog (formations, routes, defensive looks, stock plays, field specs) inlined
-as JSON. No server, no build step, no network. Open it and drag players.
+`chalk design` runs it on your own machine (see `server.py`) and opens it in
+your browser. The page is the app template with the whole catalog
+(formations, routes, defensive looks, stock plays, field specs) inlined as
+JSON, and it reads and writes the exact `Play` and `Playbook` schema the
+Python side uses, so a book drawn in the browser loads straight back:
 
-The designer reads and writes the exact `Play` schema the Python side uses, so
-a play drawn in the browser loads straight back:
+    chalk design                       # a blank book
+    chalk design mesh_concept          # start from a catalog concept
+    chalk design week3.json            # edit a saved play or playbook
 
-    chalk design                       # open the designer
-    chalk design mesh.json             # open it on an existing play
-    chalk design book.json             # or on a whole playbook
-    chalk design --out docs/index.html --no-open
-
-    >>> Play.from_json(open("mesh.json").read())
+    >>> Playbook.load("week3.json")
 """
 from __future__ import annotations
 
+import functools
 import inspect
 import json
 import os
@@ -239,20 +238,24 @@ def _json_for_script(obj) -> str:
 
 def build(play: Optional[Play] = None, level: str = "nfl",
           theme: str = "turf",
-          playbook: Optional[Playbook] = None) -> str:
+          playbook: Optional[Playbook] = None,
+          server: Optional[dict] = None) -> str:
     """
     Return the designer as one self-contained HTML string, optionally opened
-    on a play or on a whole playbook.
+    on a play or on a whole playbook. `server` is what `chalk design` tells
+    the page about itself: its token, its folder and the file it opened.
     """
     with open(_TEMPLATE, encoding="utf-8") as fh:
         html = fh.read()
-    html = html.replace("/*__CATALOG__*/{}", _json_for_script(catalog()), 1)
+    html = html.replace("/*__CATALOG__*/{}", _catalog_json(), 1)
     if play is not None:
         html = html.replace("/*__PLAY__*/null",
                             _json_for_script(play.model_dump(mode="json")), 1)
     if playbook is not None:
         html = html.replace("/*__BOOK__*/null",
                             _json_for_script(playbook.model_dump(mode="json")), 1)
+    if server is not None:
+        html = html.replace("/*__SERVER__*/null", _json_for_script(server), 1)
     if level != "nfl":
         html = html.replace('let level = "nfl";', f'let level = "{level}";', 1)
     if theme != "turf":
@@ -260,20 +263,10 @@ def build(play: Optional[Play] = None, level: str = "nfl",
     return html
 
 
-def write(path: str, play: Optional[Play] = None, level: str = "nfl",
-          theme: str = "turf",
-          playbook: Optional[Playbook] = None) -> str:
-    """Write the designer to `path` and return the absolute path."""
-    path = os.path.abspath(path)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write(build(play=play, level=level, theme=theme, playbook=playbook))
-    return path
+@functools.lru_cache(maxsize=1)
+def _catalog_json() -> str:
+    """The catalog doesn't change while Python runs, and it is most of the page."""
+    return _json_for_script(catalog())
 
 
-def open_in_browser(path: str) -> None:
-    import webbrowser
-    webbrowser.open(f"file:///{os.path.abspath(path).replace(os.sep, '/')}")
-
-
-__all__ = ["build", "write", "catalog", "open_in_browser", "DEFAULT_FORMATION"]
+__all__ = ["build", "catalog", "DEFAULT_FORMATION"]

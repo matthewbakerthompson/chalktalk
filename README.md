@@ -7,17 +7,12 @@ players and draw routes on screen, or generate a hundred variants in a loop —
 either way you get the same JSON, and the same diagrams, call sheets, practice
 scripts and wristbands come out the other end.
 
-**Use it now: <https://matthewbakerthompson.github.io/chalktalk/>.** Nothing to install. Chrome, Edge and Chromebooks
-offer to install it as an app from the address bar; on an iPad, use Share, then
-Add to Home Screen. It opens with no connection, and your plays stay on your
-device: the app keeps a working copy in the browser and saves to files you
-choose, on your computer or your drive. Nothing is sent anywhere.
-
-The designer is also a single HTML file, `docs/index.html` in this repo, and
-`chalk design` writes one wherever you want it.
+`chalk design week3.json` opens the designer in your browser, served from your
+own machine, and Save writes `week3.json`: the same file a script loads with
+`Playbook.load("week3.json")`. Nothing is sent anywhere.
 
 ```bash
-chalk design                 # open the designer
+chalk design week3.json      # draw in the browser; Save writes the file
 chalk demo --out out/        # one of everything: playbook, call sheet, wristband
 ```
 
@@ -67,7 +62,8 @@ pip install -e .
 ```
 
 Requires Python 3.10+. Two dependencies: `pydantic` and `reportlab` (PDF export).
-The designer has none — it is one HTML file with no network calls.
+The designer needs nothing more: `chalk design` serves it with the standard
+library, and the page loads nothing from the internet.
 
 ---
 
@@ -89,7 +85,7 @@ The designer has none — it is one HTML file with no network calls.
 | **14 blocking schemes** | Inside/outside zone, power, counter, trap, iso, plus slide, half-slide, big-on-big, sprint and boot protections |
 | **12 adjustment types** | Motion, shift, tag, flip, formation, protection, tempo, alert, max protect, release, play action, personnel |
 | **3 field levels** | NFL, college and high school hashes — switchable everywhere |
-| **Visual designer** | Single-file browser app: drag players, draw routes, round-trips the same JSON |
+| **Visual designer** | `chalk design` opens it in your browser: drag players, draw routes, save the same JSON |
 | **Renderers** | SVG, multi-page PDF playbooks, printable HTML call sheets / scripts / wristbands, CSV |
 
 ---
@@ -378,17 +374,19 @@ Two things worth knowing:
 ## The designer
 
 ```bash
-chalk design                          # a blank formation
+chalk design week3.json               # edit a playbook (Save creates it if it's new)
+chalk design my_play.json             # or a single play
 chalk design mesh_concept             # start from a catalog concept
-chalk design my_play.json             # keep editing a saved play
-chalk design week3.json               # or a whole playbook
-chalk design --level hs --out designer.html --no-open
+chalk design                          # a blank book; Save asks for a file name
+chalk design --level hs --no-open     # high school hashes; open the address yourself
 ```
 
-It writes one self-contained HTML file — the whole catalog inlined, no server,
-no CDN, no build step — and opens it. The field is the window and the tools float over it. The first time it opens,
-a start screen offers four concepts, the whole library, a file, or a blank
-formation. Drop a play or playbook `.json` anywhere on the window to open it.
+It runs a small server on your own machine (127.0.0.1, port 8765 unless that is
+taken), opens your browser on it, and keeps going until you press Ctrl+C, the
+way Jupyter does. Nothing outside your machine can reach it. The field is the
+window and the tools float over it. The first time it opens, a start screen
+offers four concepts, the whole library, a file, or a blank formation. Drop a
+play or playbook `.json` anywhere on the window to open it.
 
 - **Formation, Line, Defense, Library, Drive, Layers** sit on the rail at the left.
   Formations and defensive looks are picked from thumbnails, schemes and
@@ -430,7 +428,7 @@ formation. Drop a play or playbook `.json` anywhere on the window to open it.
   play or one from the library, duplicate, delete (with undo), drag to reorder,
   <kbd>[</kbd> and <kbd>]</kbd> to turn pages. A concept from the library fills a
   blank page or joins the book as a new one.
-- **Open** and **Save** work with real files: <kbd>Ctrl</kbd>+<kbd>O</kbd>,
+- **Open** and **Save** work with files on your disk: <kbd>Ctrl</kbd>+<kbd>O</kbd>,
   <kbd>Ctrl</kbd>+<kbd>S</kbd>, and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>
   for Save as. Save writes the playbook once it has more than one play,
   otherwise the play. **More** adds a copy of just this play, the SVG, a 2x PNG
@@ -463,50 +461,23 @@ chalk book week3.json -o week3.html
 
 ### Where your plays live
 
-On your device, and nowhere else. The browser keeps a working copy, so closing
-the tab loses nothing, but the real copy is the file you save:
+In the file you name, on your own disk. Save writes the file `chalk design`
+opened; with no file, it asks for a name, relative to the folder you started
+it in (or a full path), and asks before replacing a file that is already
+there. Python checks the playbook loads before it writes, so a file the
+designer saved always opens with `Playbook.load`.
 
-| Where you run it | What Save does |
-|---|---|
-| Chrome, Edge, a Chromebook | Writes to the file you picked, and keeps writing to it, even after you close and reopen the app |
-| iPad or iPhone | Opens the share sheet: Save to Files puts it in iCloud Drive, Google Drive, or on the device |
-| Safari or Firefox on a computer | Downloads the file; open it again with Open or by dropping it on the window |
-
-Save into a synced folder (Google Drive, OneDrive, Dropbox) and the playbook
-follows you between machines without the app ever seeing an account. The
+The browser also keeps a working copy, so closing the tab loses nothing. The
 playbook panel shows which file the book belongs to and whether it has unsaved
-changes, and the Save button carries a dot until it's written. Opening a
-different file stashes the old working copy; the command palette can bring it
-back.
-
-### Host it yourself
-
-```bash
-chalk site --out site        # index.html, manifest, service worker, icons
-```
-
-Serve that folder over https from any static host (GitHub Pages, Netlify,
-Cloudflare Pages, a school web server) and browsers will offer to install it.
-The service worker caches only the app itself.
+changes, and the Save button carries a dot until it's written. Reload the page
+to pick up a change made to the file from Python: the file wins, and unsaved
+work from before is kept one step back, where the command palette can bring it
+back. Opening a different file stashes the old working copy the same way.
 
 Routes are authored as if the player is on the right side of the ball and
 mirrored for left-side players. The designer and the Python renderer share that
 convention through one function, `Assignment.absolute_waypoints()`, and a test
 pins the two together — so a route drawn on screen lands exactly there on paper.
-
-### On a phone
-
-The same app works on a phone, for reviewing a book on the bus or sketching an
-idea. The tools move to a tab bar at the bottom, and each tool opens as a sheet
-from the bottom of the screen. The playbook, the play sheet and the drive
-planner take the whole screen. Arrows beside the play name turn the pages.
-Under the diagram are what a coach reads when reviewing: the description,
-alerts, the quarterback's reads, each player's coaching point and the tags.
-**Tap** a player, then tap the field to draw his route, and tap **Done** when
-it's finished; a tap on open field lets go of him. **Drag** to move, and
-**double-tap** a handle to delete it. Pinch the field to zoom in on the line. On
-its side the phone gives the field the whole height. Files you export from a
-phone are drawn at desk size.
 
 ---
 
@@ -557,10 +528,6 @@ shown, a trick is used once, and a play that worked earlier gets another look.
 Call one, tap what happened, and the log marks each snap on or off schedule.
 **Drive cards** print your scripts, then the planner's first calls from six
 common starts.
-
-On a phone, Game is the part to use: it takes the whole screen and works
-one-handed. The builder works too, but its wide steps (the series table, the
-call-sheet grid, the script tree) say they are easier on a tablet or a laptop.
 
 ```python
 from chalktalk import codes as K, planner as P
@@ -775,9 +742,8 @@ chalk design --theme paper
 ## Command line
 
 ```bash
-chalk design                         # visual play designer
+chalk design week3.json              # the visual designer, in your browser
 chalk book week3.json                # a designer playbook to PDF or HTML
-chalk site --out site                # the designer as an installable web app
 chalk list plays                     # or formations | defenses | routes | series | systems | schemes | blocks | coverages | qb
 chalk system base_offense --out out/install   # the whole install book
 chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs --theme paper
