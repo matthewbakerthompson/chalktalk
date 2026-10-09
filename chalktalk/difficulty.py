@@ -17,8 +17,7 @@ the length of the progression, pullers, screen timing, checks at the line.
 A coach can override the tier for any play (`Play.difficulty`), which also
 marks it as repped; a plan says what its team can execute
 (`GamePlan.execution`), and the drive planner takes a point off for every
-point a play scores above that. The browser designer computes the same score
-with the same table, and a test holds the two together.
+point a play scores above that.
 """
 from __future__ import annotations
 
@@ -32,7 +31,7 @@ TIERS = (3, 7)              # score <= 3: Basic, <= 7: Standard, above: Advanced
 # youth or JV, varsity high school, college and up.
 TEAM_LEVELS = {1: 3, 2: 7, 3: 12}
 
-# Points per feature. One table, mirrored in the designer.
+# Points per feature.
 RUBRIC = {
     "motion": {"short": 1, "in": 1, "out": 1, "across": 1, "return": 1, "shift": 1,
                "jet": 2, "orbit": 2},

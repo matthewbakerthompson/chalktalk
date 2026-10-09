@@ -19,8 +19,8 @@ PLAYS = catalog.all_plays()
 
 def test_play_names_are_unique_across_modules():
     """
-    Two modules both exporting `bubble` silently lost one of them from the CLI
-    and the designer, because both key plays by bare name.
+    Two modules both exporting `bubble` silently lost one of them from the CLI,
+    because it keys plays by bare name.
     """
     seen: dict[str, str] = {}
     clashes = []
@@ -44,11 +44,9 @@ def test_the_registry_finds_every_module():
     )
 
 
-def test_the_cli_and_the_designer_see_the_same_plays():
+def test_the_cli_sees_every_play():
     from chalktalk.cli import play_registry
-    from chalktalk import designer
     assert set(play_registry()) == set(PLAYS)
-    assert set(designer.catalog()["plays"]) == set(PLAYS)
 
 
 # ── What an offense actually needs ────────────────────────────────────────────

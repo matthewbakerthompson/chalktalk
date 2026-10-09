@@ -186,7 +186,7 @@ def boot(direction: int = 1) -> dict[str, Block]:
     }
 
 
-#: Everything above, addressable by name (used by the CLI and the designer).
+#: Everything above, addressable by name (used by the CLI).
 SCHEMES = {
     "inside_zone": inside_zone,
     "outside_zone": outside_zone,

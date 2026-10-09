@@ -87,7 +87,7 @@ against all 23 defensive fronts and fails if anybody is left standing around.
 
 Sort defenders by role (`defense.corners`, `.safeties`, `.linebackers`) rather
 than by label, so the call works from any front. Use `match_man` for man
-assignments so match-ups stay consistent with the browser's copy of the rule.
+assignments so every coverage pairs defenders to receivers the same way.
 
 A call that only touches the line is a **front**, not a coverage — put it in
 `FRONTS` so it can layer over a coverage instead of replacing one.
@@ -104,32 +104,16 @@ method on `Adjustment`, and a factory helper. Adjustments must be:
 Set `stamp_name=False` if the adjustment writes to a dedicated `Play` field
 (protection, tempo, alerts) so it isn't printed twice on the call sheet.
 
-## Working on the designer
+## Changing the models
 
-The designer lives in `chalktalk/designer/app.html`. It is a plain HTML file
-with no build step and no dependencies; `chalktalk/designer/__init__.py` inlines
-the catalog into it at build time.
-
-```bash
-chalk design                                  # build and open it
-chalk design --out docs/index.html --no-open  # refresh the demo page
-```
-
-Two rules keep it honest:
-
-1. **The browser and Python must agree on geometry.** Routes are stored relative
-   to the player and mirrored for left-side players. Python applies that in
-   `Assignment.absolute_waypoints()`; the JS mirrors it in `wpAbs`/`wpRel`. The
-   same duplication exists for motion (`_motion_geometry` ↔ `motionGeometry`),
-   blocks (`blockAbs`), the quarterback (`drawQB`/`drawReads`), rush paths
-   (`defPath`) and man match-ups (`match_man` ↔ `matchMan`, including the order
-   the rat is picked in). If you change one, change the other — the designer
-   tests will catch you.
-2. **Commit `docs/index.html` when the app changes.** CI rebuilds it and fails if
-   it drifts from the source.
-
-The designer must stay a single self-contained file: no CDN, no `fetch`, no
-external assets. A test enforces that too.
+The browser designer is a separate, frozen project
+([chalktalk-designer](https://github.com/matthewbakerthompson/chalktalk-designer)),
+but it reads and writes the same playbook JSON, and coaches have books saved
+from it. `tests/test_designer_files.py` loads one of those books and writes it
+back. Adding an optional field is fine; renaming or removing one, or changing
+what a stored value means (the route mirroring convention, a coordinate), breaks
+those books. If that test fails, the change needs a migration in the model, not
+a new fixture.
 
 ## Style
 

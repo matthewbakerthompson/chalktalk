@@ -199,7 +199,7 @@ def SNEAK() -> QBPlan:
     )
 
 
-#: Everything above, addressable by name (used by the CLI and the designer).
+#: Everything above, addressable by name (used by the CLI).
 ACTIONS = {
     "dropback": DROPBACK, "gun": GUN, "screen": SCREEN,
     "play_action": PLAY_ACTION, "boot": BOOT, "sprint": SPRINT,

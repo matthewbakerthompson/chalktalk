@@ -27,8 +27,8 @@ if TYPE_CHECKING:
     from ..models.play import Play, Playbook
 
 # ── Colours ───────────────────────────────────────────────────────────────────
-# Everything comes from the shared theme table, so a PDF page, an SVG and the
-# designer show the same diagram.
+# Everything comes from the shared theme table, so a PDF page and an SVG show
+# the same diagram.
 from .theme import theme_for as _theme_for, to_rgba as _to_rgba
 
 

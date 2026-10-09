@@ -17,8 +17,6 @@ formation, the personnel, the down and distance, the hash, where the ball is,
 and any two of those together. A look is said out loud only when nothing
 broader already says the same thing: 6 of 6 from I-Form is the note, not also
 6 of 6 in 21 personnel when I-Form is the only 21 look.
-
-The browser carries a twin, and a test holds the two together.
 """
 from __future__ import annotations
 

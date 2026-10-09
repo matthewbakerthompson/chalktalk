@@ -367,38 +367,6 @@ def test_pdf_draws_the_defense(tmp_path):
     assert path.stat().st_size > 1500
 
 
-# ── Designer parity ───────────────────────────────────────────────────────────
-
-def test_designer_ships_a_call_for_every_look():
-    from chalktalk import designer
-    calls = designer.catalog()["coverage_calls"]
-    for fn in ALL_DEFENSES:
-        look = fn()
-        assert look.name in calls, look.name
-        assert set(calls[look.name]) >= set(C.COVERAGES) | set(C.FRONTS)
-
-
-def test_designer_keeps_stunt_paths_but_drops_the_formulaic_ones():
-    from chalktalk import designer
-    calls = designer.catalog()["coverage_calls"]["4-3 Over"]
-    assert all("path" not in a for a in calls["cover_3"].values()
-               if isinstance(a, dict) and a.get("role") != "stunt")
-    stunts = [a for a in calls["line_game"].values()
-              if isinstance(a, dict) and a.get("role") == "stunt"]
-    assert stunts and all(a["path"] for a in stunts)
-
-
-def test_designer_mirrors_the_rush_formulas():
-    from chalktalk import designer
-    with open(designer._TEMPLATE, encoding="utf-8") as fh:
-        src = fh.read()
-    # the JS rebuilds paths the renderer never shipped — keep the numbers in step
-    assert "-0.18*d.x" in src        # rush lean
-    assert "-0.3*d.x" in src         # blitz lean
-    assert "s*1.4,-1.2" in src       # contain
-    assert C.rush(D.FOUR_THREE_OVER().player("LDE")).path[-1].y == -3.6
-
-
 @pytest.mark.parametrize("coverage", ["cover_2", "cover_3", "cover_4", "tampa_2"])
 def test_zone_drops_reach_the_zones_they_own(coverage):
     """Every drop arrow ends on (or inside) its own zone, and the zone is labelled."""

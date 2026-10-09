@@ -9,9 +9,8 @@ Resulting transform:
   svg_x = (field_x - x_min) * scale + pad
   svg_y = (y_max  - field_y) * scale + pad
 
-Colours come from a theme (see `theme.py`) so the SVG, the PDF and the browser
-designer draw the same diagram. Every part of the drawing is a layer that can
-be left out:
+Colours come from a theme (see `theme.py`) so the SVG and the PDF draw the
+same diagram. Every part of the drawing is a layer that can be left out:
 
     play.render(theme="paper", hide=["defense", "zones"]).save("mesh.svg")
 """

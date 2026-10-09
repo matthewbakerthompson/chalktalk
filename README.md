@@ -1,23 +1,16 @@
 # chalktalk
 
-**Design football plays in a browser. Keep them as code.**
+**Football playbooks as code.**
 
-A visual play designer and a Python library that share one file format. Drag
-players and draw routes on screen, or generate a hundred variants in a loop —
-either way you get the same JSON, and the same diagrams, call sheets, practice
-scripts and wristbands come out the other end.
+A Python library for American football plays and everything a staff builds
+from them. A play is a model that saves as plain JSON: write one by hand,
+generate a hundred variants in a loop, and the same diagrams, playbooks, call
+sheets, practice scripts and wristbands come out the other end.
 
-**Use it now: <https://matthewbakerthompson.github.io/chalktalk/>.** Nothing to install. Chrome, Edge and Chromebooks
-offer to install it as an app from the address bar; on an iPad, use Share, then
-Add to Home Screen. It opens with no connection, and your plays stay on your
-device: the app keeps a working copy in the browser and saves to files you
-choose, on your computer or your drive. Nothing is sent anywhere.
-
-The designer is also a single HTML file, `docs/index.html` in this repo, and
-`chalk design` writes one wherever you want it.
+Rather draw? The [chalktalk designer](https://matthewbakerthompson.github.io/chalktalk-designer/)
+is a browser app that opens and saves the same JSON ([more below](#the-designer)).
 
 ```bash
-chalk design                 # open the designer
 chalk demo --out out/        # one of everything: playbook, call sheet, wristband
 ```
 
@@ -67,7 +60,6 @@ pip install -e .
 ```
 
 Requires Python 3.10+. Two dependencies: `pydantic` and `reportlab` (PDF export).
-The designer has none — it is one HTML file with no network calls.
 
 ---
 
@@ -89,7 +81,6 @@ The designer has none — it is one HTML file with no network calls.
 | **14 blocking schemes** | Inside/outside zone, power, counter, trap, iso, plus slide, half-slide, big-on-big, sprint and boot protections |
 | **12 adjustment types** | Motion, shift, tag, flip, formation, protection, tempo, alert, max protect, release, play action, personnel |
 | **3 field levels** | NFL, college and high school hashes — switchable everywhere |
-| **Visual designer** | Single-file browser app: drag players, draw routes, round-trips the same JSON |
 | **Renderers** | SVG, multi-page PDF playbooks, printable HTML call sheets / scripts / wristbands, CSV |
 
 ---
@@ -112,7 +103,7 @@ glance = rpo.glance()            # read the safety who fills
 ```
 
 `catalog.all_plays()` hands you every concept at once, keyed by name — that is
-what the CLI and the designer read, so anything in the catalog is everywhere.
+what the CLI reads, so anything in the catalog is everywhere.
 
 Or build your own with the fluent builder:
 
@@ -377,83 +368,19 @@ Two things worth knowing:
 
 ## The designer
 
-```bash
-chalk design                          # a blank formation
-chalk design mesh_concept             # start from a catalog concept
-chalk design my_play.json             # keep editing a saved play
-chalk design week3.json               # or a whole playbook
-chalk design --level hs --out designer.html --no-open
-```
-
-It writes one self-contained HTML file — the whole catalog inlined, no server,
-no CDN, no build step — and opens it. The field is the window and the tools float over it. The first time it opens,
-a start screen offers four concepts, the whole library, a file, or a blank
-formation. Drop a play or playbook `.json` anywhere on the window to open it.
-
-- **Formation, Line, Defense, Library, Drive, Layers** sit on the rail at the left.
-  Formations and defensive looks are picked from thumbnails, schemes and
-  coverages from a list, concepts from a searchable library.
-- **The bench** under the field lists the offense: the five linemen as one
-  group captioned with their scheme, then a token per skill player. The
-  defense folds into one chip naming the look and the call; open it to reach
-  each defender.
-- **Click a player** on the field or on the bench to select it, **drag** to
-  move (snapped to half yards). The strip above the bench edits the selection:
-  route, block, target, direction, motion, ball carrier, note.
-- **Click the field** to add route points to a player with nothing drawn yet;
-  for anyone else, press **Draw** or **Extend** first. While you draw, a faint
-  line runs from the end of his route to the cursor, with the depth of the next
-  point. **Double-click** the last point, press **Done** or <kbd>Enter</kbd> to
-  finish. Otherwise a click on open field lets go of the selection and never
-  changes the play.
-- **Drag** the yellow handles to shape the route, **double-click** one to delete
-  it. Or pick a stock route.
-- **Arrow keys** nudge the selected player, defender or route point by half a
-  yard; hold <kbd>Shift</kbd> for a full yard.
-- **Layers** hide whatever you are not working on: routes, blocks, motion, the
-  quarterback, reads, the defense, its assignments, zone landmarks, the title.
-  Exports follow the toggles.
-- The **play sheet** drawer holds the quarterback action and progression,
-  protection, tempo, alerts, tags, the situation and notes. Tap receivers in
-  the order he works them, and give the order its own look: the progression
-  vs Cover 2 can differ from vs Cover 3. Select the quarterback and **Set
-  reads** to tap them on the field instead. The diagram numbers the reads for
-  the coverage on it, in the designer, the SVG and the PDF alike.
-- **Make variations** (in **More**) offers the alts you reach for first: the
-  play flipped, the slot or the flanker in jet, orbit or across motion, and the
-  same concept from another formation with the same personnel. Pick from
-  thumbnails and they join the book as their own pages.
-- <kbd>Ctrl</kbd>+<kbd>K</kbd> opens a command palette: every concept,
-  formation, look, coverage and scheme is two keystrokes away. <kbd>F</kbd>
-  flips the play, <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes.
-- **Plays** opens the playbook: every page with a live thumbnail. Add a blank
-  play or one from the library, duplicate, delete (with undo), drag to reorder,
-  <kbd>[</kbd> and <kbd>]</kbd> to turn pages. A concept from the library fills a
-  blank page or joins the book as a new one.
-- **Open** and **Save** work with real files: <kbd>Ctrl</kbd>+<kbd>O</kbd>,
-  <kbd>Ctrl</kbd>+<kbd>S</kbd>, and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>
-  for Save as. Save writes the playbook once it has more than one play,
-  otherwise the play. **More** adds a copy of just this play, the SVG, a 2x PNG
-  and the raw JSON.
-- **Print** (<kbd>Ctrl</kbd>+<kbd>P</kbd>) builds the paper in the browser, no
-  Python needed: the playbook with diagrams, a call sheet bucketed by
-  situation, the wristband, a practice script with looks, hashes and reps, and
-  an install book grouped by install day. Choose Save as PDF in the print
-  dialog to keep a file. The call sheet and wristband use the same buckets and
-  numbering as Python's `CallSheet` and `Wristband`, and a test holds them to
-  it. Write the call numbers into the plays once the book is set, and every
-  sheet printed after agrees.
-- The play sheet sets what the paper needs: down, distance, the ball, the
-  hash, a call-sheet bucket (Openers, Two Minute, Four Minute), the install day
-  and the call number. The situation line says which section of the call sheet
-  the play lands in.
-
-The file the designer saves is the same JSON Python reads, so a book drawn in
-the browser prints from the command line and loads in a script:
+The [chalktalk designer](https://matthewbakerthompson.github.io/chalktalk-designer/)
+is a browser app for drawing plays by hand: drag players, draw routes, build a
+book, set the game plan, print the paper. It works offline and keeps plays on
+the coach's own device. It is a separate project,
+[frozen](https://github.com/matthewbakerthompson/chalktalk-designer) as it
+shipped with chalktalk 0.12.0, and it opens and saves the same JSON this
+package reads and writes. A book drawn there prints, plans and scouts here, and
+a book built here opens there:
 
 ```python
-book = Playbook.load("week3.json")
+book = Playbook.load("week3.json")          # saved from the designer
 book.save_pdf("week3.pdf", plays_per_page=4, theme="paper")
+book.save("week3.json")                     # opens in the designer again
 ```
 
 ```bash
@@ -461,106 +388,54 @@ chalk book week3.json                       # week3.pdf, two to a page, paper
 chalk book week3.json -o week3.html
 ```
 
-### Where your plays live
+That file format is the one promise the package keeps to the designer. A test
+loads a playbook the designer saved (`tests/fixtures/designer_book.json`) and
+writes it back without losing a field, so a change to the models can't strand
+a book a coach has already drawn.
 
-On your device, and nowhere else. The browser keeps a working copy, so closing
-the tab loses nothing, but the real copy is the file you save:
-
-| Where you run it | What Save does |
-|---|---|
-| Chrome, Edge, a Chromebook | Writes to the file you picked, and keeps writing to it, even after you close and reopen the app |
-| iPad or iPhone | Opens the share sheet: Save to Files puts it in iCloud Drive, Google Drive, or on the device |
-| Safari or Firefox on a computer | Downloads the file; open it again with Open or by dropping it on the window |
-
-Save into a synced folder (Google Drive, OneDrive, Dropbox) and the playbook
-follows you between machines without the app ever seeing an account. The
-playbook panel shows which file the book belongs to and whether it has unsaved
-changes, and the Save button carries a dot until it's written. Opening a
-different file stashes the old working copy; the command palette can bring it
-back.
-
-### Host it yourself
-
-```bash
-chalk site --out site        # index.html, manifest, service worker, icons
-```
-
-Serve that folder over https from any static host (GitHub Pages, Netlify,
-Cloudflare Pages, a school web server) and browsers will offer to install it.
-The service worker caches only the app itself.
-
-Routes are authored as if the player is on the right side of the ball and
-mirrored for left-side players. The designer and the Python renderer share that
-convention through one function, `Assignment.absolute_waypoints()`, and a test
-pins the two together — so a route drawn on screen lands exactly there on paper.
-
-### On a phone
-
-The same app works on a phone, for reviewing a book on the bus or sketching an
-idea. The tools move to a tab bar at the bottom, and each tool opens as a sheet
-from the bottom of the screen. The playbook, the play sheet and the drive
-planner take the whole screen. Arrows beside the play name turn the pages.
-Under the diagram are what a coach reads when reviewing: the description,
-alerts, the quarterback's reads, each player's coaching point and the tags.
-**Tap** a player, then tap the field to draw his route, and tap **Done** when
-it's finished; a tap on open field lets go of him. **Drag** to move, and
-**double-tap** a handle to delete it. Pinch the field to zoom in on the line. On
-its side the phone gives the field the whole height. Files you export from a
-phone are drawn at desk size.
+Routes are stored as if the player is on the right side of the ball and
+mirrored for left-side players, by one function,
+`Assignment.absolute_waypoints()`. Designer files store routes the same way, so
+the convention is part of the format.
 
 ---
 
 ## Game plans and drives
 
-Two jobs, two places in the app: **Plan** is the week, **Game** is game day.
+Two jobs: the plan is the week, the planner is game day. A `GamePlan` rides in
+the playbook, so the book and its plan travel as one file.
 
-**Plan** opens the game-plan builder, one step at a time:
+**The week.** Every play can carry its **series** ("Zone"), its **role** in it
+(base, complement, constraint, play-action, shot, trick, answer), the **tell**
+that calls for it, a difficulty tier and a **favorite** flag. The plan holds:
 
-1. **Game**: the name, the opponent, the level and what your team can run.
-   **Draft the plan from this book** fills what is blank, from what the plays
-   already say about themselves (type, scheme tags, the quarterback's action),
-   and lists every decision: "Speed Sweep: constraint in Inside Zone". It never
-   overwrites what you set, and the draft can be undone.
-2. **Series**: each play's **series** ("Zone"), its **role** in it (base,
-   complement, constraint, play-action, shot, trick, answer), the **tell** that
-   calls for it, and its difficulty, in one table.
-3. **Situations**: a grid of plays against call-sheet sections. Tick where each
-   play goes. A play can go in several places, and a play you add later lands
-   in Base.
-4. **Openers**: the opening script, in order, and the **drive starters**, your
-   go-to first calls for each new drive once the script is done. Star a play
-   (★ beside its name) to make it a **favorite**. The planner lifts favorites
-   wherever they fit, and lists them first when you pick.
-5. **Drive scripts**: drive patterns scripted in the week. A script covers a
-   set of downs: the 1st-down call, the 2nd-down call if it stays on schedule
-   and if it doesn't, then 3rd down under each. Every slot shows where it will
-   be called ("2nd & 4, Own 31") and lists the book in the planner's order for
-   that spot, reading the calls above it as the drive so far. **Fill empty calls
-   from the planner** drafts the rest. A script can start anywhere from backed
-   up on the 3 to the goal line, after a turnover, in two-minute, at the end of
-   the half or in four-minute.
-6. **Calling**: how calls get in (below).
-7. **Check and print**: what a coordinator would flag, and the paper.
+- the level and what the team can execute;
+- call-sheet **sections** (a play can sit in several; one added later lands in
+  Base);
+- the **openers**, the opening script in order, and the **drive starters**, the
+  go-to first calls for each new drive once the script is done;
+- **drive scripts**, the drive patterns scripted in the week: the 1st-down
+  call, the 2nd-down call on schedule and off it, then 3rd down under each. A
+  script can start anywhere from backed up on the 3 to the goal line, after a
+  turnover, in two-minute or in four-minute;
+- the **call system**: how calls get in (below).
 
-Tell the Game panel what coverage the defense is showing and the planner lifts
-the plays written to beat it, and the ones the quarterback has his own read
-order against. Each snap remembers the look, so the halftime sheet counts the
-half by coverage too.
+`planner.draft()` fills what is blank from what the plays already say about
+themselves (type, scheme tags, the quarterback's action) and lists every
+decision: "Speed Sweep: constraint in Inside Zone". It never overwrites what
+you set. `planner.fill_script()` drafts a script's empty calls, and
+`planner.check()` flags what a coordinator would.
 
-**Game** (<kbd>D</kbd>) is game day, and rehearsal in the week. Pick a drive
-script, and after each result it shows the script's next call ("From Opening
-drive: off schedule"). The planner's picks sit underneath, and take over when
-the drive leaves the script. Each pick shows its arithmetic: "+6 next on the
-opening script", "+4 they showed it: backside LB flowing hard", "-4 hold: Inside
-Zone hasn't been shown yet". Constraint plays wait until their base has been
-shown, a trick is used once, and a play that worked earlier gets another look.
-Call one, tap what happened, and the log marks each snap on or off schedule.
-**Drive cards** print your scripts, then the planner's first calls from six
-common starts.
-
-On a phone, Game is the part to use: it takes the whole screen and works
-one-handed. The builder works too, but its wide steps (the series table, the
-call-sheet grid, the script tree) say they are easier on a tablet or a laptop.
+**Game day, and rehearsal in the week.** `planner.suggest()` ranks the next
+call from the book, and every pick shows its arithmetic: "+6 next on the
+opening script", "+4 they showed it: backside LB flowing hard", "-4 hold:
+Inside Zone hasn't been shown yet". Constraint plays wait until their base has
+been shown, a trick is used once, favorites are lifted wherever they fit, and a
+play that worked earlier gets another look. Give the state the coverage the
+defense is showing and the planner lifts the plays written to beat it, and the
+ones the quarterback has his own read order against. `planner.follow()` walks
+a drive script and hands back to `suggest()` when the drive leaves it, and
+`planner.drive_cards()` gives the first calls from six common starts.
 
 ```python
 from chalktalk import codes as K, planner as P
@@ -609,8 +484,8 @@ from what coaches name as hard, not a published scale; the catalog comes out
 
 ### Halftime, and what a scout sees
 
-Every snap the Game panel logs is counted back in its **Halftime** section and
-on a printed sheet: how many snaps stayed on schedule and how that splits by
+`scout.report()` counts back every snap in the plan's log: how many snaps
+stayed on schedule and how that splits by
 down, third downs converted, the explosive plays (12 yards running, 16
 throwing), what is working by yards a call, and what a scout on the other
 sideline sees. It also lists what the staff hasn't used: the rest of the
@@ -657,8 +532,7 @@ A plan can use any mix of four ways to get the call in:
 - **Line calls**: what the quarterback can say at the line. Every play gets a
   code word for the game, so the team learns the week's words in practice.
   The words come from a list (a mix, animals, cities, things) or from your
-  own. Type a word on a play, pick one from the list, or leave it blank and
-  let the key draw one. At the line he says the live word, then the call,
+  own. Set a play's `word`, or leave it blank and let the key draw one. At the line he says the live word, then the call,
   twice ("Blue... Tiger, Blue... Tiger"). Only the live word's call is real,
   and the live word changes every half. The live word can be a colour, a
   number, or your own word. It can also be dropped: he makes two or three
@@ -673,28 +547,27 @@ A plan can use any mix of four ways to get the call in:
   cell is live, and another after the half. The symbols are eight shapes in
   five colours, outlined in black, that stay apart for colour-blind players. A
   four-cell board on a 22 x 28 in poster reads to about 30 yards, two cells to
-  about 40, one to about 55. The print includes the rack, the players' key
-  and the signaler's sheet, and the plan check warns when there are more
-  symbols than players can keep (about 12 in high school).
+  about 40, one to about 55. `boards()` returns the rack, what each symbol
+  means and which cell is live each half, and the plan check warns when there
+  are more symbols than players can keep (about 12 in high school).
 
-**The format varies too.** Two teams on chalktalk know every format the app
-has, so you can leave parts of yours to the key: whether codes are 47 or B7,
-two or four symbols a board (each game), where a dummy digit hides in the
-signal, and which of two or three signals is live (each period, never the same
-twice running). An opponent who knows the app still doesn't know your format.
+**The format varies too.** Two teams on chalktalk know every format the
+package has, so you can leave parts of yours to the key: whether codes are 47
+or B7, two or four symbols a board (each game), where a dummy digit hides in
+the signal, and which of two or three signals is live (each period, never the
+same twice running). An opponent who knows chalktalk still doesn't know your
+format.
 
 **Wristbands print as inserts** at the real size of a wrist coach's window
 (youth 3.75 x 2.25 in, teen 5 x 2.75, adult 5.25 x 3.25), with dashed cut lines,
-in capitals, as many copies as players wear. A numbered band fills its inserts
-in columns under situation headings. A coded band with two-character codes is
-a grid: the first character down the side, the last digit across the top, and
-a blank square is a dead code. Print at actual size.
+in capitals, as many copies as players wear: `band.save_html(path, size="teen",
+copies=2)`. A numbered band fills its inserts in columns under situation
+headings. Print at actual size.
 
 Codes, words and boards come from a **key** through HMAC-SHA256, so the head
-coach and the signaler can print matching copies on different machines and
+coach and the signaler can make matching copies on different machines and
 check the fingerprint on every page. The method is public; only the key is
-secret. It's never saved in the playbook, the plan or any printout, and the
-designer forgets it unless you ask it to remember it on that device.
+secret. It's never saved in the playbook, the plan or any printout.
 
 ```python
 key = K.new_key()                          # "K7QM-2XRA-9FPD-HW4C": write it down
@@ -702,10 +575,6 @@ K.wristband(book, key, "Wk 3 vs Central")  # a card per half: code -> play, dead
 K.line_calls(book, key, "Wk 3 vs Central") # word -> play, dummy words, what's live
 K.boards(book, key, "Wk 3 vs Central")     # symbols, the live cell per half, the rack
 ```
-
-The designer carries a twin of the planner, the difficulty score and the codes,
-and tests run it in node against Python: same suggestions word for word, same
-scores, byte-identical cards.
 
 ---
 
@@ -731,7 +600,7 @@ playbook.save_pdf("book.pdf", level="ncaa")
 
 ```bash
 chalk render mesh_concept --level hs -o mesh.svg
-chalk design --level ncaa
+chalk book week3.json --level ncaa
 ```
 
 ---
@@ -739,8 +608,8 @@ chalk design --level ncaa
 ## Themes and layers
 
 Every diagram is ink on a surface, and the ink comes from one table —
-`chalktalk/renderer/theme.py` — that the SVG renderer, the PDF exporter and the
-designer all draw from. Two themes ship:
+`chalktalk/renderer/theme.py` — that the SVG renderer and the PDF exporter both
+draw from. Two themes ship:
 
 | Theme | For | Field | Ink |
 |---|---|---|---|
@@ -754,8 +623,7 @@ the end zone shows up when it is in view.
 
 Each part of the drawing is a layer — `motion`, `blocks`, `qb`, `routes`,
 `reads`, `defense`, `coverage`, `zones`, `title` — and any of them can be left
-out. The designer's Layers control is the same list, and its exports follow
-the toggles.
+out.
 
 ```python
 play.render(theme="paper").save("mesh.svg")
@@ -767,7 +635,6 @@ playbook.save_html("book.html")                   # HTML pages are paper already
 ```bash
 chalk render mesh_concept --theme paper -o mesh.svg
 chalk render mesh_concept -d NICKEL_425 --coverage cover_3 --hide zones,title
-chalk design --theme paper
 ```
 
 ---
@@ -775,9 +642,7 @@ chalk design --theme paper
 ## Command line
 
 ```bash
-chalk design                         # visual play designer
-chalk book week3.json                # a designer playbook to PDF or HTML
-chalk site --out site                # the designer as an installable web app
+chalk book week3.json                # a playbook file to PDF or HTML
 chalk list plays                     # or formations | defenses | routes | series | systems | schemes | blocks | coverages | qb
 chalk system base_offense --out out/install   # the whole install book
 chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs --theme paper
@@ -835,7 +700,7 @@ a clean SVG render, and every adjustment for immutability and JSON round-trippin
 
 ## Roadmap
 
-- Tendency breakers in the Game panel: the planner lifts the play that breaks
+- Tendency breakers in the planner: it lifts the play that breaks
   a tendency the self-scout has found for this down, hash and spot
 - A concept taxonomy for the pass game — horizontal, vertical and three-level
   stretches, isolation concepts — so plays are classified by what they attack

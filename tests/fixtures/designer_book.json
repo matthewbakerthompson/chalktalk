@@ -1,0 +1,2259 @@
+{
+  "name": "Contract book",
+  "team": "Chalktalk",
+  "season": 2026,
+  "plays": [
+    {
+      "name": "Power Left",
+      "formation": {
+        "name": "I-Form Pro Right",
+        "personnel": "21",
+        "players": [
+          {
+            "label": "LT",
+            "position": "LT",
+            "x": -4.5,
+            "y": 0
+          },
+          {
+            "label": "LG",
+            "position": "LG",
+            "x": -2,
+            "y": 0
+          },
+          {
+            "label": "C",
+            "position": "C",
+            "x": 0,
+            "y": 0
+          },
+          {
+            "label": "RG",
+            "position": "RG",
+            "x": 2,
+            "y": 0
+          },
+          {
+            "label": "RT",
+            "position": "RT",
+            "x": 4.5,
+            "y": 0
+          },
+          {
+            "label": "Y",
+            "position": "Y",
+            "x": 6,
+            "y": 0
+          },
+          {
+            "label": "X",
+            "position": "X",
+            "x": -22,
+            "y": 0
+          },
+          {
+            "label": "Z",
+            "position": "Z",
+            "x": 18,
+            "y": -1
+          },
+          {
+            "label": "QB",
+            "position": "QB",
+            "x": 0,
+            "y": -1.5
+          },
+          {
+            "label": "FB",
+            "position": "FB",
+            "x": 0,
+            "y": -4.5
+          },
+          {
+            "label": "RB",
+            "position": "RB",
+            "x": 0,
+            "y": -7
+          }
+        ]
+      },
+      "play_type": "run",
+      "assignments": [
+        {
+          "player": {
+            "label": "LT",
+            "position": "LT",
+            "x": -4.5,
+            "y": 0
+          },
+          "block": {
+            "kind": "down",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.5,
+                "y": 0.5
+              },
+              {
+                "x": 1.1,
+                "y": 1.1
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "LG",
+            "position": "LG",
+            "x": -2,
+            "y": 0
+          },
+          "block": {
+            "kind": "down",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.5,
+                "y": 0.5
+              },
+              {
+                "x": 1.1,
+                "y": 1.1
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "C",
+            "position": "C",
+            "x": 0,
+            "y": 0
+          },
+          "block": {
+            "kind": "down",
+            "target": "backside A",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.5,
+                "y": 0.5
+              },
+              {
+                "x": 1.1,
+                "y": 1.1
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RG",
+            "position": "RG",
+            "x": 2,
+            "y": 0
+          },
+          "block": {
+            "kind": "wrap",
+            "target": "M",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -1.4,
+                "y": -1.3
+              },
+              {
+                "x": -3.4,
+                "y": -0.91
+              },
+              {
+                "x": -4.2,
+                "y": 1.4
+              },
+              {
+                "x": -4.6,
+                "y": 3.4
+              }
+            ],
+            "climbs": true
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RT",
+            "position": "RT",
+            "x": 4.5,
+            "y": 0
+          },
+          "block": {
+            "kind": "hinge",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.4,
+                "y": -1
+              },
+              {
+                "x": 1.4,
+                "y": -1.7
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "Y",
+            "position": "Y",
+            "x": 6,
+            "y": 0
+          },
+          "block": {
+            "kind": "base",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 1.3
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "X",
+            "position": "X",
+            "x": -22,
+            "y": 0
+          },
+          "block": {
+            "kind": "base",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 1.3
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "Z",
+            "position": "Z",
+            "x": 18,
+            "y": -1
+          },
+          "block": {
+            "kind": "base",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 1.3
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "QB",
+            "position": "QB",
+            "x": 0,
+            "y": -1.5
+          },
+          "qb": {
+            "action": "handoff",
+            "depth": 2,
+            "direction": -1,
+            "mesh_with": "RB",
+            "reads": [],
+            "reads_vs": {},
+            "rule": "Give and carry out the fake",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -1.4,
+                "y": -0.5
+              },
+              {
+                "x": 1,
+                "y": -2.6
+              },
+              {
+                "x": 3,
+                "y": -3.4
+              }
+            ],
+            "mesh_at": {
+              "x": -1.4,
+              "y": -0.5
+            }
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "FB",
+            "position": "FB",
+            "x": 0,
+            "y": -4.5
+          },
+          "route": {
+            "route_type": "run",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -1.6,
+                "y": 2
+              },
+              {
+                "x": -4,
+                "y": 4
+              }
+            ],
+            "depth": 4
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RB",
+            "position": "RB",
+            "x": 0,
+            "y": -7
+          },
+          "route": {
+            "route_type": "run",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -1.6,
+                "y": 3.5
+              },
+              {
+                "x": -4,
+                "y": 7
+              }
+            ],
+            "depth": 7
+          },
+          "is_ball_carrier": true
+        }
+      ],
+      "description": "Power run to the weak (left) side. LG pulls and leads.",
+      "tags": [
+        "power",
+        "gap",
+        "run"
+      ],
+      "tempo": "normal",
+      "alerts": [],
+      "adjustments": [],
+      "favorite": false,
+      "id": "power-left",
+      "series": "Power",
+      "role": "base"
+    },
+    {
+      "name": "Four Verticals",
+      "formation": {
+        "name": "Shotgun Doubles",
+        "personnel": "11",
+        "players": [
+          {
+            "label": "LT",
+            "position": "LT",
+            "x": 4.5,
+            "y": 0
+          },
+          {
+            "label": "LG",
+            "position": "LG",
+            "x": 2,
+            "y": 0
+          },
+          {
+            "label": "C",
+            "position": "C",
+            "x": 0,
+            "y": 0
+          },
+          {
+            "label": "RG",
+            "position": "RG",
+            "x": -2,
+            "y": 0
+          },
+          {
+            "label": "RT",
+            "position": "RT",
+            "x": -4.5,
+            "y": 0
+          },
+          {
+            "label": "Y",
+            "position": "Y",
+            "x": -6,
+            "y": 0
+          },
+          {
+            "label": "X",
+            "position": "X",
+            "x": 22,
+            "y": 0
+          },
+          {
+            "label": "H",
+            "position": "H",
+            "x": 12,
+            "y": -1
+          },
+          {
+            "label": "Z",
+            "position": "Z",
+            "x": -20,
+            "y": -1
+          },
+          {
+            "label": "QB",
+            "position": "QB",
+            "x": 0,
+            "y": -5
+          },
+          {
+            "label": "RB",
+            "position": "RB",
+            "x": 3,
+            "y": -7
+          }
+        ]
+      },
+      "play_type": "pass",
+      "assignments": [
+        {
+          "player": {
+            "label": "LT",
+            "position": "LT",
+            "x": 4.5,
+            "y": 0
+          },
+          "block": {
+            "kind": "pass_set",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.5,
+                "y": -1.2
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "LG",
+            "position": "LG",
+            "x": 2,
+            "y": 0
+          },
+          "block": {
+            "kind": "pass_set",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": -1.2
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "C",
+            "position": "C",
+            "x": 0,
+            "y": 0
+          },
+          "block": {
+            "kind": "pass_set",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": -1.2
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RG",
+            "position": "RG",
+            "x": -2,
+            "y": 0
+          },
+          "block": {
+            "kind": "pass_set",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": -1.2
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RT",
+            "position": "RT",
+            "x": -4.5,
+            "y": 0
+          },
+          "block": {
+            "kind": "pass_set",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -0.5,
+                "y": -1.2
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "Y",
+            "position": "Y",
+            "x": -6,
+            "y": 0
+          },
+          "route": {
+            "route_type": "seam",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -0.5,
+                "y": 9
+              },
+              {
+                "x": -1,
+                "y": 18
+              }
+            ],
+            "depth": 18
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "X",
+            "position": "X",
+            "x": 22,
+            "y": 0
+          },
+          "route": {
+            "route_type": "fly",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 20
+              }
+            ],
+            "depth": 20
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "H",
+            "position": "H",
+            "x": 12,
+            "y": -1
+          },
+          "route": {
+            "route_type": "seam",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -0.5,
+                "y": 10
+              },
+              {
+                "x": -1,
+                "y": 20
+              }
+            ],
+            "depth": 20
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "Z",
+            "position": "Z",
+            "x": -20,
+            "y": -1
+          },
+          "route": {
+            "route_type": "custom",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 6
+              },
+              {
+                "x": 4,
+                "y": 10
+              }
+            ],
+            "depth": null
+          },
+          "is_ball_carrier": false,
+          "block": null
+        },
+        {
+          "player": {
+            "label": "QB",
+            "position": "QB",
+            "x": 0,
+            "y": -5
+          },
+          "qb": {
+            "action": "dropback",
+            "steps": 5,
+            "depth": 3.4,
+            "direction": -1,
+            "reads": [
+              "H",
+              "Y",
+              "Z",
+              "RB"
+            ],
+            "reads_vs": {},
+            "rule": "Read the middle of the field; take the open seam",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": -2.04
+              },
+              {
+                "x": 0,
+                "y": -3.4
+              }
+            ]
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RB",
+            "position": "RB",
+            "x": 3,
+            "y": -7
+          },
+          "route": {
+            "route_type": "flat",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 3,
+                "y": 1
+              },
+              {
+                "x": 6,
+                "y": 3
+              }
+            ],
+            "depth": 3
+          },
+          "is_ball_carrier": false
+        }
+      ],
+      "description": "Four vertical routes stress every safety. Slot seams split safeties vs. Cover 2; outs vs. Cover 4.",
+      "tags": [
+        "verts",
+        "four-verticals",
+        "shot-play"
+      ],
+      "tempo": "normal",
+      "alerts": [],
+      "adjustments": [],
+      "favorite": false,
+      "id": "four-verticals"
+    },
+    {
+      "name": "Mesh Concept",
+      "formation": {
+        "name": "Shotgun Trips Right",
+        "personnel": "11",
+        "players": [
+          {
+            "label": "LT",
+            "position": "LT",
+            "x": -4.5,
+            "y": 0
+          },
+          {
+            "label": "LG",
+            "position": "LG",
+            "x": -2,
+            "y": 0
+          },
+          {
+            "label": "C",
+            "position": "C",
+            "x": 0,
+            "y": 0
+          },
+          {
+            "label": "RG",
+            "position": "RG",
+            "x": 2,
+            "y": 0
+          },
+          {
+            "label": "RT",
+            "position": "RT",
+            "x": 4.5,
+            "y": 0
+          },
+          {
+            "label": "Y",
+            "position": "Y",
+            "x": 6,
+            "y": 0
+          },
+          {
+            "label": "X",
+            "position": "X",
+            "x": -22,
+            "y": 0
+          },
+          {
+            "label": "Z",
+            "position": "Z",
+            "x": 20,
+            "y": -1
+          },
+          {
+            "label": "H",
+            "position": "H",
+            "x": 12,
+            "y": -1
+          },
+          {
+            "label": "QB",
+            "position": "QB",
+            "x": 0,
+            "y": -5
+          },
+          {
+            "label": "RB",
+            "position": "RB",
+            "x": 5,
+            "y": -5
+          }
+        ]
+      },
+      "play_type": "pass",
+      "assignments": [
+        {
+          "player": {
+            "label": "LT",
+            "position": "LT",
+            "x": -4.5,
+            "y": 0
+          },
+          "block": {
+            "kind": "pass_set",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -0.5,
+                "y": -1.2
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "LG",
+            "position": "LG",
+            "x": -2,
+            "y": 0
+          },
+          "block": {
+            "kind": "pass_set",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": -1.2
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "C",
+            "position": "C",
+            "x": 0,
+            "y": 0
+          },
+          "block": {
+            "kind": "pass_set",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": -1.2
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RG",
+            "position": "RG",
+            "x": 2,
+            "y": 0
+          },
+          "block": {
+            "kind": "pass_set",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": -1.2
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RT",
+            "position": "RT",
+            "x": 4.5,
+            "y": 0
+          },
+          "block": {
+            "kind": "pass_set",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.5,
+                "y": -1.2
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "Y",
+            "position": "Y",
+            "x": 6,
+            "y": 0
+          },
+          "route": {
+            "route_type": "flat",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 3,
+                "y": 1
+              },
+              {
+                "x": 6,
+                "y": 3
+              }
+            ],
+            "depth": 3
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "X",
+            "position": "X",
+            "x": -22,
+            "y": 0
+          },
+          "route": {
+            "route_type": "fly",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 20
+              }
+            ],
+            "depth": 20
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "Z",
+            "position": "Z",
+            "x": 20,
+            "y": -1
+          },
+          "route": {
+            "route_type": "mesh",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 2
+              },
+              {
+                "x": -22,
+                "y": 5
+              }
+            ],
+            "depth": 5
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "H",
+            "position": "H",
+            "x": 12,
+            "y": -1
+          },
+          "route": {
+            "route_type": "mesh",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 2
+              },
+              {
+                "x": -22,
+                "y": 6
+              }
+            ],
+            "depth": 6
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "QB",
+            "position": "QB",
+            "x": 0,
+            "y": -5
+          },
+          "qb": {
+            "action": "dropback",
+            "steps": 3,
+            "depth": 2.4,
+            "direction": 1,
+            "reads": [
+              "Y",
+              "H",
+              "Z",
+              "RB"
+            ],
+            "reads_vs": {},
+            "rule": "High-low the flat defender, then work the mesh",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": -1.44
+              },
+              {
+                "x": 0,
+                "y": -2.4
+              }
+            ]
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RB",
+            "position": "RB",
+            "x": 5,
+            "y": -5
+          },
+          "route": {
+            "route_type": "swing",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 3,
+                "y": 0
+              },
+              {
+                "x": 5,
+                "y": 3
+              }
+            ],
+            "depth": 3
+          },
+          "is_ball_carrier": false
+        }
+      ],
+      "description": "Two-man mesh crossing. H and Z create natural rubs. X clears deep, Y and RB are checkdowns.",
+      "tags": [
+        "mesh",
+        "crossing",
+        "11-personnel"
+      ],
+      "tempo": "normal",
+      "alerts": [],
+      "adjustments": [],
+      "favorite": false,
+      "id": "mesh-concept",
+      "defense": {
+        "name": "Tampa 2",
+        "front": "4-3",
+        "personnel": "4-3-4",
+        "players": [
+          {
+            "label": "LDE",
+            "position": "DE",
+            "x": -5.5,
+            "y": 1.2
+          },
+          {
+            "label": "LDT",
+            "position": "DT",
+            "x": -2,
+            "y": 1
+          },
+          {
+            "label": "RDT",
+            "position": "DT",
+            "x": 2,
+            "y": 1
+          },
+          {
+            "label": "RDE",
+            "position": "DE",
+            "x": 5.5,
+            "y": 1.2
+          },
+          {
+            "label": "W",
+            "position": "W",
+            "x": -5,
+            "y": 4
+          },
+          {
+            "label": "M",
+            "position": "M",
+            "x": 0,
+            "y": 5.5
+          },
+          {
+            "label": "S",
+            "position": "S",
+            "x": 6,
+            "y": 4
+          },
+          {
+            "label": "LCB",
+            "position": "CB",
+            "x": -22,
+            "y": 0.5
+          },
+          {
+            "label": "RCB",
+            "position": "CB",
+            "x": 20,
+            "y": 0.5
+          },
+          {
+            "label": "SS",
+            "position": "SS",
+            "x": 11,
+            "y": 5.5
+          },
+          {
+            "label": "FS",
+            "position": "FS",
+            "x": -10,
+            "y": 5.5
+          }
+        ],
+        "coverage": "Tampa 2",
+        "description": "Tampa 2: CBs jam receivers, MLB covers deep middle, safeties split halves."
+      }
+    },
+    {
+      "name": "Inside Zone",
+      "formation": {
+        "name": "I-Form Pro Right",
+        "personnel": "21",
+        "players": [
+          {
+            "label": "LT",
+            "position": "LT",
+            "x": -4.5,
+            "y": 0
+          },
+          {
+            "label": "LG",
+            "position": "LG",
+            "x": -2,
+            "y": 0
+          },
+          {
+            "label": "C",
+            "position": "C",
+            "x": 0,
+            "y": 0
+          },
+          {
+            "label": "RG",
+            "position": "RG",
+            "x": 2,
+            "y": 0
+          },
+          {
+            "label": "RT",
+            "position": "RT",
+            "x": 4.5,
+            "y": 0
+          },
+          {
+            "label": "Y",
+            "position": "Y",
+            "x": 6,
+            "y": 0
+          },
+          {
+            "label": "X",
+            "position": "X",
+            "x": -22,
+            "y": 0
+          },
+          {
+            "label": "Z",
+            "position": "Z",
+            "x": 18,
+            "y": -1
+          },
+          {
+            "label": "QB",
+            "position": "QB",
+            "x": 0,
+            "y": -1.5
+          },
+          {
+            "label": "FB",
+            "position": "FB",
+            "x": 0,
+            "y": -4.5
+          },
+          {
+            "label": "RB",
+            "position": "RB",
+            "x": 0,
+            "y": -7
+          }
+        ]
+      },
+      "play_type": "run",
+      "assignments": [
+        {
+          "player": {
+            "label": "LT",
+            "position": "LT",
+            "x": -4.5,
+            "y": 0
+          },
+          "block": {
+            "kind": "scoop",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 1.1,
+                "y": 0.2
+              },
+              {
+                "x": 2.1,
+                "y": 0.7
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "LG",
+            "position": "LG",
+            "x": -2,
+            "y": 0
+          },
+          "block": {
+            "kind": "combo",
+            "target": "W",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.4,
+                "y": 1.2
+              },
+              {
+                "x": 1.1,
+                "y": 3.4
+              }
+            ],
+            "combo_with": "C",
+            "climbs": true
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "C",
+            "position": "C",
+            "x": 0,
+            "y": 0
+          },
+          "block": {
+            "kind": "combo",
+            "target": "NT",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.4,
+                "y": 1.3
+              }
+            ],
+            "combo_with": "LG",
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RG",
+            "position": "RG",
+            "x": 2,
+            "y": 0
+          },
+          "block": {
+            "kind": "combo",
+            "target": "M",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.4,
+                "y": 1.2
+              },
+              {
+                "x": 1.1,
+                "y": 3.4
+              }
+            ],
+            "combo_with": "RT",
+            "climbs": true
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RT",
+            "position": "RT",
+            "x": 4.5,
+            "y": 0
+          },
+          "block": {
+            "kind": "combo",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.4,
+                "y": 1.3
+              }
+            ],
+            "combo_with": "RG",
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "Y",
+            "position": "Y",
+            "x": 6,
+            "y": 0
+          },
+          "block": {
+            "kind": "base",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 1.3
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "X",
+            "position": "X",
+            "x": -22,
+            "y": 0
+          },
+          "block": {
+            "kind": "base",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 1.3
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "Z",
+            "position": "Z",
+            "x": 18,
+            "y": -1
+          },
+          "block": {
+            "kind": "base",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 1.3
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "QB",
+            "position": "QB",
+            "x": 0,
+            "y": -1.5
+          },
+          "qb": {
+            "action": "handoff",
+            "depth": 2,
+            "direction": 1,
+            "mesh_with": "RB",
+            "reads": [],
+            "reads_vs": {},
+            "rule": "Give and carry out the fake",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 1.4,
+                "y": -0.5
+              },
+              {
+                "x": -1,
+                "y": -2.6
+              },
+              {
+                "x": -3,
+                "y": -3.4
+              }
+            ],
+            "mesh_at": {
+              "x": 1.4,
+              "y": -0.5
+            }
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "FB",
+            "position": "FB",
+            "x": 0,
+            "y": -4.5
+          },
+          "block": {
+            "kind": "base",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 1.3
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RB",
+            "position": "RB",
+            "x": 0,
+            "y": -7
+          },
+          "route": {
+            "route_type": "run",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0.6,
+                "y": 3.5
+              },
+              {
+                "x": 1.5,
+                "y": 7
+              }
+            ],
+            "depth": 7
+          },
+          "is_ball_carrier": true
+        }
+      ],
+      "description": "OL zone-steps right. RB reads backside A-gap. If the gap closes, bend back.",
+      "tags": [
+        "inside-zone",
+        "zone",
+        "run"
+      ],
+      "tempo": "normal",
+      "alerts": [],
+      "adjustments": [],
+      "favorite": false,
+      "id": "inside-zone",
+      "series": "Inside Zone",
+      "role": "base"
+    },
+    {
+      "name": "Buck Sweep",
+      "formation": {
+        "name": "I-Form Pro Right",
+        "personnel": "21",
+        "players": [
+          {
+            "label": "LT",
+            "position": "LT",
+            "x": -4.5,
+            "y": 0
+          },
+          {
+            "label": "LG",
+            "position": "LG",
+            "x": -2,
+            "y": 0
+          },
+          {
+            "label": "C",
+            "position": "C",
+            "x": 0,
+            "y": 0
+          },
+          {
+            "label": "RG",
+            "position": "RG",
+            "x": 2,
+            "y": 0
+          },
+          {
+            "label": "RT",
+            "position": "RT",
+            "x": 4.5,
+            "y": 0
+          },
+          {
+            "label": "Y",
+            "position": "Y",
+            "x": 6,
+            "y": 0
+          },
+          {
+            "label": "X",
+            "position": "X",
+            "x": -22,
+            "y": 0
+          },
+          {
+            "label": "Z",
+            "position": "Z",
+            "x": 18,
+            "y": -1
+          },
+          {
+            "label": "QB",
+            "position": "QB",
+            "x": 0,
+            "y": -1.5
+          },
+          {
+            "label": "FB",
+            "position": "FB",
+            "x": 0,
+            "y": -4.5
+          },
+          {
+            "label": "RB",
+            "position": "RB",
+            "x": 0,
+            "y": -7
+          }
+        ]
+      },
+      "play_type": "run",
+      "assignments": [
+        {
+          "player": {
+            "label": "LT",
+            "position": "LT",
+            "x": -4.5,
+            "y": 0
+          },
+          "block": {
+            "kind": "hinge",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -0.4,
+                "y": -1
+              },
+              {
+                "x": -1.4,
+                "y": -1.7
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "LG",
+            "position": "LG",
+            "x": -2,
+            "y": 0
+          },
+          "block": {
+            "kind": "pull",
+            "target": "S",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 1.3,
+                "y": -1.1
+              },
+              {
+                "x": 8,
+                "y": -0.8
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "C",
+            "position": "C",
+            "x": 0,
+            "y": 0
+          },
+          "block": {
+            "kind": "down",
+            "target": "backside A",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -0.5,
+                "y": 0.5
+              },
+              {
+                "x": -1.1,
+                "y": 1.1
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RG",
+            "position": "RG",
+            "x": 2,
+            "y": 0
+          },
+          "block": {
+            "kind": "kick",
+            "target": "CB",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 1.2,
+                "y": -1.1
+              },
+              {
+                "x": 3.6,
+                "y": -0.88
+              },
+              {
+                "x": 5.2,
+                "y": 0.6
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RT",
+            "position": "RT",
+            "x": 4.5,
+            "y": 0
+          },
+          "block": {
+            "kind": "down",
+            "target": "3T",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -0.5,
+                "y": 0.5
+              },
+              {
+                "x": -1.1,
+                "y": 1.1
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "Y",
+            "position": "Y",
+            "x": 6,
+            "y": 0
+          },
+          "block": {
+            "kind": "down",
+            "target": "DE",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -0.5,
+                "y": 0.5
+              },
+              {
+                "x": -1.1,
+                "y": 1.1
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "X",
+            "position": "X",
+            "x": -22,
+            "y": 0
+          },
+          "block": {
+            "kind": "base",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 1.3
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "Z",
+            "position": "Z",
+            "x": 18,
+            "y": -1
+          },
+          "block": {
+            "kind": "base",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 0,
+                "y": 1.3
+              }
+            ],
+            "climbs": false
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "QB",
+            "position": "QB",
+            "x": 0,
+            "y": -1.5
+          },
+          "qb": {
+            "action": "handoff",
+            "depth": 2,
+            "direction": 1,
+            "mesh_with": "RB",
+            "reads": [],
+            "reads_vs": {},
+            "rule": "Give and carry out the fake",
+            "path": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 1.4,
+                "y": -0.5
+              },
+              {
+                "x": -1,
+                "y": -2.6
+              },
+              {
+                "x": -3,
+                "y": -3.4
+              }
+            ],
+            "mesh_at": {
+              "x": 1.4,
+              "y": -0.5
+            }
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "FB",
+            "position": "FB",
+            "x": 0,
+            "y": -4.5
+          },
+          "route": {
+            "route_type": "run",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": -0.6,
+                "y": 2
+              },
+              {
+                "x": -1.5,
+                "y": 4
+              }
+            ],
+            "depth": 4
+          },
+          "is_ball_carrier": false
+        },
+        {
+          "player": {
+            "label": "RB",
+            "position": "RB",
+            "x": 0,
+            "y": -7
+          },
+          "route": {
+            "route_type": "run",
+            "waypoints": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 3.6,
+                "y": 4
+              },
+              {
+                "x": 9,
+                "y": 8
+              }
+            ],
+            "depth": 8
+          },
+          "is_ball_carrier": true
+        }
+      ],
+      "description": "Both guards pull while the tight end, tackle and center block down, and the back follows them outside off the fullback's dive fake.",
+      "tags": [
+        "sweep",
+        "perimeter",
+        "gap",
+        "run"
+      ],
+      "tempo": "normal",
+      "alerts": [],
+      "adjustments": [],
+      "favorite": false,
+      "id": "buck-sweep",
+      "series": "Power",
+      "role": "constraint"
+    }
+  ],
+  "game_plan": {
+    "sections": [
+      {
+        "title": "1st & 10",
+        "when": {
+          "downs": [
+            1
+          ],
+          "distance": [
+            7,
+            99
+          ]
+        },
+        "plays": [
+          "power-left",
+          "four-verticals",
+          "inside-zone",
+          "buck-sweep"
+        ]
+      },
+      {
+        "title": "2nd & 1-3",
+        "when": {
+          "downs": [
+            2
+          ],
+          "distance": [
+            0,
+            3
+          ]
+        },
+        "plays": [
+          "power-left",
+          "four-verticals",
+          "inside-zone"
+        ]
+      },
+      {
+        "title": "2nd & 4-6",
+        "when": {
+          "downs": [
+            2
+          ],
+          "distance": [
+            4,
+            6
+          ]
+        },
+        "plays": [
+          "buck-sweep"
+        ]
+      },
+      {
+        "title": "2nd & 7+",
+        "when": {
+          "downs": [
+            2
+          ],
+          "distance": [
+            7,
+            99
+          ]
+        },
+        "plays": [
+          "mesh-concept"
+        ]
+      },
+      {
+        "title": "3rd & 1-3",
+        "when": {
+          "downs": [
+            3
+          ],
+          "distance": [
+            0,
+            3
+          ]
+        },
+        "plays": [
+          "power-left",
+          "inside-zone"
+        ]
+      },
+      {
+        "title": "3rd & 4-6",
+        "when": {
+          "downs": [
+            3
+          ],
+          "distance": [
+            4,
+            6
+          ]
+        },
+        "plays": []
+      },
+      {
+        "title": "3rd & 7+",
+        "when": {
+          "downs": [
+            3
+          ],
+          "distance": [
+            7,
+            99
+          ]
+        },
+        "plays": [
+          "mesh-concept"
+        ]
+      },
+      {
+        "title": "4th & short",
+        "when": {
+          "downs": [
+            4
+          ],
+          "distance": [
+            0,
+            3
+          ]
+        },
+        "plays": []
+      },
+      {
+        "title": "Backed up",
+        "when": {
+          "downs": [],
+          "yard_line": [
+            90,
+            99
+          ]
+        },
+        "plays": [
+          "power-left",
+          "inside-zone"
+        ]
+      },
+      {
+        "title": "Red zone",
+        "when": {
+          "downs": [],
+          "yard_line": [
+            11,
+            20
+          ]
+        },
+        "plays": []
+      },
+      {
+        "title": "Low red",
+        "when": {
+          "downs": [],
+          "yard_line": [
+            4,
+            10
+          ]
+        },
+        "plays": []
+      },
+      {
+        "title": "Goal line",
+        "when": {
+          "downs": [],
+          "yard_line": [
+            1,
+            3
+          ]
+        },
+        "plays": []
+      },
+      {
+        "title": "Two minute",
+        "when": {
+          "downs": [],
+          "mode": "two_minute"
+        },
+        "plays": [
+          "mesh-concept"
+        ]
+      },
+      {
+        "title": "Four minute",
+        "when": {
+          "downs": [],
+          "mode": "four_minute"
+        },
+        "plays": [
+          "power-left",
+          "inside-zone"
+        ]
+      },
+      {
+        "title": "Base",
+        "when": {
+          "downs": []
+        },
+        "plays": []
+      }
+    ],
+    "openers": [
+      "power-left",
+      "four-verticals",
+      "inside-zone",
+      "mesh-concept",
+      "buck-sweep"
+    ],
+    "log": [
+      {
+        "before": {
+          "down": 1,
+          "distance": 10,
+          "yard_line": 75,
+          "hash_mark": null,
+          "mode": null,
+          "drive": 1,
+          "snap": 0,
+          "over": null
+        },
+        "play": "inside-zone",
+        "call": "I-Form Pro Right Inside Zone",
+        "outcome": "gain",
+        "gain": 6,
+        "look": null,
+        "tells": []
+      },
+      {
+        "before": {
+          "down": 2,
+          "distance": 4,
+          "yard_line": 69,
+          "hash_mark": null,
+          "mode": null,
+          "drive": 1,
+          "snap": 1,
+          "over": null
+        },
+        "play": "four-verticals",
+        "call": "Shotgun Doubles Four Verticals",
+        "outcome": "incomplete",
+        "gain": 0,
+        "look": null,
+        "tells": []
+      }
+    ]
+  }
+}

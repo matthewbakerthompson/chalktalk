@@ -5,8 +5,7 @@ Given a playbook with its game plan, the situation, and the plays already
 called, suggest the next calls in order and say why. The coach decides;
 chalktalk explains. Suggestions come only from the book, follow named rules
 that each add whole points, and are deterministic: the same inputs give the
-same ranking here and in the browser designer, which carries a twin of every
-function in this module (a test holds the two together).
+same ranking.
 
     from chalktalk.planner import suggest, advance
     from chalktalk.models import DriveState, Outcome, Snap

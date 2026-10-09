@@ -8,10 +8,8 @@ import pytest
 from chalktalk import adjustments as A
 from chalktalk import catalog as _catalog
 from chalktalk.catalog import passing, running
-from chalktalk.models import Play, Playbook
+from chalktalk.models import Play
 from chalktalk.templates import formations as F
-
-from test_designer_paper import NODE, _js
 
 ALL_PLAYS = sorted(_catalog.play_builders().items())
 
@@ -202,71 +200,3 @@ def test_the_formation_and_the_assignments_agree_after_a_swap(adjust):
     moved = passing.mesh_concept().adjust(adjust, A.FORMATION(F.GUN_DOUBLES()))
     assert [a.player for a in moved.assignments] == moved.formation.players
     assert Play.from_json(moved.to_json()) == moved
-
-
-# ── Designer parity ───────────────────────────────────────────────────────────
-
-PARITY = [
-    ("power_right", [], "I_FORM_STRONG_LEFT"),
-    ("power_right", [], "PRO_SET"),
-    ("mesh_concept", [], "I_FORM_PRO_RIGHT"),
-    ("mesh_concept", [A.MOTION("H", "jet")], "GUN_DOUBLES"),
-    ("mesh_concept", [A.MOTION("Z", "short")], "SHOTGUN_TRIPS_LEFT"),
-    ("mesh_concept", [A.SHIFT("Z", 18.5, -1.0)], "GUN_TREY_RIGHT"),
-    ("mesh_concept", [A.SHIFT("Z", 18.5, -1.0)], "GUN_DOUBLES"),
-]
-
-
-@pytest.mark.skipif(NODE is None, reason="node is not installed")
-@pytest.mark.parametrize("name,adjust,formation", PARITY,
-                         ids=["-".join([n, *(str(x).replace(" ", "_") for x in a), f])
-                              for n, a, f in PARITY])
-def test_the_designer_swaps_formations_the_same_way(name, adjust, formation):
-    play = _catalog.play_builders()[name]().adjust(*adjust)
-    expected = play.with_formation(getattr(F, formation)())
-    got = _js(Playbook(name="Swap", plays=[play]),
-              f'return formationSwap(__book.plays[0], CATALOG.formations["{formation}"]);')
-    swapped = Play.model_validate({**play.model_dump(mode="json"), **got})
-    assert swapped.assignments == expected.assignments
-    assert swapped.formation.players == expected.formation.players
-
-
-# ── Flipping ─────────────────────────────────────────────────────────
-
-FLIPPED = ["power_right", "counter_trey", "buck_sweep", "mesh_concept", "pa_boot",
-           "speed_option", "rb_slip", "bubble"]
-
-
-@pytest.mark.skipif(NODE is None, reason="node is not installed")
-@pytest.mark.parametrize("name", FLIPPED)
-def test_the_designer_flips_a_play_the_way_python_mirrors_it(name):
-    """Flip in the browser and Play.mirror() must agree, blocks and all: a
-    pulling guard has to come around the other way."""
-    play = _catalog.play_builders()[name]()
-    got = _js(Playbook(name="Flip", plays=[play]),
-              "renderAll = () => {}; play = normalizePlay(__book.plays[0]); flipPlay();"
-              " return {assignments: play.assignments, formation: play.formation};")
-    flipped = Play.model_validate({**play.model_dump(mode="json"), **got})
-    mirrored = play.mirror()
-    assert flipped.assignments == mirrored.assignments
-    assert flipped.formation.players == mirrored.formation.players
-
-
-MOTIONS = [("mesh_concept", "H", "jet"), ("mesh_concept", "Z", "orbit"),
-           ("inside_zone", "Z", "across"), ("smash", "H", "short"),
-           ("power_right", "Z", "in"), ("mesh_concept", "X", "return")]
-
-
-@pytest.mark.skipif(NODE is None, reason="node is not installed")
-@pytest.mark.parametrize("name,label,kind", MOTIONS, ids=["-".join(m) for m in MOTIONS])
-def test_the_designer_puts_a_man_in_motion_the_way_python_does(name, label, kind):
-    """Where he starts, where he is at the snap, and what it is called."""
-    play = _catalog.play_builders()[name]()
-    got = _js(Playbook(name="Motion", plays=[play]),
-              f"renderAll = () => {{}}; play = normalizePlay(__book.plays[0]);"
-              f" applyMotion({label!r}, {kind!r});"
-              " return {assignments: play.assignments, formation: play.formation};")
-    moved = Play.model_validate({**play.model_dump(mode="json"), **got})
-    expected = play.adjust(A.MOTION(label, kind))
-    assert moved.assignment(label) == expected.assignment(label)
-    assert moved.formation.player(label) == expected.formation.player(label)

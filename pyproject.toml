@@ -39,9 +39,6 @@ chalktalk = "chalktalk.cli:main"
 where = ["."]
 include = ["chalktalk*"]
 
-[tool.setuptools.package-data]
-chalktalk = ["designer/*.html"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

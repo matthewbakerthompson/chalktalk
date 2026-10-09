@@ -25,7 +25,3 @@ jobs:
         run: |
           chalk list series
           chalk demo --out /tmp/demo
-      - name: Designer demo page is up to date
-        run: |
-          chalk design --out docs/index.html --no-open
-          git diff --exit-code docs/index.html

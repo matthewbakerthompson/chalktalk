@@ -1,8 +1,7 @@
 """
 Themes — the ink and paper every diagram is drawn with.
 
-One table, three consumers: the SVG renderer, the PDF exporter, and the
-browser designer (which receives the same table inside its catalog). Change a
+One table, two consumers: the SVG renderer and the PDF exporter. Change a
 colour here and every diagram changes together.
 
     turf   — the screen default: a field under lights, chalk-white ink
@@ -14,7 +13,7 @@ Everything else (yard lines, hashes, numbers) is texture and stays quiet.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, fields
+from dataclasses import dataclass
 from typing import Iterable, Optional, Union
 
 
@@ -143,15 +142,6 @@ def layer_set(layers: Optional[Iterable[str]] = None,
     return frozenset(chosen)
 
 
-def themes_json() -> dict[str, dict]:
-    """The table as plain data, for the designer's catalog."""
-    return {name: asdict(theme) for name, theme in THEMES.items()}
-
-
-def theme_keys() -> list[str]:
-    return [f.name for f in fields(Theme)]
-
-
 def to_rgba(color: str) -> tuple[float, float, float, float]:
     """
     A theme colour as (r, g, b, a) in 0..1 — for renderers that do not speak
@@ -168,4 +158,4 @@ def to_rgba(color: str) -> tuple[float, float, float, float]:
 
 
 __all__ = ["Theme", "TURF", "PAPER", "THEMES", "LAYERS", "FONT",
-           "theme_for", "layer_set", "themes_json", "theme_keys", "to_rgba"]
+           "theme_for", "layer_set", "to_rgba"]

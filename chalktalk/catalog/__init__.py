@@ -24,7 +24,7 @@ print(iz_series.describe())
 Everything at once
 ------------------
 `all_plays()` returns every concept in the catalog, keyed by name. Anything
-that enumerates plays — the CLI, the designer, the tests — goes through it, so
+that enumerates plays — the CLI, the tests — goes through it, so
 a new module is picked up everywhere the moment it lands in PLAY_MODULES.
 """
 import inspect
@@ -34,7 +34,7 @@ from . import (passing, playaction, redzone, rpo, running, screens,
                series, systems)
 
 #: Every module that contributes plays. Add new ones here and they show up in
-#: the CLI, the designer and the test sweep without another edit.
+#: the CLI and the test sweep without another edit.
 PLAY_MODULES = (passing, running, redzone, playaction, screens, rpo)
 
 

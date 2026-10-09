@@ -282,32 +282,3 @@ def test_pdf_draws_the_quarterback(tmp_path):
     Playbook(name="QB", plays=[passing.mesh_concept(),
                                running.power_right()]).save_pdf(str(path))
     assert path.stat().st_size > 1500
-
-
-# ── Designer parity ───────────────────────────────────────────────────────────
-
-def test_the_designer_ships_every_action():
-    from chalktalk import designer
-    actions = designer.catalog()["qb_actions"]
-    assert set(actions) == set(Q.ACTIONS)
-    assert all("1" in v and "-1" in v for v in actions.values())
-
-
-def test_the_designer_draws_the_same_things():
-    from chalktalk import designer
-    with open(designer._TEMPLATE, encoding="utf-8") as fh:
-        src = fh.read()
-    assert "drawQB" in src and "drawReads" in src
-    assert 'QB_COLOR="#fbbf24"' in src
-    assert 'READ_TEXT="#fde68a"' in src
-
-
-def test_compacting_the_catalog_does_not_break_it():
-    """Nulls are stripped on the way into the browser; defaults fill back in."""
-    import json
-
-    from chalktalk import designer
-    raw = designer._json_for_script(designer.catalog()["plays"])
-    plays = json.loads(raw.replace("\\u003c", "<").replace("\\u003e", ">"))
-    for name, data in plays.items():
-        Play.model_validate(data), name

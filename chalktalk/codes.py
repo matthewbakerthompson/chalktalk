@@ -15,9 +15,6 @@ is never stored in the playbook, the plan or any printout.
     key = new_key()                       # "K7QM-2XRA-9FPD-HW4C": write it down
     sheet = wristband(book, key, "Wk 3 Central")
     sheet.fingerprint, sheet.cards[0].codes
-
-The browser designer carries a byte-for-byte twin (a pure JavaScript SHA-256,
-so it works from a local file with no network); a test holds the two together.
 """
 from __future__ import annotations
 

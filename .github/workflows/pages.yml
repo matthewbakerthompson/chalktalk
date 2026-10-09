@@ -1,12 +1,17 @@
 name: site
 
-# Publishes the designer as an installable web app on GitHub Pages. Only the
-# built site is public; the repository can stay private. Nothing a coach draws
-# is ever sent here: the app keeps plays on the coach's own device and files.
+# The browser designer moved to its own repo, frozen:
+# https://matthewbakerthompson.github.io/chalktalk-designer/
+# This address keeps a page that forwards there, and a service worker that
+# retires the old offline copy for anyone who installed it here. It only
+# deploys when those files change.
 
 on:
   push:
     branches: [main]
+    paths:
+      - .github/pages-redirect/**
+      - .github/workflows/pages.yml
   workflow_dispatch:
 
 permissions:
@@ -26,16 +31,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Build the site
-        run: |
-          pip install .
-          chalk site --out _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: .github/pages-redirect
       - id: deployment
         uses: actions/deploy-pages@v4

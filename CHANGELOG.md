@@ -1,5 +1,40 @@
 # Changelog
 
+## Unreleased
+
+**chalktalk is a Python package; the browser designer lives on its own,
+frozen.** The designer moved to
+[chalktalk-designer](https://github.com/matthewbakerthompson/chalktalk-designer)
+as it shipped with 0.12.0, plus the fix below, and is served at
+<https://matthewbakerthompson.github.io/chalktalk-designer/>. It reads and
+writes the same playbook JSON, so books move between the two either way. The
+old address forwards there, a copy installed from it moves itself over on its
+next launch, and the working copy kept in the browser comes along.
+
+### The file format
+- `tests/test_designer_files.py` loads a playbook the designer saved (five
+  plays, one flipped, one against a defensive look, a route drawn by hand, a
+  drafted game plan and two logged snaps). It has to plan, scout, render and
+  save back without losing a field. That format is the one promise the package
+  keeps to the designer.
+
+### Removed
+- `chalk design`, `chalk site`, and the designer page `chalk demo` wrote.
+- `chalktalk.designer`, `docs/index.html`, and `theme.themes_json()` and
+  `theme.theme_keys()`, which existed for the designer.
+- The JavaScript copies of the planner, the difficulty score, the codes, the
+  scout and the drawing geometry are no longer the package's to keep in step;
+  the tests that ran them in node went with them.
+
+### Changed
+- `chalk demo --level` sets the hash marks on the demo playbook.
+- The README is Python-first, with a short section on the designer.
+
+### Fixed, in the designer before it left
+- A click on open field lets go of a route instead of adding a point to it,
+  and no longer throws away a lineman's block. Double-click to delete a handle
+  works.
+
 ## 0.12.0
 
 **The half the way the other sideline breaks it down.** The self-scout now

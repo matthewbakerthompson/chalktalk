@@ -330,8 +330,7 @@ _SAME_SPOT = 1e-6   # yards; closer than this is the same alignment
 def _carry(prev: Assignment, player: Player, on_field: set[str]) -> Assignment:
     """
     One player's job, moved onto his alignment in a new formation. The rules
-    are spelled out on `Play.with_formation`; the designer's `formationSwap`
-    does the same thing in the browser.
+    are spelled out on `Play.with_formation`.
     """
     updates: dict = {"player": player}
     moved = (abs(prev.player.x - player.x) > _SAME_SPOT
@@ -357,7 +356,7 @@ def _carry(prev: Assignment, player: Player, on_field: set[str]) -> Assignment:
 
 
 def play_slug(name: str) -> str:
-    """The id a play gets from its name. The designer uses the same rule."""
+    """The id a play gets from its name."""
     return re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-") or "play"
 
 
@@ -372,7 +371,7 @@ class Playbook(BaseModel):
     def _every_play_has_an_id(self) -> "Playbook":
         # A plan, a log and a code sheet point at plays by id, so a book built
         # or loaded without them (every book saved before ids existed) gets
-        # them here, the way the designer gives them on load.
+        # them here.
         ids = [p.id for p in self.plays]
         if not all(ids) or len(set(ids)) < len(ids):
             self.plays = self.with_ids().plays

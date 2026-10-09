@@ -39,8 +39,9 @@ class Assignment(BaseModel):
 
         Routes are authored as if the player is on the right side of the ball
         and mirrored for left-side players, so this is the one place that
-        convention is applied. The browser designer mirrors this exactly; if
-        the two ever disagree, a play drawn on screen renders somewhere else.
+        convention is applied. Play files from the chalktalk designer store
+        routes the same way, so the convention is part of the file format:
+        change it and every saved play renders somewhere else.
         """
         if self.route is None:
             return []
