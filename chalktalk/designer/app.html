@@ -3532,7 +3532,7 @@ const chipRow = items => `<div class="chips">${items.filter(Boolean)
 // The wrist coach's windows, for the print dialog's choices.
 const INSERTS = () => (CATALOG.inserts || {}).sizes || {adult: {w: 5.25, h: 3.25, cols: 3, rows: 19, label: "Adult"}};
 
-/// Write the call-sheet numbers into the plays, so later prints keep them.
+// Write the call-sheet numbers into the plays, so later prints keep them.
 async function numberCalls(){
   commit();
   try {
