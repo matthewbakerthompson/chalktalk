@@ -122,9 +122,62 @@ class Session:
         return {"path": path, "name": self.name(path), "mtime": _mtime(path)}
 
 
+# ── printing: the page sends the book it has, Python prints it ───────────────
+
+def _book(body: dict) -> Playbook:
+    return Playbook.model_validate(body.get("book") or {})
+
+
+def _print_args(body: dict) -> tuple[str, dict]:
+    """The sheet and its choices, kept to what each choice can be."""
+    from .. import paper
+    from ..renderer.sheets import INSERT_SIZES
+    kind = body.get("kind")
+    if kind not in paper.KINDS:
+        raise ValueError(f"Nothing called {kind!r} to print")
+
+    def num(name: str, low: int, high: int, default: int) -> int:
+        try:
+            return min(high, max(low, int(body.get(name, default))))
+        except (TypeError, ValueError):
+            return default
+
+    return kind, {
+        "key": body.get("key") or None,          # used for this sheet, never kept
+        "per_row": num("per_row", 1, 2, 2), "columns": num("columns", 1, 3, 2),
+        "size": body.get("size") if body.get("size") in INSERT_SIZES else "adult",
+        "copies": num("copies", 1, 20, 1), "reps": num("reps", 1, 5, 1),
+        "hashes": bool(body.get("hashes")),
+        "level": body.get("level") if body.get("level") in ("nfl", "ncaa", "hs") else None,
+        "hide": [h for h in body.get("hide") or [] if isinstance(h, str)],
+    }
+
+
+def print_sheet(session: Session, body: dict) -> dict:
+    from .. import paper
+    kind, opts = _print_args(body)
+    return {"html": paper.render(kind, _book(body), **opts)}
+
+
+def print_info(session: Session, body: dict) -> dict:
+    from .. import paper
+    kind, opts = _print_args(body)
+    summary, hint = paper.info(kind, _book(body), key=opts["key"], reps=opts["reps"],
+                               hashes=opts["hashes"])
+    return {"summary": summary, "hint": hint}
+
+
+def call_order(session: Session, body: dict) -> dict:
+    from .. import paper
+    return {"order": paper.call_order(_book(body))}
+
+
 #: What the page can ask for, by name: POST /api/<name> with a JSON body.
 ROUTES: dict[str, Callable[[Session, dict], dict]] = {
     "save": Session.save,
+    "print": print_sheet,
+    "print_info": print_info,
+    "call_order": call_order,
 }
 
 

@@ -46,7 +46,7 @@ def catalog() -> dict:
     from ..models.defense import DefensiveRole, Zone, _ZONE_GEOMETRY
     from ..adjustments import _MOTION_PRESETS
     from ..renderer.theme import LAYERS, themes_json
-    from ..renderer.sheets import _CSS as SHEET_CSS, BAND_WORDS, INSERT_SIZES
+    from ..renderer.sheets import INSERT_SIZES
     from ..callsheet import STANDARD_BUCKETS
     from .. import codes as K, difficulty as DF, planner as PL, scout as SC_
     from ..models import gameplan as GP
@@ -113,10 +113,9 @@ def catalog() -> dict:
         },
         "default_formation": DEFAULT_FORMATION,
         "themes": themes_json(),
-        # The browser prints the same sheets Python does: same stylesheet,
-        # same situational buckets, in the same order.
-        "sheet_css": SHEET_CSS,
-        "inserts": {"sizes": INSERT_SIZES, "words": BAND_WORDS},
+        # Python prints every sheet; the page only needs the wristband windows
+        # for its choices, and the buckets to say which section a play lands in.
+        "inserts": {"sizes": INSERT_SIZES},
         "call_sheet_buckets": [[title, sit.model_dump(mode="json")]
                                for title, sit in STANDARD_BUCKETS.items()],
         # The drive planner's tables, so the browser ranks plays by the same rules.
@@ -138,9 +137,7 @@ def catalog() -> dict:
         "difficulty": {"rubric": DF.RUBRIC, "tiers": list(DF.TIERS),
                        "tier_names": DF.TIER_NAMES, "team_levels": DF.TEAM_LEVELS},
         "codes": {"alphabet": K.KEY_ALPHABET, "salt": K.SALT.decode(),
-                  "iterations": K.ITERATIONS, "periods": K.PERIODS,
-                  "board_shapes": K.BOARD_SHAPES, "board_colors": K.BOARD_COLORS,
-                  "board_memory": K.BOARD_MEMORY, "letters": K.LETTERS,
+                  "iterations": K.ITERATIONS, "board_memory": K.BOARD_MEMORY,
                   "word_lists": K.WORD_LISTS, "live_signals": K.LIVE_SIGNALS},
         "scout": {"explosive": SC_.EXPLOSIVE, "tendency_calls": SC_.TENDENCY_CALLS,
                   "tendency_share": SC_.TENDENCY_SHARE, "dimensions": list(SC_.DIMENSIONS),

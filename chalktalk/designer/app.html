@@ -3447,11 +3447,10 @@ function focusRow(i){
 }
 
 /* ─── paper: playbooks, call sheets, wristbands, scripts, install books ─────
-   The sheets Python prints (renderer/sheets.py), built here so a coach without
-   Python gets them. The stylesheet and the call-sheet buckets arrive from
-   Python in the catalog, and a test runs these builders in node against
-   CallSheet, Wristband and Script so the numbers on a wristband printed here
-   match the ones Python would print. */
+   Every sheet is printed by Python (chalktalk.paper): the page asks the
+   `chalk design` server for it and prints what comes back. What stays here
+   is how a situation reads on screen, and which call-sheet section a play
+   lands in, with the buckets Python ships in the catalog. */
 
 // ── situation, ported from models/situation.py ─────────────────────────────
 const ORD = {1:"1st", 2:"2nd", 3:"3rd", 4:"4th"};
@@ -3528,274 +3527,22 @@ function bucketFor(p){
   const hit = (CATALOG.call_sheet_buckets || []).find(([, sit]) => sitMatches(sit, p.situation));
   return hit ? hit[0] : "Base";
 }
-
-// ── data: the same shapes Python builds ────────────────────────────────────
-// CallSheet.from_playbook, numbered unless the book already carries numbers.
-function callSheetData(b){
-  const placed = new Set(), sections = [];
-  for (const [title, sit] of CATALOG.call_sheet_buckets || []){
-    const hits = [];
-    b.plays.forEach((p, i) => {
-      if (placed.has(i) || !p.situation) return;
-      if (sitMatches(sit, p.situation)){ hits.push(p); placed.add(i); }
-    });
-    if (hits.length) sections.push({title, situation: sit, plays: hits});
-  }
-  const leftover = b.plays.filter((p, i) => !placed.has(i));
-  if (leftover.length) sections.push({title: "Base", situation: null, plays: leftover});
-  const numbered = b.plays.some(p => p.call_number);
-  let n = 1;
-  for (const sec of sections)
-    sec.rows = sec.plays.map(p => ({
-      number: numbered ? (p.call_number || null) : n++,
-      call: playCall(p), alerts: p.alerts || [],
-    }));
-  return {name: b.name || "Playbook", team: b.team || null, sections};
-}
-// Wristband.from_call_sheet.
-function wristbandData(sheet, columns){
-  const entries = [];
-  let n = 1;
-  for (const sec of sheet.sections) for (const r of sec.rows){
-    const number = r.number || n;
-    entries.push({number, call: r.call, group: sec.title, note: r.alerts.join("; ") || null});
-    n = number + 1;
-  }
-  return {name: sheet.name, team: sheet.team, columns: columns || 3, entries};
-}
-// Script().add_all(plays, reps=...), optionally .alternate_hashes().
-function scriptData(b, reps, alternate){
-  reps = reps || 1;
-  const hashes = ["L", "R", "M"];
-  const entries = b.plays.map((p, i) => {
-    const look = p.defense ? p.defense.name + (p.defense.coverage ? ` ${p.defense.coverage}` : "") : "";
-    return {number: i + 1, sit: p.situation ? sitShort(p.situation) : "",
-            hash: alternate ? hashes[i % 3] : "", call: playCall(p), look, reps,
-            alerts: p.alerts || [], type: p.play_type || "pass",
-            personnel: (p.formation && p.formation.personnel) || ""};
-  });
-  const total = entries.reduce((t, e) => t + e.reps, 0);
-  const byType = {}, personnel = {};
-  for (const e of entries){
-    byType[e.type] = (byType[e.type] || 0) + e.reps;
-    personnel[e.personnel] = (personnel[e.personnel] || 0) + e.reps;
-  }
-  const denom = Math.max(total, 1);
-  const runs = byType.run || 0, passes = (byType.pass || 0) + (byType.screen || 0);
-  return {name: b.name || "Playbook", entries,
-          balance: {total_reps: total, run_pct: pyRound(100 * runs / denom),
-                    pass_pct: pyRound(100 * passes / denom), personnel}};
-}
-
-// ── pages: renderer/sheets.py's _header, _footer, _page and _play_card ─────
-const sheetHeader = (title, left, right) =>
-  `<header><div><h1>${esc(title)}</h1>`
-  + left.filter(Boolean).map(b => `<div class="sub">${esc(b)}</div>`).join("")
-  + `</div><div class="meta">${right.filter(Boolean).map(b => esc(b)).join("<br>")}</div></header>`;
-const sheetFooter = note =>
-  `<div class="foot"><span>${esc(note || "")}</span><span>generated with chalktalk</span></div>`;
-const sheetPage = (title, body, extraCss) =>
-  `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>${esc(title)}</title>\n`
-  + `<style>${CATALOG.sheet_css || ""}${extraCss || ""}</style>\n</head>\n<body>\n${body}\n</body>\n</html>\n`;
 const chipRow = items => `<div class="chips">${items.filter(Boolean)
   .map(c => `<span class="chip">${esc(c)}</span>`).join("")}</div>`;
-
-// One diagram in the paper look, with the layers the coach has on.
-function paperSvg(p){
-  const keep = {play, look, scale: SCALE, pad: PAD, sel, selDef, selWp, hover};
-  play = p; look = "paper"; SCALE = 14; PAD = 28; sel = null; selDef = null; selWp = -1; hover = null;
-  try {
-    const svg = renderSvg();
-    svg.querySelector("#ui").remove(); svg.querySelector("#preview").remove();
-    svg.removeAttribute("width"); svg.removeAttribute("height");
-    return svg.outerHTML;
-  } finally {
-    ({play, look, sel, selDef, selWp, hover} = keep); SCALE = keep.scale; PAD = keep.pad;
-  }
-}
-function paperCard(p, extra){
-  const meta = [p.situation ? sitDescribe(p.situation) : null, p.protection, ...(p.tags || []).slice(0, 4)];
-  const alerts = (p.alerts || []).map(a => `<div class="alert">! ${esc(a)}</div>`).join("");
-  const desc = p.description ? `<div class="note">${esc(p.description)}</div>` : "";
-  const num = p.call_number ? `${p.call_number}. ` : "";
-  return `<div class="card"><div class="title">${esc(num + playCall(p))}</div>${paperSvg(p)}`
-       + `${extra || ""}${desc}${alerts}${chipRow(meta)}</div>`;
-}
-const cardGrid = (cards, columns) =>
-  `<div class="cards" style="grid-template-columns:repeat(${columns},1fr)">${cards.join("")}</div>`;
-const bookMeta = b => [b.team, b.season ? String(b.season) : null, `${b.plays.length} plays`];
-
-function playbookHtml(b, columns){
-  const body = sheetHeader(b.name, [], bookMeta(b))
-             + cardGrid(b.plays.map(p => paperCard(p)), columns || 2) + sheetFooter();
-  return sheetPage(b.name, body);
-}
-function callSheetHtml(d, columns){
-  const count = d.sections.reduce((n, s) => n + s.rows.length, 0);
-  const sections = d.sections.map(sec => {
-    const items = sec.rows.map(r =>
-      `<li><span class="num">${r.number || "•"}</span><span>${esc(r.call)}`
-      + r.alerts.map(a => `<div class="alert">! ${esc(a)}</div>`).join("") + `</span></li>`).join("");
-    const sub = sec.situation && !isWildcard(sec.situation)
-      ? `<div class="note">${esc(sitDescribe(sec.situation))}</div>` : "";
-    return `<div class="section"><h2>${esc(sec.title)}</h2>${sub}<ol>${items}</ol></div>`;
-  }).join("");
-  const body = sheetHeader(d.name, [d.team], [`${count} calls`])
-             + `<div class="cols" style="column-count:${columns || 2}">${sections}</div>` + sheetFooter();
-  return sheetPage(d.name, body);
-}
-// Wristband inserts (renderer/sheets.py): each prints at the size of the
-// window it slides into, dense and in capitals, with a dashed cut line.
+// The wrist coach's windows, for the print dialog's choices.
 const INSERTS = () => (CATALOG.inserts || {}).sizes || {adult: {w: 5.25, h: 3.25, cols: 3, rows: 19, label: "Adult"}};
-const insertOf = size => INSERTS()[size] || INSERTS().adult;
-function shortCall(text){
-  const words = (CATALOG.inserts || {}).words || {};
-  return String(text || "").split(/\s+/).filter(Boolean)
-    .map(w => Object.prototype.hasOwnProperty.call(words, w.toLowerCase()) ? words[w.toLowerCase()] : w)
-    .filter(Boolean).join(" ");
-}
-function bandLayout(groups, size){
-  const {rows, cols} = insertOf(size), lines = [];
-  for (const [title, entries] of groups){
-    if (title){
-      if (lines.length % rows === rows - 1) lines.push(["gap"]);
-      lines.push(["head", title]);
-    }
-    for (const [code, call] of entries) lines.push(["row", code, call]);
-  }
-  const per = rows * cols, inserts = [];
-  for (let start = 0; start < Math.max(lines.length, 1); start += per){
-    const chunk = lines.slice(start, start + per);
-    inserts.push(Array.from({length: cols}, (_, c) => chunk.slice(c * rows, (c + 1) * rows)));
-  }
-  return inserts;
-}
-const insertHtml = (size, strip, body) => { const s = insertOf(size);
-  return `<div class="insert" style="width:${s.w}in;height:${s.h}in"><div class="strip">${strip}</div><div class="body">${body}</div></div>`; };
-function listBody(columns, size){
-  const {rows} = insertOf(size);
-  return columns.map(col => `<div class="colm" style="grid-template-rows:repeat(${rows},1fr)">`
-    + col.map(l => l[0] === "head" ? `<div class="ln head">${esc(l[1])}</div>`
-        : l[0] === "row" ? `<div class="ln"><span class="c">${esc(l[1])}</span><span class="t">${esc(l[2])}</span></div>`
-        : `<div class="ln"></div>`).join("")
-    + `<div class="ln"></div>`.repeat(rows - col.length) + `</div>`).join("");
-}
-const stripHtml = (left, rule, right) =>
-  `<span>${esc(left)}</span><span class="rule">${esc(rule || "")}</span><span class="fp">${esc(right || "")}</span>`;
-const insertsPage = (cards, copies) => `<div class="inserts">${cards.join("").repeat(Math.max(1, copies || 1))}</div>`;
-const INSERT_FOOT = "Print at actual size (100%) and cut on the dashed lines.";
 
-function wristbandHtml(w, size, copies){
-  size = size || "adult";
-  const groups = new Map();
-  for (const e of w.entries){
-    const g = e.group || "Plays";
-    if (!groups.has(g)) groups.set(g, []);
-    groups.get(g).push([String(e.number), shortCall(e.call)]);
-  }
-  const layout = bandLayout([...groups], size);
-  const cards = layout.map((cols, i) => insertHtml(size, stripHtml(w.name, "", `${i + 1}/${layout.length}`), listBody(cols, size)));
-  const body = sheetHeader(w.name, [w.team], [`${w.entries.length} calls`, insertOf(size).label])
-             + insertsPage(cards, copies) + sheetFooter(INSERT_FOOT);
-  return sheetPage(`${w.name} — Wristband`, body);
-}
-
-// A coded card as a coordinate grid: the first character down the side, the
-// last digit across the top. A blank square is a dead code.
-function gridBody(card, style, label){
-  const rows = style === "letter" ? [...((CATALOG.codes || {}).letters || "ABCDEFGHJK")] : ["1","2","3","4","5","6","7","8","9"];
-  const head = `<tr><th class="r"></th>${[0,1,2,3,4,5,6,7,8,9].map(d => `<th>${d}</th>`).join("")}</tr>`;
-  const body = rows.map(r => `<tr><th class="r">${r}</th>`
-    + [0,1,2,3,4,5,6,7,8,9].map(d => { const id = card.codes[r + d]; return `<td>${id ? esc(label(id)) : ""}</td>`; }).join("")
-    + `</tr>`).join("");
-  return `<table class="grid">${head}${body}</table>`;
-}
-
-// The quarterback's inserts: a coded card per period, and the line calls.
-function qbCardHtml(b, codes, lines, size, copies){
-  size = size || "adult";
-  const plan = planOf(b);
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const label = id => shortCall(playCall(byId[id]));
-  const cards = [];
-  if (codes){
-    const grid = Object.keys(codes.cards[0] ? codes.cards[0].codes : {}).concat(codes.cards[0] ? codes.cards[0].dead : [])
-      .every(c => c.length === 2);
-    for (const card of codes.cards){
-      const rule = [signalRule(card), lines ? lineRule(lines, card.period) : ""].filter(Boolean).join(" · ");
-      const strip = stripHtml(card.period, rule, codes.fingerprint);
-      if (grid) cards.push(insertHtml(size, strip, gridBody(card, codes.style, label)));
-      else {
-        const rows = Object.entries(card.codes).sort((x, y) => codeCmp(x[0], y[0])).map(([c, id]) => [c, label(id)]);
-        for (const cols of bandLayout([["", rows]], size)) cards.push(insertHtml(size, strip, listBody(cols, size)));
-      }
-    }
-  }
-  if (lines){
-    const periods = Object.keys(Object.keys(lines.live).length ? lines.live : lines.order);
-    const rule = periods.map(p => `${p}: ${lineRule(lines, p)}`).join(" · ");
-    const rows = Object.entries(lines.words).map(([w, id]) => [w, label(id)])
-      .concat(lines.dead.map(w => [w, "—"])).sort((x, y) => byLower(x[0], y[0]));
-    for (const cols of bandLayout([["", rows]], size))
-      cards.push(insertHtml(size, stripHtml("Line calls", rule, lines.fingerprint), listBody(cols, size)));
-  }
-  const how = [codes ? "A blank square or a number not on the card means wait." : "",
-               lines ? (Object.keys(lines.order).length ? `At the line: ${lines.calls} calls; only the one the key names counts.`
-                                                       : "At the line: the live word, then the call, twice. Any other signal word is a dummy.") : ""]
-    .filter(Boolean).join(" ");
-  const keyed = codes || lines;
-  return sheetPage(`${planTitle(plan)} — QB card`,
-    sheetHeader(planTitle(plan), [codes ? "QB wristband" : "Line calls"],
-                [keyed ? `Fingerprint ${keyed.fingerprint}` : null, insertOf(size).label])
-    + insertsPage(cards, copies) + sheetFooter(`${how} ${INSERT_FOOT}`.trim()));
-}
-
-function scriptHtml(s, subtitle){
-  const rows = s.entries.map(e =>
-    `<tr><td class="n">${e.number}</td><td class="sit">${esc(e.sit)}</td><td class="sit">${esc(e.hash)}</td>`
-    + `<td class="call">${esc(e.call)}` + e.alerts.map(a => `<div class="alert">! ${esc(a)}</div>`).join("")
-    + `</td><td class="look">${esc(e.look)}</td><td class="n">${e.reps}</td>`
-    + `<td style="width:70px;border-bottom:1px solid #94a3b8"></td></tr>`).join("");
-  const b = s.balance;
-  const chips = s.entries.length ? chipRow([`${b.total_reps} reps`, `${b.run_pct}% run`, `${b.pass_pct}% pass`,
-    ...Object.keys(b.personnel).sort().map(k => `${k} pers: ${b.personnel[k]}`)]) : "";
-  const body = sheetHeader(s.name, [subtitle], [])
-    + `<table><thead><tr><th>#</th><th>Sit</th><th>Ha</th><th>Call</th><th>Look</th><th>Rep</th><th>Result</th>`
-    + `</tr></thead><tbody>${rows}</tbody></table>${chips}${sheetFooter()}`;
-  return sheetPage(s.name, body);
-}
-// Plays grouped by install day — the designer's install book.
-function installDays(b){
-  const days = new Map();
-  for (const p of b.plays){
-    const d = numOr(p.install_day);
-    const key = d === null ? "later" : d;
-    if (!days.has(key)) days.set(key, []);
-    days.get(key).push(p);
-  }
-  const order = [...days.keys()].filter(k => k !== "later").sort((a, c) => a - c);
-  if (days.has("later")) order.push("later");
-  return order.map(k => ({day: k, plays: days.get(k)}));
-}
-function installBookHtml(b, columns){
-  const blocks = installDays(b).map(({day, plays}) =>
-    `<div class="week"><h2>${day === "later" ? "Not scheduled" : `Day ${day}`}</h2></div>`
-    + cardGrid(plays.map(p => paperCard(p)), columns || 2)).join("");
-  const css = ".week h2{background:var(--ink);color:var(--paper);padding:4px 8px;"
-            + "border-left:none;margin:18px 0 10px;border-radius:3px}";
-  return sheetPage(b.name, sheetHeader(b.name, ["Install book"], bookMeta(b)) + blocks + sheetFooter(), css);
-}
-
-// Write the call-sheet numbers into the plays, so later prints keep them.
-function numberCalls(){
+/// Write the call-sheet numbers into the plays, so later prints keep them.
+async function numberCalls(){
   commit();
-  const had = book.plays.some(p => p.call_number);
-  if (had) book.plays.forEach(p => { p.call_number = null; });
-  const sheet = callSheetData(book);
-  const order = sheet.sections.flatMap(s => s.plays);
-  order.forEach((p, i) => { p.call_number = i + 1; });
-  save(); renderAll();
-  toast(`Numbered ${order.length} calls in call-sheet order`);
+  try {
+    const {order} = await api("call_order", {book: exportBook()});
+    const at = new Map(order.map((id, i) => [id, i + 1]));
+    book.plays.forEach(p => { p.call_number = at.get(p.id) || null; });
+    save(); renderAll();
+    if ($("printDialog").open) renderPrint();
+    toast(`Numbered ${order.length} calls in call-sheet order`);
+  } catch(e){ toast(e.message || "Couldn't number the calls"); }
 }
 function clearCallNumbers(){
   commit();
@@ -3803,7 +3550,7 @@ function clearCallNumbers(){
   save(); renderAll(); toast("Call numbers cleared");
 }
 
-// ── printing: a hidden frame, so no pop-up blocker and it works installed ──
+// ── printing: a hidden frame, so no pop-up blocker ─────────────────────────
 function printDocument(doc){
   const old = $("printFrame");
   if (old) old.remove();
@@ -3836,9 +3583,18 @@ const PRINT_KINDS = [
   ["scout", "Halftime sheet", "What the log says: the numbers, the tendencies, what is left"],
 ];
 const LS_PRINT = "chalktalk.designer.print";
-const printOpts = {kind: "playbook", perRow: 2, sheetCols: 2, bandCols: 3, bandSize: "adult", bandCopies: 1, reps: 1, hashes: false};
+const printOpts = {kind: "playbook", perRow: 2, sheetCols: 2, bandSize: "adult", bandCopies: 1, reps: 1, hashes: false};
 try { Object.assign(printOpts, JSON.parse(localStorage.getItem(LS_PRINT) || "{}")); } catch(e){}
 const savePrintOpts = () => { try { localStorage.setItem(LS_PRINT, JSON.stringify(printOpts)); } catch(e){} };
+
+// The sheet as Python is asked for it: the book, the choices, the layers on
+// screen, and the staff's key when one is set (the server never keeps it).
+function printRequest(){
+  return {kind: printOpts.kind, book: exportBook(), key: codeKey ? codeKey.secret : null,
+          per_row: printOpts.perRow, columns: printOpts.sheetCols, size: printOpts.bandSize,
+          copies: printOpts.bandCopies, reps: printOpts.reps, hashes: printOpts.hashes,
+          level, hide: LAYER_KEYS.filter(k => !layers[k])};
+}
 
 function openPrint(kind){
   commit();
@@ -3846,6 +3602,7 @@ function openPrint(kind){
   renderPrint();
   $("printDialog").showModal();
 }
+let printAsked = 0;                  // only the latest answer is shown
 function renderPrint(){
   const kinds = $("printKinds"); kinds.innerHTML = "";
   for (const [key, name, desc] of PRINT_KINDS){
@@ -3868,16 +3625,10 @@ function renderPrint(){
     addSeg("Insert", Object.entries(INSERTS()).map(([v, s]) => [v, s.label]), printOpts.bandSize, v => { printOpts.bandSize = v; });
     addSeg("Copies", [[1, "1"], [2, "2"], [4, "4"], [6, "6"], [11, "11"]], printOpts.bandCopies, v => { printOpts.bandCopies = +v; });
   };
-  const k = printOpts.kind, n = book.plays.length;
-  let summary = `${n} ${n === 1 ? "play" : "plays"}`, hint = "";
+  const k = printOpts.kind;
   if (k === "playbook" || k === "install")
     addSeg("Diagrams per row", [[1, "One"], [2, "Two"]], printOpts.perRow, v => { printOpts.perRow = +v; });
   if (k === "callsheet" || k === "wristband"){
-    const sheet = callSheetData(book);
-    const calls = sheet.sections.reduce((t, s) => t + s.rows.length, 0);
-    summary = `${calls} calls in ${sheet.sections.length} ${sheet.sections.length === 1 ? "section" : "sections"}`;
-    if (sheet.sections.length === 1 && sheet.sections[0].title === "Base")
-      hint = "No play has a situation yet, so every call lands in Base. Set down, distance and the ball in the play sheet.";
     if (k === "callsheet") addSeg("Columns", [[1, "One"], [2, "Two"], [3, "Three"]], printOpts.sheetCols, v => { printOpts.sheetCols = +v; });
     else bandOptions();
     const row = document.createElement("div"); row.className = "popt";
@@ -3892,74 +3643,32 @@ function renderPrint(){
     addSeg("Reps per play", [[1, "1"], [2, "2"], [3, "3"]], printOpts.reps, v => { printOpts.reps = +v; });
     addSeg("Hashes", [["off", "As set"], ["on", "Alternate L, R, M"]], printOpts.hashes ? "on" : "off",
       v => { printOpts.hashes = v === "on"; });
-    const s = scriptData(book, printOpts.reps, printOpts.hashes);
-    summary = `${s.balance.total_reps} reps · ${s.balance.run_pct}% run · ${s.balance.pass_pct}% pass`;
-  }
-  if (k === "install"){
-    const days = installDays(book), later = days.find(d => d.day === "later");
-    const count = days.filter(d => d.day !== "later").length;
-    summary = `${count} ${count === 1 ? "day" : "days"}` + (later ? ` · ${later.plays.length} not scheduled` : "");
-    if (!count) hint = "No play has an install day yet. Set it in the play sheet.";
-  }
-  if (k === "scout"){
-    const r = scoutReport(book, planLog());
-    summary = r.snaps ? `${r.on} of ${r.snaps} snaps on schedule` : "nothing logged yet";
-    if (!r.snaps) hint = "Log a drive in the Game panel and the halftime sheet fills itself.";
-  }
-  if (k === "drivecards"){
-    summary = `${(PLANDATA().card_starts || []).length} starts, three calls each`;
-    if (!planOpeners(book).length) hint = "No opening script yet: label plays \"Openers\" in the play sheet.";
   }
   if (k === "qbcard") bandOptions();
-  if (k === "gameplan" || k === "qbcard" || k === "boards"){
-    const methods = planOf(book).calls.methods || [];
-    summary = `${planCallOrder(book).length} calls` + (codeKey ? ` · fingerprint ${fingerprintOf(codeKey.bytes, planOf(book).name)}` : "");
-    const needsKey = (k === "boards" && methods.includes("boards"))
-      || (k !== "boards" && (methods.includes("wristband") || methods.includes("words")));
-    if (k === "qbcard" && !methods.includes("wristband") && !methods.includes("words"))
-      hint = "Choose wristband numbers or line calls in the drive planner, under Calling the plays.";
-    else if (k === "boards" && !methods.includes("boards"))
-      hint = "Turn on sign boards in the drive planner, under Calling the plays.";
-    else if (needsKey && !codeKey)
-      hint = "Set a key in the drive planner to print codes. The key is never saved in the playbook.";
-    else if (needsKey && (planOf(book).name || "Game plan") === "Game plan")
-      hint = "Name the game in the drive planner (Wk 3 vs Central) so each week gets fresh codes.";
-  }
-  $("printSummary").textContent = summary;
-  $("printHint").textContent = hint;
-  $("printHint").hidden = !hint;
+  // What the sheet will hold, and anything missing, from Python.
+  const showInfo = (summary, hint) => {
+    $("printSummary").textContent = summary;
+    $("printHint").textContent = hint;
+    $("printHint").hidden = !hint;
+  };
+  if (!SERVER) return showInfo("", "Printing runs through chalk design.");
+  showInfo("…", "");
+  const asked = ++printAsked;
+  api("print_info", printRequest())
+    .then(r => { if (asked === printAsked) showInfo(r.summary, r.hint); })
+    .catch(e => { if (asked === printAsked) showInfo("", e.message); });
 }
-function printNow(){
+async function printNow(){
   commit();
-  const k = printOpts.kind;
-  let doc;
-  if (k === "playbook") doc = playbookHtml(book, printOpts.perRow);
-  else if (k === "callsheet") doc = callSheetHtml(callSheetData(book), printOpts.sheetCols);
-  else if (k === "wristband") doc = wristbandHtml(wristbandData(callSheetData(book), printOpts.bandCols), printOpts.bandSize, printOpts.bandCopies);
-  else if (k === "script") doc = scriptHtml(scriptData(book, printOpts.reps, printOpts.hashes), "Practice script");
-  else if (k === "install") doc = installBookHtml(book, printOpts.perRow);
-  else if (k === "drivecards") doc = driveCardsHtml(book);
-  else if (k === "scout") doc = scoutHtml(book);
-  else {
-    const plan = planOf(book), methods = plan.calls.methods || [];
-    let codes = null, boards = null, lines = null;
-    try {
-      if (codeKey && methods.includes("wristband")) codes = wristbandCodes(book, null, plan.name, codeKey.bytes);
-      if (codeKey && methods.includes("words")) lines = lineCalls(book, plan.name, codeKey.bytes);
-      if (codeKey && methods.includes("boards")) boards = boardSymbols(book, plan.name, codeKey.bytes);
-    } catch(e){ return toast(e.message); }
-    if (k === "gameplan") doc = gamePlanHtml(book, codes, boards, lines);
-    else if (k === "qbcard"){
-      if (!codes && !lines) return toast(methods.includes("wristband") || methods.includes("words")
-        ? "Set a key first" : "Choose wristband numbers or line calls first");
-      doc = qbCardHtml(book, codes, lines, printOpts.bandSize, printOpts.bandCopies);
-    } else {
-      if (!boards) return toast(methods.includes("boards") ? "Set a key first" : "Turn on sign boards first");
-      doc = signBoardsHtml(book, boards);
-    }
-  }
-  $("printDialog").close();
-  printDocument(doc);
+  if (!SERVER) return toast("Printing runs through chalk design");
+  const go = $("printGo");
+  go.disabled = true;
+  try {
+    const {html} = await api("print", printRequest());
+    $("printDialog").close();
+    printDocument(html);
+  } catch(e){ toast(e.message || "Couldn't print that"); }
+  finally { go.disabled = false; }
 }
 
 /* ─── the drive planner: a twin of chalktalk/planner.py ─────────────────────
@@ -4653,23 +4362,6 @@ function renderScripted(st, log){
   return true;
 }
 
-// Scripts on paper: each one as its tree.
-function scriptCardsHtml(b){
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  return (planOf(b).drives || []).map(script => {
-    const line = path => {
-      const node = scriptNode(script, path), st = scriptState(script, path);
-      if (path.length && (st.over || st.down === 1)) return "";
-      const p = node && node.play && byId[node.play];
-      return `<li style="padding-left:${path.length * 14}px"><span class="num">${esc(driveStateLabel(st).split(",")[0])}</span>`
-        + `<span><b>${p ? esc(playCall(p)) : "—"}</b>${path.length ? `<div class="why">${esc(pathWords(path))}</div>` : ""}</span></li>`;
-    };
-    const order = [[], ["on"], ["on", "on"], ["on", "off"], ["off"], ["off", "on"], ["off", "off"]];
-    return `<div class="dcardp"><h2>${esc(script.name)}</h2><div class="note">${esc(driveStateLabel(scriptStart(script)))}</div>`
-      + `<ol>${order.map(line).join("")}</ol></div>`;
-  }).join("");
-}
-
 /* --- scout: what the half says about you (chalktalk/scout.py) -------------
    The log holds every snap; this reads it back. The numbers by down, what a
    scout on the other sideline sees, what worked, and what the staff has not
@@ -4685,7 +4377,6 @@ const SCOUT = () => CATALOG.scout || {explosive: {run: 12, pass: 16}, tendency_c
                 "Goal line": "on the goal line"}};
 const scoutKind = p => (p.play_type === "run" || p.play_type === "rpo") ? "run" : "pass";
 const ORD_DOWN = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th"};
-const rateOf = s => s.calls ? pyRound(100 * s.on / s.calls) : 0;
 // Every look one snap was called from, the down and the spot named by the plan's own sections.
 function scoutLooks(plan, snap, p){
   const S = SCOUT(), st = snap.before, hash = st.hash_mark || null, mode = st.mode || null;
@@ -5011,10 +4702,6 @@ function branchesFor(b, state, log, first){
   }
   return out;
 }
-function driveCards(b, k){
-  return (PLANDATA().card_starts || []).map(([title, state]) =>
-    [title, state, suggestCalls(b, Object.assign(freshState(), state), [], k || 3)]);
-}
 function alternationWarning(b, log){
   const plan = planOf(b);
   log = log || plan.log || [];
@@ -5113,100 +4800,6 @@ function fingerprintOf(key, game){
   const h = hex(hmacSha256(key, utf8(`${game}|fingerprint`))).toUpperCase();
   return `${h.slice(0, 4)}-${h.slice(4, 8)}`;
 }
-function codeStream(key, label){
-  let block = 0, words = [];
-  const next = () => {
-    if (!words.length){
-      const d = hmacSha256(key, utf8(`${label}|${block++}`)), v = new DataView(d.buffer);
-      for (let i = 0; i < 32; i += 4) words.push(v.getUint32(i));
-    }
-    return words.shift();
-  };
-  const below = n => {
-    const limit = Math.floor(0x100000000 / n) * n;
-    for (;;){ const v = next(); if (v < limit) return v % n; }
-  };
-  const shuffle = items => {
-    const out = items.slice();
-    for (let i = out.length - 1; i > 0; i--){ const j = below(i + 1); [out[i], out[j]] = [out[j], out[i]]; }
-    return out;
-  };
-  return {below, shuffle};
-}
-// The format of a signal (codes.py): what the coach leaves to the key is
-// drawn from the secret, so a team that also uses chalktalk can't assume it.
-function codeSpace(style, digits){
-  const out = [];
-  if (style === "letter"){
-    const n = 10 ** (digits - 1);
-    for (const c of (CATALOG.codes || {}).letters || "ABCDEFGHJK")
-      for (let i = 0; i < n; i++) out.push(c + String(i).padStart(digits - 1, "0"));
-    return out;
-  }
-  const [low, high] = digits === 3 ? [100, 999] : [10, 99];
-  for (let c = low; c <= high; c++) out.push(String(c));
-  return out;
-}
-function codeCmp(a, b){
-  const na = /^\d+$/.test(a), nb = /^\d+$/.test(b);
-  if (na && nb) return +a - +b;
-  if (na !== nb) return na ? -1 : 1;
-  return a < b ? -1 : a > b ? 1 : 0;
-}
-function pickFrom(stream, options, last){
-  let choices = options.filter(o => o !== last);
-  if (!choices.length) choices = options.slice();
-  return choices[stream.below(choices.length)];
-}
-const range1 = n => Array.from({length: n}, (_, i) => i + 1);
-const codeStyleOf = (key, game, style) =>
-  style === "key" ? ["number", "letter"][codeStream(key, `${game}|style`).below(2)] : style;
-function signalRules(key, game, calls){
-  const stream = codeStream(key, `${game}|signals`), rules = {};
-  let lastDummy = null, lastLive = null;
-  for (const period of periodsOf(calls)){
-    let dummy = calls.dummy_digit === "none" ? null : calls.dummy_digit;
-    if (dummy === "key") dummy = lastDummy = pickFrom(stream, ["first", "middle", "last"], lastDummy);
-    let live = null;
-    if (calls.signals > 1) live = lastLive = pickFrom(stream, range1(calls.signals), lastLive);
-    rules[period] = [dummy, live];
-  }
-  return rules;
-}
-// codes.wristband: the QB's coded cards for one game.
-function wristbandCodes(b, secret, game, key){
-  key = key || keyBytes(secret);
-  const calls = planOf(b).calls;
-  const plays = planCallOrder(b), top = plays.slice(0, calls.top_calls);
-  const style = codeStyleOf(key, game, calls.code_style);
-  const space = codeSpace(style, calls.digits);
-  const need = plays.length + top.length * calls.extra_codes + calls.dead_codes;
-  if (need > space.length)
-    throw new Error(`${need} codes needed but ${calls.digits} digits give only ${space.length}: use 3 digits, or fewer extra and dead codes.`);
-  const wanted = [...plays];
-  for (let r = 0; r < calls.extra_codes; r++) wanted.push(...top);
-  const rules = signalRules(key, game, calls);
-  const cards = [];
-  let before = new Map();
-  for (const period of periodsOf(calls)){
-    const pool = codeStream(key, `${game}|${period}|wristband`).shuffle(space);
-    const codes = new Map(pool.slice(0, wanted.length).map((c, i) => [c, wanted[i]]));
-    const spare = pool.slice(wanted.length);
-    for (const code of [...codes.keys()]){
-      if (before.get(code) === codes.get(code)){
-        const swap = spare.find(c => before.get(c) !== codes.get(code));
-        spare.splice(spare.indexOf(swap), 1); spare.push(code);
-        codes.set(swap, codes.get(code)); codes.delete(code);
-      }
-    }
-    const sorted = [...codes].sort((x, y) => codeCmp(x[0], y[0]));
-    cards.push({period, codes: Object.fromEntries(sorted), dead: spare.slice(0, calls.dead_codes).sort(codeCmp),
-                dummy: rules[period][0], live: rules[period][1]});
-    before = codes;
-  }
-  return {game, fingerprint: fingerprintOf(key, game), style, plays, cards};
-}
-
 /* ─── line calls: what the quarterback says at the line ─────────────────────
    Mirrors codes.line_calls. A code word per play for the game from the
    team's chosen list (a word the coach set stays), dummy and burned words,
@@ -5214,72 +4807,18 @@ function wristbandCodes(b, secret, game, key){
    signal word, which of the calls counts. */
 const cleanWord = t => String(t || "").split(/\s+/).filter(Boolean).join(" ");
 const lowerSet = list => new Set(list.map(w => w.toLowerCase()));
-const byLower = (x, y) => { const a = x.toLowerCase(), b = y.toLowerCase(); return a < b ? -1 : a > b ? 1 : 0; };
 function cleanWords(items){
   const out = [];
   for (const w of (items || []).map(cleanWord)) if (w && !lowerSet(out).has(w.toLowerCase())) out.push(w);
   return out;
 }
-const periodsOf = calls => ((CATALOG.codes || {}).periods || {})[calls.rotate] || ["Game"];
 const liveWordsOf = calls => calls.live_signal === "own" ? cleanWords(calls.own_live)
   : (((CATALOG.codes || {}).live_signals || {})[calls.live_signal] || []);
 const wordBankOf = calls => calls.word_list === "own" ? cleanWords(calls.own_words)
   : (((CATALOG.codes || {}).word_lists || {})[calls.word_list] || []);
-function lineCalls(b, game, key){
-  const calls = planOf(b).calls;
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const signals = liveWordsOf(calls);
-  if (calls.live_signal !== "order" && signals.length < 2)
-    throw new Error("Give at least two live words, so the others can be dummies.");
-  const bank = wordBankOf(calls), burned = cleanWords(calls.burned_words);
-  const order = planCallOrder(b);
-  const own = Object.fromEntries(order.filter(id => cleanWord(byId[id].word)).map(id => [id, cleanWord(byId[id].word)]));
-  const taken = lowerSet([...Object.values(own), ...burned, ...signals]);
-  const pool = codeStream(key, `${game}|words`).shuffle(bank).filter(w => !taken.has(w.toLowerCase()));
-  const words = {};
-  for (const id of order){
-    let w = own[id];
-    if (!w || lowerSet(Object.keys(words)).has(w.toLowerCase())){
-      if (!pool.length) throw new Error(`Not enough words: the list has ${bank.length}. Add words to it, set your own on some plays, or burn fewer.`);
-      w = pool.shift();
-    }
-    words[w] = id;
-  }
-  const used = lowerSet(Object.keys(words));
-  const dead = pool.slice(0, calls.dummy_words).concat(burned.filter(w => !used.has(w.toLowerCase())));
-  const live = {}, turn = {};
-  let count = calls.signals;
-  if (calls.live_signal === "order"){
-    count = Math.max(2, calls.signals);
-    const stream = codeStream(key, `${game}|order`);
-    let last = null;
-    for (const period of periodsOf(calls)) last = turn[period] = pickFrom(stream, range1(count), last);
-  } else {
-    const stream = codeStream(key, `${game}|live`);
-    let last = null;
-    for (const period of periodsOf(calls)) last = live[period] = pickFrom(stream, signals, last);
-  }
-  return {game, fingerprint: fingerprintOf(key, game), words, dead: dead.sort(byLower),
-          live, order: turn, calls: count, signals};
-}
-const ORDINALS = ["", "1st", "2nd", "3rd"];
-// How to read a signal this period, in the words a card prints.
-function signalRule(card){
-  const bits = [];
-  if (card.dummy) bits.push(`drop the ${card.dummy} digit`);
-  if (card.live) bits.push(`the ${ORDINALS[card.live]} signal is live`);
-  return bits.join(" · ");
-}
-function lineRule(lines, period){
-  if (lines.order && lines.order[period]) return `say ${lines.calls}; the ${ORDINALS[lines.order[period]]} counts`;
-  return lines.live && lines.live[period] ? `live: ${lines.live[period]}` : "";
-}
-
-/* ─── sign boards: symbols, one cell live ───────────────────────────────────
-   Mirrors codes.boards. A board carries one, two or four symbols and only
-   one cell is live, changing every period; a symbol's meaning holds for the
-   game. One rack serves the whole game: a board means one call while its
-   top-left cell is live and another after the half. */
+/* ─── sign boards: what gets a symbol ───────────────────────────────────────
+   Each play, or each series when the plan says so. The boards themselves are
+   drawn and printed by Python (codes.boards); the plan check counts these. */
 const boardUnits = b => {
   const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
   const out = [];
@@ -5290,121 +4829,6 @@ const boardUnits = b => {
   }
   return out;
 };
-function boardSymbols(b, game, key){
-  const c = CATALOG.codes || {}, calls = planOf(b).calls;
-  const symbols = [];
-  for (const color of Object.keys(c.board_colors || {})) for (const shape of c.board_shapes || []) symbols.push(`${shape}/${color}`);
-  const units = boardUnits(b), n = units.length + calls.dummy_boards;
-  if (n > symbols.length)
-    throw new Error(`${n} boards needed but only ${symbols.length} symbols: use a symbol per series, or fewer dummies.`);
-  const pool = codeStream(key, `${game}|boards`).shuffle(symbols);
-  const meaning = Object.fromEntries(units.map((u, i) => [u, pool[i]]));
-  const blanks = pool.slice(units.length, n);
-  let cells = calls.board_cells;
-  if (cells === "key") cells = [2, 4][codeStream(key, `${game}|cells`).below(2)];   // two or four, each game
-
-  let stream = codeStream(key, `${game}|boards|live`), last = null;
-  const live = {};
-  for (const period of periodsOf(calls)){
-    let options = [];
-    for (let x = 0; x < cells; x++) if (x !== last) options.push(x);
-    if (!options.length) options = [0];
-    last = live[period] = options[stream.below(options.length)];
-  }
-
-  const rack = Array.from({length: n}, () => new Array(cells).fill(null));
-  for (const cell of [...new Set(Object.values(live))].sort((x, y) => x - y)){
-    const column = codeStream(key, `${game}|boards|cell${cell}`).shuffle(units.map(u => meaning[u]).concat(blanks));
-    for (let i = 0; i < n; i++){
-      if (rack[i].includes(column[i])){
-        const order = [];
-        for (let j = i + 1; j < n; j++) order.push(j);
-        for (let j = 0; j < i; j++) order.push(j);
-        const j = order.find(j => !rack[i].includes(column[j]) && !rack[j].includes(column[i]));
-        if (j !== undefined) [column[i], column[j]] = [column[j], column[i]];
-      }
-    }
-    for (let i = 0; i < n; i++) rack[i][cell] = column[i];
-  }
-  stream = codeStream(key, `${game}|boards|decoys`);
-  for (const row of rack)
-    for (let x = 0; x < cells; x++)
-      while (row[x] === null){
-        const s = symbols[stream.below(symbols.length)];
-        if (!row.includes(s)) row[x] = s;
-      }
-  return {game, fingerprint: fingerprintOf(key, game), cells, units, symbols: meaning, live, boards: rack};
-}
-// One symbol as SVG in a 100x100 box: a shape in a colour, outlined in black.
-const SYMBOL_PATHS = {
-  circle: '<circle cx="50" cy="50" r="44"/>',
-  square: '<rect x="8" y="8" width="84" height="84"/>',
-  triangle: '<polygon points="50,6 94,90 6,90"/>',
-  diamond: '<polygon points="50,4 96,50 50,96 4,50"/>',
-  star: '<polygon points="50,7 61.2,37.6 93.7,38.8 68.1,58.9 77,90.2 50,72 23,90.2 31.9,58.9 6.3,38.8 38.8,37.6"/>',
-  plus: '<polygon points="35,6 65,6 65,35 94,35 94,65 65,65 65,94 35,94 35,65 6,65 6,35 35,35"/>',
-  x: '<polygon transform="rotate(45 50 50)" points="36,8 64,8 64,36 92,36 92,64 64,64 64,92 36,92 36,64 8,64 8,36 36,36"/>',
-  ring: '<path fill-rule="evenodd" d="M6,50a44,44 0 1,0 88,0a44,44 0 1,0 -88,0zM26,50a24,24 0 1,0 48,0a24,24 0 1,0 -48,0z"/>',
-};
-function symbolSvg(symbol, size){
-  const [shape, color] = symbol.split("/");
-  const fill = ((CATALOG.codes || {}).board_colors || {})[color] || "#000";
-  return `<svg viewBox="-2 -2 104 104" width="${size}" height="${size}" aria-hidden="true">`
-    + `<g fill="${fill}" stroke="#000" stroke-width="8" stroke-linejoin="round">${SYMBOL_PATHS[shape] || SYMBOL_PATHS.circle}</g></svg>`;
-}
-const COLOR_WORDS = {sky: "light blue"};
-const symbolName = symbol => { const [shape, color] = symbol.split("/"); return `${COLOR_WORDS[color] || color} ${shape}`; };
-const CELL_NAMES = {1: ["the board"], 2: ["left", "right"], 4: ["top left", "top right", "bottom left", "bottom right"]};
-const cellName = (cells, i) => (CELL_NAMES[cells] || [])[i] || `cell ${i + 1}`;
-// A little map of the board with the live cell filled in.
-function cellMap(cells, live){
-  const cols = cells === 1 ? 1 : 2, rows = cells === 4 ? 2 : 1;
-  let s = `<svg viewBox="0 0 ${cols * 14 + 2} ${rows * 10 + 2}" width="${cols * 14 + 2}" height="${rows * 10 + 2}" aria-hidden="true" style="vertical-align:-3px">`;
-  for (let i = 0; i < cells; i++)
-    s += `<rect x="${1 + (i % cols) * 14}" y="${1 + Math.floor(i / cols) * 10}" width="13" height="9" fill="${i === live ? "#000" : "none"}" stroke="#000" stroke-width="1"/>`;
-  return s + `</svg>`;
-}
-// How far a board reads, on a 22x28 poster: symbols need 0.3 in per yard.
-const BOARD_REACH = {1: 55, 2: 40, 4: 30};
-
-function signBoardsHtml(b, boards){
-  const plan = planOf(b), byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const unitName = u => u.startsWith("series:") ? `${u.slice(7)} series` : playCall(byId[u]);
-  const cells = boards.cells, cols = cells === 1 ? 1 : 2, rows = cells === 4 ? 2 : 1;
-  const pages = boards.boards.map((row, i) =>
-    `<div class="board"><div class="corner">${i + 1}</div><div class="grid" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr)">`
-    + row.map(sym => `<div class="cellb">${symbolSvg(sym, "100%")}</div>`).join("") + `</div></div>`).join("");
-  const periods = Object.keys(boards.live);
-  const liveLine = periods.map(p => `${cellMap(cells, boards.live[p])} ${esc(p)}: <b>${esc(cellName(cells, boards.live[p]))}</b>`).join(" &nbsp; ");
-  // The players' key: what each symbol means this game, and which cell to read.
-  const players = `<div class="section"><h2>What the symbols mean</h2><p class="note">Read only the live cell. ${liveLine}</p><table><tbody>`
-    + boards.units.map(u => `<tr><td style="width:44px">${symbolSvg(boards.symbols[u], 30)}</td>`
-        + `<td>${esc(symbolName(boards.symbols[u]))}</td><td class="call">${esc(unitName(u))}</td></tr>`).join("")
-    + `</tbody></table></div>`;
-  // The signaler's sheet: which board to show for each call, period by period.
-  const signaler = periods.map(p => {
-    const cell = boards.live[p];
-    const boardOf = sym => boards.boards.findIndex(row => row[cell] === sym) + 1;
-    const dummies = boards.boards.map((row, i) => [row, i + 1])
-      .filter(([row]) => !Object.values(boards.symbols).includes(row[cell])).map(([, n]) => n);
-    return `<div class="section"><h2>${esc(p)} · live cell ${esc(cellName(cells, cell))}</h2><table><tbody>`
-      + boards.units.map(u => `<tr><td class="n" style="width:44px">${boardOf(boards.symbols[u])}</td><td class="call">${esc(unitName(u))}</td></tr>`).join("")
-      + `</tbody></table><p class="note">Dummy boards: ${dummies.join(", ") || "none"}</p></div>`;
-  }).join("");
-  const reach = BOARD_REACH[cells] || 30;
-  const css = "@page{size:landscape;margin:10mm}"
-    + ".board{height:92vh;position:relative;break-after:page;border:1px solid #000;background:#fff;box-sizing:border-box;padding:3vh}"
-    + ".board .grid{display:grid;gap:3vh;height:100%}.board .cellb{display:flex;align-items:center;justify-content:center;min-height:0}"
-    + ".board .cellb svg{max-height:100%;max-width:100%}"
-    + ".board .corner{position:absolute;left:10px;top:6px;font-size:11px;color:#555}"
-    + ".keypage{break-before:page}";
-  return sheetPage(`${planTitle(plan)} — Sign boards`, pages
-    + `<div class="keypage">${sheetHeader(planTitle(plan), ["Sign boards · the players' key"], [`Fingerprint ${boards.fingerprint}`])}${players}`
-    + sheetFooter(`On a 22 x 28 in poster these boards read to about ${reach} yards; letter paper is for practice.`) + `</div>`
-    + `<div class="keypage">${sheetHeader(planTitle(plan), ["Sign boards · signaler only"], [`Fingerprint ${boards.fingerprint}`])}${signaler}`
-    + sheetFooter("Signaler only. The key is not printed.") + `</div>`, css);
-}
-
 /* ─── the drive planner in the designer ─────────────────────────────────────
    Rehearse a drive: set the situation, read the suggestions and why, call
    one, tap what happened. The log lives in the book's game plan, so it saves
@@ -5588,105 +5012,6 @@ const planTitle = plan => {
   return [name, vs].filter(Boolean).join(" ") || "Game plan";
 };
 
-function driveCardsHtml(b){
-  const plan = planOf(b);
-  const cards = driveCards(b, 3).map(([title, st, list]) =>
-    `<div class="dcardp"><h2>${esc(title)}</h2><div class="note">${esc(driveStateLabel(Object.assign(freshState(), st)))}</div><ol>`
-    + list.map(s => `<li><span class="num">${s.points}</span><span><b>${esc(s.call)}</b>`
-      + s.reasons.filter(r => r.points > 0).slice(0, 2).map(r => `<div class="why">${esc(r.text)}</div>`).join("")
-      + s.branches.map(bb => `<div class="br">If ${esc(bb.when)}: ${esc(bb.call)}</div>`).join("")
-      + `</span></li>`).join("") + `</ol></div>`).join("");
-  const css = ".dcards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}"
-    + ".dcardp{border:1px solid var(--line);border-radius:6px;padding:10px;break-inside:avoid}"
-    + ".dcardp h2{font-size:13px;text-transform:none;letter-spacing:0;margin:0}"
-    + ".dcardp ol{list-style:none;margin:8px 0 0;padding:0}.dcardp li{display:flex;gap:8px;padding:4px 0;border-top:1px dotted var(--line)}"
-    + ".dcardp .num{min-width:22px;color:var(--muted);font-variant-numeric:tabular-nums}"
-    + ".why{color:var(--muted);font-size:11px}.br{font-size:11px;margin-top:2px}";
-  const scripts = scriptCardsHtml(b);
-  return sheetPage(`${planTitle(plan)} — Drive cards`,
-    sheetHeader(planTitle(plan), [scripts ? "Your drive scripts, then the planner's first calls from each start"
-                                          : "Drive cards: the first calls from each start, and what follows"],
-                [b.team, `${b.plays.length} plays`]) + `<div class="dcards">${scripts}${cards}</div>` + sheetFooter(), css);
-}
-
-// The staff's master: every section with numbers, words, symbols and codes.
-function gamePlanHtml(b, codes, boards, lines){
-  const plan = planOf(b), order = planCallOrder(b);
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const num = id => order.indexOf(id) + 1;
-  const wordOf = lines ? Object.fromEntries(Object.entries(lines.words).map(([w, id]) => [id, w])) : null;
-  const words = !!wordOf || ((plan.calls.methods || []).includes("words") && b.plays.some(p => p.word));
-  const periods = codes ? codes.cards.map(c => c.period) : [];
-  const codesOf = (id, card) => Object.entries(card.codes).filter(([, v]) => v === id).map(([c]) => c).join(" ");
-  const unitOf = id => { const sName = String(byId[id].series || "").trim();
-    return plan.calls.boards_by === "series" && sName ? `series:${sName}` : id; };
-  const table = (title, ids, sub) => ids.length ? `<div class="section"><h2>${esc(title)}</h2>${sub || ""}`
-    + `<table><thead><tr><th>#</th><th>Call</th>${words ? "<th>Word</th>" : ""}${boards ? "<th>Board</th>" : ""}`
-    + periods.map(p => `<th>${esc(p)}</th>`).join("") + `</tr></thead><tbody>`
-    + ids.map(id => { const p = byId[id]; return `<tr><td class="n">${num(id)}</td><td class="call">${p.favorite ? "★ " : ""}${esc(playCall(p))}`
-        + (p.series || p.role ? `<div class="note">${esc([p.series, p.role ? ROLE_WORDS(p.role) : null].filter(Boolean).join(" · "))}</div>` : "")
-        + `</td>${words ? `<td>${esc((wordOf ? wordOf[id] : p.word) || "—")}</td>` : ""}`
-        + (boards ? `<td>${boards.symbols[unitOf(id)] ? symbolSvg(boards.symbols[unitOf(id)], 22) : ""}</td>` : "")
-        + (codes ? codes.cards.map(card => `<td class="n">${esc(codesOf(id, card))}</td>`).join("") : "")
-        + `</tr>`; }).join("")
-    + `</tbody></table></div>` : "";
-  // What is live, period by period.
-  const live = [];
-  if (codes && codes.cards.some(c => signalRule(c)))
-    live.push(`Signals: ` + codes.cards.map(c => `${esc(c.period)} <b>${esc(signalRule(c) || "as is")}</b>`).join(" · "));
-  if (lines) live.push(`Line calls: ` + Object.keys(Object.keys(lines.live).length ? lines.live : lines.order)
-    .map(p => `${esc(p)} <b>${esc(lineRule(lines, p))}</b>`).join(" · ")
-    + (lines.signals.length ? ` <span class="note">(signal words: ${lines.signals.map(esc).join(", ")})</span>` : ""));
-  if (boards) live.push(`Live cell: ` + Object.entries(boards.live).map(([p, c]) =>
-    `${cellMap(boards.cells, c)} ${esc(p)} <b>${esc(cellName(boards.cells, c))}</b>`).join(" · "));
-  let body = live.length ? `<p class="note">${live.join("<br>")}</p>` : "";
-  body += table("Openers", planOpeners(b), `<div class="note">The script, in order</div>`);
-  body += table("Drive starters", planStarters(b), `<div class="note">The first call of a new drive</div>`);
-  for (const [section, ids] of planSections(b)) body += table(section.title, ids);
-  const dead = (codes ? `<div class="section"><h2>Dead codes</h2>` + codes.cards.map(card =>
-    `<div class="note">${esc(card.period)}: ${card.dead.join(" ")}</div>`).join("") + `</div>` : "")
-    + (lines && lines.dead.length ? `<div class="section"><h2>Dummy words</h2><div class="note">${lines.dead.map(esc).join(", ")}</div></div>` : "");
-  const keyed = codes || boards || lines;
-  return sheetPage(`${planTitle(plan)} — Game plan`,
-    sheetHeader(planTitle(plan), ["Game plan · staff only"],
-                [b.team, keyed ? `Fingerprint ${keyed.fingerprint}` : null, `${order.length} calls`])
-    + body + dead + sheetFooter(keyed ? "Staff only. The key is not printed." : ""));
-}
-
-// The halftime sheet: the numbers, what a scout sees, and what is left.
-function scoutHtml(b){
-  const plan = planOf(b), r = scoutReport(b, planLog());
-  const split = rows => `<table><thead><tr><th>Down</th><th class="n">Calls</th><th class="n">On schedule</th>`
-    + `<th class="n">Yards</th><th class="n">A call</th></tr></thead><tbody>`
-    + rows.map(s => `<tr><td>${esc(s.label)}</td><td class="n">${s.calls}</td>`
-        + `<td class="n">${s.on} (${rateOf(s)}%)</td><td class="n">${Math.round(s.yards)}</td>`
-        + `<td class="n">${s.calls ? pyRound(s.yards / s.calls * 10) / 10 : 0}</td></tr>`).join("")
-    + `</tbody></table>`;
-  const section = (title, inner) => inner ? `<div class="section"><h2>${esc(title)}</h2>${inner}</div>` : "";
-  const list = items => items.length ? `<ol>${items.map(i => `<li><span></span><span>${esc(i)}</span></li>`).join("")}</ol>` : "";
-  // A number and the call, the way the rest of the sheet lists things.
-  const calls = (lines, each) => lines.length ? `<ol>` + lines.map(l =>
-      `<li><span class="num">${pyRound(l.yards / l.calls * 10) / 10}</span><span>${esc(l.call)}`
-      + (each ? `<div class="note">${l.calls} calls</div>` : "") + `</span></li>`).join("") + `</ol>` : "";
-  // Every look called four times or more, under the thing a scout breaks the half down by.
-  const dims = {formation: "Formation", personnel: "Personnel", down: "Down & distance", hash: "Hash", field: "Field"};
-  const looks = r.tendencies.length ? `<table><thead><tr><th>Look</th><th class="n">Calls</th>`
-      + `<th class="n">Run</th><th class="n">Pass</th><th class="n">On schedule</th></tr></thead><tbody>`
-      + r.tendencies.map((x, i) => (i && r.tendencies[i - 1].by === x.by ? "" : `<tr><th colspan="5">${dims[x.by]}</th></tr>`)
-          + `<tr><td>${esc(x.look)}</td><td class="n">${x.calls}</td><td class="n">${x.runs}</td>`
-          + `<td class="n">${x.passes}</td><td class="n">${x.on}</td></tr>`).join("") + `</tbody></table>` : "";
-  const head = sheetHeader(planTitle(plan), ["Halftime: what the log says"],
-    [b.team, `${r.on} of ${r.snaps} on schedule`, `${r.thirds.on} of ${r.thirds.calls} on third down`]);
-  const body = section("What a scout sees", list(r.notes))
-    + section("By down", r.by_down.length ? split(r.by_down) : "")
-    + section("What is working", calls(r.best, true))
-    + section("Explosives", calls(r.explosives, false))
-    + section("Your looks", looks)
-    + section("Set up and not called", list(r.ready))
-    + section("Left on the sheet", list(r.unused));
-  return sheetPage(`${planTitle(plan)} - Halftime`, head + `<div class="cols">${body}</div>`
-    + sheetFooter("Counted from the game log."), ".cols{column-count:2;column-gap:20px}");
-}
 // The same numbers in the Game panel, while the half is going on.
 function renderScout(){
   const box = $("dScout");

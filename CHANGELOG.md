@@ -29,6 +29,25 @@ package with a designer of its own, not an app to keep online.
 - A one-play file opened from the browser no longer shows unsaved changes the
   moment it opens.
 
+### Printing, in Python
+- **`chalktalk.paper` prints every sheet a staff uses from one playbook**:
+  `paper.render(kind, book, ...)` for the playbook, call sheet, wristband,
+  practice script, install book, drive cards, game plan, QB card, sign boards
+  and halftime sheet, and `paper.info` says what a sheet will hold and what it
+  is missing. The coded sheets take the staff's key and print its
+  fingerprint, never the key.
+- The drive cards, game plan, QB card, sign boards, halftime sheet and install
+  book had no Python printer before; only the browser could print them. They
+  are new in `renderer/plan_sheets.py` and `sheets.install_book_html`, and
+  print the same pages the designer did.
+- The designer's Print asks `chalk design` for the page, so every sheet comes
+  from one place. The playbook and install book follow the layers on screen
+  and the field level, as before. Write the call numbers into the plays asks
+  Python for the call-sheet order.
+- The browser's own copies of the sheets, and of the wristband codes, line
+  calls and sign boards they printed, are gone, with the node tests that held
+  them to Python. The page is about 640 lines shorter.
+
 ### Removed
 - `chalk site`, the installable web app (manifest, service worker, icons), the
   GitHub Pages workflow, and `docs/index.html` with the CI check that kept it

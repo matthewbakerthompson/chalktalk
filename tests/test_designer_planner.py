@@ -134,18 +134,6 @@ def test_difficulty_of_adjusted_plays_matches_python():
     assert js == [[d.score, d.tier, d.reasons] for d in map(difficulty, book.plays)]
 
 
-@pytest.mark.parametrize("size", ["youth", "teen", "adult"])
-def test_wristband_inserts_lay_out_the_same(size):
-    from chalktalk.renderer.sheets import band_layout, short_call
-    calls = ["Shotgun Trips Right Mesh Concept", "I-Form Strong Left Power", "Doubles Screen Right"]
-    groups = [["1st & 10", [[str(n), short_call(calls[n % 3])] for n in range(1, 18)]],
-              ["3rd & short", [[str(n), "Power"] for n in range(18, 20)]],
-              ["Red zone", [[str(n), "Fade"] for n in range(20, 75)]]]
-    js = _js(_book(), f"return [bandLayout({json.dumps(groups)}, {json.dumps(size)}),"
-                      f" {json.dumps(calls)}.map(shortCall)];")
-    assert js == [band_layout(groups, size), [short_call(c) for c in calls]]
-
-
 def test_reads_against_a_coverage_match_python():
     from chalktalk.models.qb import QBAction, QBPlan
     plan = QBPlan(action=QBAction.DROPBACK).progression("Z", "H", "RB").progression("H", "Z", vs="Cover 2")
@@ -304,12 +292,6 @@ def test_advance_and_success_match_python(start, outcome, gain):
     assert js[1] == P.is_success(start, outcome, gain, t)
 
 
-def test_drive_cards_and_the_alternation_warning_match_python():
-    book = _book()
-    js = _js(book, "return driveCards(__book).map(([t, s, list]) => [t, list.map(x => [x.play, x.points])]);")
-    assert js == [[t, [[x.play, x.points] for x in s]] for t, _, s in P.drive_cards(book)]
-
-
 def test_sha256_hmac_and_key_stretching_match_python():
     import hashlib
     import hmac
@@ -321,48 +303,3 @@ def test_sha256_hmac_and_key_stretching_match_python():
         assert mac == hmac.new(b"key", m.encode(), hashlib.sha256).hexdigest()
     assert js[-1][0] == K.key_bytes("K7QM2XRA9FPDHW4C").hex()
 
-
-@pytest.mark.parametrize("calls", [
-    CallSystem(),
-    CallSystem(rotate="quarter", extra_codes=4, top_calls=9, dead_codes=20),
-    CallSystem(rotate="game", digits=3, extra_codes=0, dead_codes=0),
-    CallSystem(code_style="letter", dummy_digit="key", signals=3, rotate="quarter"),
-    CallSystem(code_style="key", digits=3, dummy_digit="middle", signals=2),
-])
-def test_wristbands_are_identical_in_both(calls):
-    book = _book(calls=calls)
-    py = K.wristband(book, "k7qm-2xra 9fpd-hw4c", "Wk 3 Central").model_dump(mode="json")
-    js = _js(book, "return wristbandCodes(__book, 'k7qm-2xra 9fpd-hw4c', 'Wk 3 Central');")
-    assert js == py
-
-
-@pytest.mark.parametrize("calls", [
-    CallSystem(methods=["words"]),
-    CallSystem(methods=["words"], rotate="quarter", dummy_words=9, burned_words=["Tiger", "rocket"]),
-    CallSystem(methods=["words"], word_list="cities", live_signal="numbers"),
-    CallSystem(methods=["words"], word_list="own", live_signal="own", dummy_words=2,
-               own_words=["Ranger", "Hawk", "Maple", "Onyx", "Quartz", "Sierra", "Tundra", "Umber",
-                          "Vortex", "Willow", " hawk ", "Zinc", "Yarrow"],
-               own_live=["Alpha", "Bravo", "alpha", "Charlie"]),
-    CallSystem(methods=["words"], word_list="things", live_signal="order", signals=3, rotate="quarter"),
-])
-def test_line_calls_are_identical_in_both(calls):
-    plays = [tag(p, word="Ranger") if p.id == "stick" else p for p in _book().plays]
-    book = Playbook(name="Wk 3", plays=plays, game_plan=GamePlan(calls=calls))
-    py = K.line_calls(book, "k7qm-2xra 9fpd-hw4c", "Wk 3 Central").model_dump(mode="json")
-    js = _js(book, "return lineCalls(__book, 'Wk 3 Central', keyBytes('k7qm-2xra 9fpd-hw4c'));")
-    assert js == py
-
-
-@pytest.mark.parametrize("calls", [
-    CallSystem(methods=["boards"]),
-    CallSystem(methods=["boards"], board_cells=1),
-    CallSystem(methods=["boards"], board_cells=2, rotate="quarter", dummy_boards=6),
-    CallSystem(methods=["boards"], rotate="quarter", boards_by="series", dummy_boards=5),
-    CallSystem(methods=["boards"], board_cells="key"),
-])
-def test_boards_are_identical_in_both(calls):
-    book = _book(calls=calls)
-    py = K.boards(book, "k7qm-2xra 9fpd-hw4c", "Wk 3 Central").model_dump(mode="json")
-    js = _js(book, "return boardSymbols(__book, 'Wk 3 Central', keyBytes('k7qm-2xra 9fpd-hw4c'));")
-    assert js == py
