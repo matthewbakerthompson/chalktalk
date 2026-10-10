@@ -66,6 +66,23 @@ package with a designer of its own, not an app to keep online.
   the down-and-distance arithmetic are gone, with the node tests that held
   them to Python: about 650 lines of the page.
 
+### The same answers from the command line
+- `chalk next week3.json --down 3 --distance 8 --at "opp 40" --look "Cover 3"`
+  prints the planner's picks with their points, reasons and branches: the
+  Game panel in a terminal. `--fresh` leaves the game log out.
+- `chalk scout week3.json` prints the halftime report from the book's log:
+  on schedule, third downs, what a scout sees, by down, what is working,
+  explosives, what is set up and not called, and what is left on the sheet.
+- `chalk check week3.json` prints what a coordinator would flag.
+- `chalk draft week3.json` shows the blanks it would fill (series, roles, the
+  call sheet, the openers) and saves only with `-o`.
+- `chalk book week3.json --sheet KIND` prints any sheet in `chalktalk.paper`
+  (`--columns`, `--size`, `--copies`, `--reps`, `--hashes`, `--per-row`). A
+  coded sheet takes `--key` or `CHALKTALK_KEY`, and at a terminal asks for
+  the key rather than leave it in shell history. Without `--sheet` it prints
+  the playbook as before, and it now opens a single play's file as well.
+- Everything printed to the terminal is plain ASCII.
+
 ### Removed
 - `chalk site`, the installable web app (manifest, service worker, icons), the
   GitHub Pages workflow, and `docs/index.html` with the CI check that kept it

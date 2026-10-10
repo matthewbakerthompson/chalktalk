@@ -750,6 +750,12 @@ chalk design --theme paper
 ```bash
 chalk design week3.json              # the visual designer, in your browser
 chalk book week3.json                # a designer playbook to PDF or HTML
+chalk book week3.json --sheet wristband --size teen --copies 2   # or callsheet, script, install,
+                                     #   drivecards, gameplan, qbcard, boards, scout
+chalk next week3.json --down 3 --distance 8 --at "opp 40" --look "Cover 3"   # the planner's picks, and why
+chalk scout week3.json               # the halftime report from the game log
+chalk check week3.json               # what a coordinator would flag
+chalk draft week3.json -o week3.json # fill the plan's blanks (shows them; saves only with -o)
 chalk list plays                     # or formations | defenses | routes | series | systems | schemes | blocks | coverages | qb
 chalk system base_offense --out out/install   # the whole install book
 chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs --theme paper

@@ -122,6 +122,15 @@ def render(kind: str, book: Playbook, *, key: Optional[str] = None,
     return PS.sign_boards_html(book, boards)
 
 
+def needs_key(kind: str, book: Playbook) -> bool:
+    """Whether this sheet prints codes, words or boards the plan calls with, so a key matters."""
+    from .planner import plan_of
+    methods = plan_of(book).calls.methods
+    if kind == "boards":
+        return "boards" in methods
+    return kind in ("gameplan", "qbcard") and ("wristband" in methods or "words" in methods)
+
+
 def info(kind: str, book: Playbook, *, key: Optional[str] = None,
          reps: int = 1, hashes: bool = False) -> tuple[str, str]:
     """A line saying what the sheet will hold, and a hint when something is missing."""
@@ -160,17 +169,16 @@ def info(kind: str, book: Playbook, *, key: Optional[str] = None,
         summary = _plural(len(planner.numbers(book)), "call")
         if key:
             summary += f" · fingerprint {fingerprint(_key_bytes(key), plan.name)}"
-        needs_key = (("boards" in methods) if kind == "boards"
-                     else ("wristband" in methods or "words" in methods))
+        keyed = needs_key(kind, book)
         if kind == "qbcard" and "wristband" not in methods and "words" not in methods:
             hint = "Choose wristband numbers or line calls in the drive planner, under Calling the plays."
         elif kind == "boards" and "boards" not in methods:
             hint = "Turn on sign boards in the drive planner, under Calling the plays."
-        elif needs_key and not key:
+        elif keyed and not key:
             hint = "Set a key in the drive planner to print codes. The key is never saved in the playbook."
-        elif needs_key and (plan.name or "Game plan") == "Game plan":
+        elif keyed and (plan.name or "Game plan") == "Game plan":
             hint = "Name the game in the drive planner (Wk 3 vs Central) so each week gets fresh codes."
     return summary, hint
 
 
-__all__ = ["KINDS", "render", "info", "call_sheet", "call_order"]
+__all__ = ["KINDS", "render", "info", "needs_key", "call_sheet", "call_order"]
