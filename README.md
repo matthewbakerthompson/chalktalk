@@ -674,9 +674,11 @@ paper.render("qbcard", book, key=key, size="teen", copies=2)   # the inserts, re
 paper.render("boards", book, key=key)      # the rack, the players' key, the signaler's sheet
 ```
 
-The designer prints all of these through Python. It still carries its own copy
-of the planner and the difficulty score, and tests run it in node against
-Python: same suggestions word for word, same scores.
+The designer asks Python for all of it: the Game panel's picks and reasons,
+the plan builder's drive-script tree, every difficulty score, the halftime
+numbers and the plan check come from these same functions, through
+`chalk design`, so a coach in the browser and a script in Python always get
+the same answer.
 
 ---
 

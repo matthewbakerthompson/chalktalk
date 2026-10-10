@@ -1,8 +1,8 @@
 """
-The designer carries a twin of the drive planner and the codes. These tests
-run the browser's functions in node against planner.py, difficulty.py and
-codes.py on the same books, and require the same numbers, the same ranking,
-the same reasons word for word, and byte-identical wristband cards.
+The planner, the difficulty score and the scout run in Python now (the designer
+asks for them; tests/test_designer_views.py). What the page still does itself:
+give plays their ids, order reads against a coverage, and stretch the code key.
+These run that code in node against Python on the same books.
 """
 import json
 import os
@@ -13,11 +13,8 @@ import tempfile
 import pytest
 
 from chalktalk import codes as K
-from chalktalk import planner as P
-from chalktalk.catalog import all_plays, passing, running
-from chalktalk.difficulty import difficulty
-from chalktalk.models import (CallSystem, DriveState, GamePlan, Mode, Outcome, Playbook,
-                              Role, Snap)
+from chalktalk.catalog import passing, running
+from chalktalk.models import GamePlan, Playbook, Role
 from chalktalk.models import situation as S
 from chalktalk.models.situation import Hash
 
@@ -70,33 +67,6 @@ def _js(book, body: str):
     return json.loads(run.stdout)
 
 
-def _log(book):
-    start = DriveState()
-    s1 = P.advance(start, Outcome.GAIN, 4)
-    s2 = P.advance(s1, Outcome.INCOMPLETE)
-    return [
-        Snap(before=start, play="inside-zone", call="IZ", gain=4, tells=["backside lb flowing hard"]),
-        Snap(before=s1, play="mesh-concept", call="Mesh", outcome=Outcome.INCOMPLETE),
-        Snap(before=s2, play="inside-zone", call="IZ", gain=9),
-    ]
-
-
-STATES = [
-    DriveState(),
-    DriveState(drive=2, yard_line=60),                 # a later drive's first snap: the starters
-    DriveState(down=2, distance=5, yard_line=40, snap=1),
-    DriveState(down=3, distance=8, yard_line=44, snap=2, look="Cover 2"),
-    DriveState(down=1, distance=10, yard_line=55, look="Cover 3"),
-    DriveState(down=2, distance=6, yard_line=71, hash_mark=Hash.LEFT),
-    DriveState(down=3, distance=2, yard_line=45),
-    DriveState(down=3, distance=9, yard_line=30),
-    DriveState(down=1, distance=10, yard_line=15),
-    DriveState(down=2, distance=14, yard_line=60),
-    DriveState(yard_line=70, mode=Mode.TWO_MINUTE),
-    DriveState(yard_line=50, mode=Mode.FOUR_MINUTE),
-]
-
-
 def test_ids_are_made_the_same_way():
     raw = Playbook(name="x", plays=[passing.mesh_concept(), passing.mesh_concept(),
                                     tag(passing.stick(), id="mesh-concept-2"), running.power_right()])
@@ -108,32 +78,6 @@ def test_ids_are_made_the_same_way():
     assert [p.id for p in raw.plays] == ["mesh-concept", "mesh-concept-3", "mesh-concept-2", "power-right"]
 
 
-def test_difficulty_matches_python():
-    plays = list(all_plays().values())
-    book = Playbook(name="all", plays=plays).with_ids()
-    js = _js(book, "return __book.plays.map(p => { const d = difficultyOf(p); return [d.score, d.tier, d.reasons]; });")
-    assert js == [[d.score, d.tier, d.reasons] for d in map(difficulty, book.plays)]
-
-
-def test_difficulty_of_adjusted_plays_matches_python():
-    # The catalog has little motion, no tags and no alerts; adjusted plays do.
-    from chalktalk import adjustments as A
-    from chalktalk.models.play import PlayType
-    from chalktalk.templates import routes as R
-    plays = all_plays()
-    adjusted = [
-        plays["mesh_concept"].adjust(A.MOTION("Z", "jet")),
-        plays["mesh_concept"].adjust(A.MOTION("Z", "jet"), A.TAG("Y", R.CORNER()), A.TEMPO("no_huddle")),
-        plays["bubble"].adjust(A.MOTION("RB", "orbit")),
-        plays["inside_zone"].adjust(A.TEMPO("check"), A.ALERT("Check to Power vs 5-down"), A.ALERT("Bubble")),
-        plays["counter_trey"].adjust(A.MOTION("Z", "short"), A.SHIFT("Y", 4, -1)),
-        tag(plays["smash"], difficulty=1), tag(plays["four_verticals"], play_type=PlayType.SPECIAL),
-    ]
-    book = Playbook(name="adjusted", plays=adjusted).with_ids()
-    js = _js(book, "return __book.plays.map(p => { const d = difficultyOf(p); return [d.score, d.tier, d.reasons]; });")
-    assert js == [[d.score, d.tier, d.reasons] for d in map(difficulty, book.plays)]
-
-
 def test_reads_against_a_coverage_match_python():
     from chalktalk.models.qb import QBAction, QBPlan
     plan = QBPlan(action=QBAction.DROPBACK).progression("Z", "H", "RB").progression("H", "Z", vs="Cover 2")
@@ -141,155 +85,6 @@ def test_reads_against_a_coverage_match_python():
     js = _js(_book(), f"const plan = {plan.model_dump_json()};"
                       f" return {json.dumps(covs)}.map(c => readsAgainst(plan, c));")
     assert js == [plan.reads_against(c) for c in covs]
-
-
-@pytest.mark.parametrize("start", [DriveState(), DriveState(yard_line=18), DriveState(down=1, distance=2, yard_line=50)])
-def test_filling_and_following_a_script_match_python(start):
-    from chalktalk.models import DriveScript, ScriptCall
-    book = _book()
-    mine = DriveScript(name="Open", start=start, first=ScriptCall(play="power-right", off=ScriptCall(play="stick")))
-    py = P.fill_script(book, mine)
-    s1 = P.advance(start, Outcome.GAIN, 1)
-    log = [Snap(before=start, play=py.first.play or "x", call="x", gain=1)]
-    path, node = P.follow(book, py, s1, log)
-    payload = json.dumps({"script": mine.model_dump(mode="json"), "state": s1.model_dump(mode="json"),
-                          "log": [s.model_dump(mode="json") for s in log]})
-    js = _js(book, f"const x = {payload}; const f = fillScript(__book, x.script);"
-                   " const [path, node] = followScript(__book, f, x.state, x.log);"
-                   " return {first: f.first, path, node: node ? node.play : null};")
-    assert js == {"first": py.first.model_dump(mode="json"), "path": path, "node": node.play if node else None}
-
-
-def _scout_log(book: Playbook) -> list[Snap]:
-    """A half with everything in it: a flag, a sack, an incompletion, a
-    turnover, explosives, a third down, and one look called over and over."""
-    ids = [p.id for p in book.plays]
-    out, state = [], DriveState(hash_mark=Hash.LEFT)
-    script = [("inside-zone", Outcome.GAIN, 14), ("mesh-concept", Outcome.INCOMPLETE, 0),
-              ("inside-zone", Outcome.GAIN, 3), ("power-right", Outcome.PENALTY_US, 5),
-              ("stick", Outcome.GAIN, 8), ("inside-zone", Outcome.GAIN, 2),
-              ("speed-sweep", Outcome.SACK, 4), ("four-verticals", Outcome.GAIN, 22),
-              ("inside-zone", Outcome.GAIN, 1), ("y-cross", Outcome.TURNOVER, 0)]
-    looks = ["Cover 3", "Cover 2", None, "Cover 3", "Cover 2", "Cover 3", None, "Cover 3", "Cover 2", None]
-    for (pid, outcome, gain), look in zip(script, looks):
-        assert pid in ids, pid
-        out.append(Snap(before=state, play=pid, call=pid, outcome=outcome, gain=gain, look=look))
-        state = P.advance(state, outcome, gain)
-        if state.over:
-            state = DriveState(drive=state.drive + 1, yard_line=70, hash_mark=Hash.RIGHT)
-    return out
-
-
-def _scout_half() -> list[Snap]:
-    """A half split every way a scout splits it: runs that lean by personnel,
-    a formation that is all of its personnel, a down and hash that only throw
-    together, every part of the field, the middle of the field, a two-minute
-    drive, and a flag."""
-    def at(pid, down, distance, yard_line, hash_=None, outcome=Outcome.GAIN, gain=5, **kw):
-        return Snap(before=DriveState(down=down, distance=distance, yard_line=yard_line,
-                                      hash_mark=Hash(hash_) if hash_ else None, **kw),
-                    play=pid, call=pid, outcome=outcome, gain=gain)
-    return [
-        *[at("inside-zone", 1, 10, 75, "L", gain=3) for _ in range(2)],
-        *[at("speed-sweep", 1, 10, 60, "L", gain=7) for _ in range(2)],
-        at("mesh-concept", 2, 8, 70, "L", Outcome.INCOMPLETE),
-        at("stick", 2, 7, 55, "L", gain=9),
-        at("smash", 2, 9, 45, "L", gain=4),
-        at("four-verticals", 2, 10, 35, "L", gain=31),
-        at("inside-zone", 2, 8, 65, "R", gain=2),
-        at("power-right", 2, 7, 40, "R", gain=6),
-        *[at("speed-sweep", 2, 9, 50, "R", gain=1) for _ in range(2)],
-        at("inside-zone", 1, 2, 2, "M", gain=2),
-        at("power-right", 1, 10, 95, "M", gain=4),
-        at("power-right", 1, 10, 95, "M", Outcome.PENALTY_US, 5),
-        at("y-cross", 3, 6, 15, "R", gain=7),
-        at("stick", 1, 10, 18, "M", gain=3),
-        at("four-verticals", 2, 10, 12, "R", Outcome.SACK, 6),
-        at("mesh-concept-2", 1, 10, 60, "R", gain=12, mode=Mode.TWO_MINUTE),
-        at("smash", 3, 12, 80, "M", Outcome.TURNOVER),
-        at("inside-zone", 3, 1, 28, None, gain=2),
-    ]
-
-
-@pytest.mark.parametrize("which", ["chained", "half", "own sections"])
-def test_the_scout_report_matches_python(which):
-    from chalktalk.models import PlanSection, When
-    from chalktalk.scout import report
-    book = _book()
-    if which == "own sections":
-        book.game_plan.sections = [
-            PlanSection(title="3rd & short", when=When(downs=[3], distance=(0, 2))),
-            PlanSection(title="Long", when=When(downs=[1, 2], distance=(7, 99), hash_mark=Hash.LEFT)),
-            PlanSection(title="Scoring zone", when=When(yard_line=(1, 25))),
-            PlanSection(title="Base")]
-    log = _scout_log(book) if which == "chained" else _scout_half()
-    py = report(book, log)
-    if which != "chained":
-        # The half says something from every kind of look, or the test says little.
-        assert {t.by for t in py.tendencies} == {"formation", "personnel", "down", "hash", "field"}
-        assert any("+" in t.by for t in py.leans), py.notes
-    payload = json.dumps([s.model_dump(mode="json") for s in log])
-    js = _js(book, f"return scoutReport(__book, {payload});")
-    assert js == py.model_dump(mode="json")
-
-
-def _plan_view(book: Playbook, notes: list[str]) -> dict:
-    return {"tags": [[p.id, p.series, p.role.value if p.role else None] for p in book.plays],
-            "sections": [[s.title, ids] for s, ids in P.sections(book)],
-            "openers": P.openers(book), "notes": notes}
-
-
-@pytest.mark.parametrize("which", ["catalog", "tagged", "few"])
-def test_the_draft_matches_python(which):
-    book = {"catalog": lambda: Playbook(name="all", plays=list(all_plays().values())),
-            "tagged": _book,
-            "few": lambda: Playbook(name="few", plays=[running.inside_zone(), running.speed_sweep(),
-                                                       all_plays()["pa_boot"], passing.mesh_concept(),
-                                                       running.power_right()])}[which]()
-    d = P.draft(book)
-    js = _js(book, "const d = draftPlan(__book);"
-                   " return {tags: d.book.plays.map(p => [p.id, p.series || null, p.role || null]),"
-                   " sections: planSections(d.book).map(([s, ids]) => [s.title, ids]),"
-                   " openers: planOpeners(d.book), notes: d.notes};")
-    assert js == _plan_view(d.book, d.notes)
-
-
-def test_sections_openers_numbers_and_check_match_python():
-    book = _book(execution=2)
-    js = _js(book, "return {sections: planSections(__book).map(([s, ids]) => [s.title, ids]),"
-                   " openers: planOpeners(__book), order: planCallOrder(__book), check: planCheck(__book)};")
-    assert js["sections"] == [[s.title, ids] for s, ids in P.sections(book)]
-    assert js["openers"] == P.openers(book)
-    assert js["order"] == list(P.numbers(book))
-    assert js["check"] == P.check(book)
-
-
-@pytest.mark.parametrize("state", STATES, ids=lambda s: s.label().replace(" ", ""))
-@pytest.mark.parametrize("with_log", [False, True])
-def test_suggestions_match_python_word_for_word(state, with_log):
-    book = _book()
-    log = _log(book) if with_log else []
-    py = [s.model_dump(mode="json") for s in P.suggest(book, state, log, k=5)]
-    payload = json.dumps({"state": state.model_dump(mode="json"),
-                          "log": [s.model_dump(mode="json") for s in log]})
-    js = _js(book, f"const x = {payload}; return suggestCalls(__book, x.state, x.log, 5);")
-    assert js == py
-
-
-@pytest.mark.parametrize("start,outcome,gain", [
-    (DriveState(), Outcome.GAIN, 4), (DriveState(yard_line=15), Outcome.GAIN, 10),
-    (DriveState(yard_line=6), Outcome.GAIN, 6), (DriveState(yard_line=97), Outcome.SACK, 5),
-    (DriveState(down=4, distance=2), Outcome.GAIN, 1), (DriveState(), Outcome.PENALTY_US, 5),
-    (DriveState(down=2, distance=4), Outcome.PENALTY_THEM, 5), (DriveState(), Outcome.TURNOVER, 0),
-    (DriveState(down=3, distance=8), Outcome.PENALTY_THEM, 5), (DriveState(), Outcome.INCOMPLETE, 0),
-])
-def test_advance_and_success_match_python(start, outcome, gain):
-    t = GamePlan().thresholds
-    payload = json.dumps(start.model_dump(mode="json"))
-    js = _js(_book(), f"const s = {payload}; return [advanceState(s, {json.dumps(outcome.value)}, {gain}),"
-                      f" isSuccess(s, {json.dumps(outcome.value)}, {gain}, {json.dumps(list(t))})];")
-    assert js[0] == P.advance(start, outcome, gain).model_dump(mode="json")
-    assert js[1] == P.is_success(start, outcome, gain, t)
 
 
 def test_sha256_hmac_and_key_stretching_match_python():

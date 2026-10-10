@@ -80,6 +80,24 @@ def test_saving_needs_the_pages_token(served, tmp_path):
     assert Playbook.load(str(tmp_path / "week3.json")).team == "Owls"
 
 
+def test_one_connection_carries_request_after_request(served):
+    """The page keeps its connection open; a refused request mustn't garble the next one."""
+    port = served.server_address[1]
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+    headers = {"Host": f"127.0.0.1:{port}", "Content-Type": "application/json",
+               "X-Chalktalk-Token": served.session.token}
+    body = json.dumps({"state": {}, "outcome": "gain", "gain": 4})
+    for _ in range(3):
+        conn.request("POST", "/api/advance", body, headers)
+        r = conn.getresponse()
+        assert r.status == 200 and json.loads(r.read())["state"]["down"] == 2
+    conn.request("POST", "/api/advance", body, {**headers, "X-Chalktalk-Token": "wrong"})
+    r = conn.getresponse()
+    assert r.status == 403 and r.getheader("Connection") == "close"
+    r.read()
+    conn.close()
+
+
 def test_another_sites_name_is_turned_away(served):
     """A page that rebinds its own domain to 127.0.0.1 still sends its own name."""
     assert _ask(served, "GET", "/", host="evil.example")[0] == 403
