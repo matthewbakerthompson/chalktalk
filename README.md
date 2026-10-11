@@ -433,13 +433,13 @@ play or playbook `.json` anywhere on the window to open it.
   for Save as. Save writes the playbook once it has more than one play,
   otherwise the play. **More** adds a copy of just this play, the SVG, a 2x PNG
   and the raw JSON.
-- **Print** (<kbd>Ctrl</kbd>+<kbd>P</kbd>) builds the paper in the browser, no
-  Python needed: the playbook with diagrams, a call sheet bucketed by
-  situation, the wristband, a practice script with looks, hashes and reps, and
-  an install book grouped by install day. Choose Save as PDF in the print
-  dialog to keep a file. The call sheet and wristband use the same buckets and
-  numbering as Python's `CallSheet` and `Wristband`, and a test holds them to
-  it. Write the call numbers into the plays once the book is set, and every
+- **Print** (<kbd>Ctrl</kbd>+<kbd>P</kbd>) prints every sheet in
+  `chalktalk.paper`, drawn by Python: the playbook with diagrams (with the
+  layers you have on), a call sheet bucketed by situation, the wristband, a
+  practice script with looks, hashes and reps, an install book grouped by
+  install day, drive cards, the game plan, the quarterback's card, sign boards
+  and the halftime sheet. Choose Save as PDF in the print dialog to keep a
+  file. Write the call numbers into the plays once the book is set, and every
   sheet printed after agrees.
 - The play sheet sets what the paper needs: down, distance, the ball, the
   hash, a call-sheet bucket (Openers, Two Minute, Four Minute), the install day
@@ -668,11 +668,15 @@ key = K.new_key()                          # "K7QM-2XRA-9FPD-HW4C": write it dow
 K.wristband(book, key, "Wk 3 vs Central")  # a card per half: code -> play, dead codes
 K.line_calls(book, key, "Wk 3 vs Central") # word -> play, dummy words, what's live
 K.boards(book, key, "Wk 3 vs Central")     # symbols, the live cell per half, the rack
+
+from chalktalk import paper
+paper.render("qbcard", book, key=key, size="teen", copies=2)   # the inserts, ready to print
+paper.render("boards", book, key=key)      # the rack, the players' key, the signaler's sheet
 ```
 
-The designer carries a twin of the planner, the difficulty score and the codes,
-and tests run it in node against Python: same suggestions word for word, same
-scores, byte-identical cards.
+The designer prints all of these through Python. It still carries its own copy
+of the planner and the difficulty score, and tests run it in node against
+Python: same suggestions word for word, same scores.
 
 ---
 
@@ -768,6 +772,7 @@ without installing the console script.
 | HTML playbook page | `playbook.save_html("book.html")` |
 | Call sheet / wristband | `sheet.save_html(...)`, `band.save_html(...)` |
 | Practice script | `practice.to_html()`, `practice.save_csv(...)` |
+| Any sheet from a playbook | `paper.render(kind, book, ...)`: `playbook`, `callsheet`, `wristband`, `script`, `install`, `drivecards`, `gameplan`, `qbcard`, `boards`, `scout` |
 | JSON | `play.to_json()`, `Playbook.load(path)` |
 
 All HTML is single-file and print-ready — no assets, no CDN, no JavaScript.
