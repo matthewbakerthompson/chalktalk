@@ -48,6 +48,41 @@ package with a designer of its own, not an app to keep online.
   calls and sign boards they printed, are gone, with the node tests that held
   them to Python. The page is about 640 lines shorter.
 
+### The planner, difficulty and scout, in Python only
+- The designer's Game panel, plan builder and play sheet ask `chalk design`
+  for what they show (`designer/views.py`): the planner's picks with their
+  reasons and branches, the scripted call, the log marked on and off
+  schedule, the halftime numbers, the plan check, the drive-script tree
+  ranked slot by slot, and every play's difficulty. Drafting the plan,
+  filling a script and moving the chains after a result run there too.
+- A panel keeps what it shows while a newer answer is on its way and redraws
+  when it lands, so nothing jumps back after an edit. Answers take a few
+  milliseconds; the server keeps the last few books it read, so asking again
+  about the same book doesn't read it again, and it keeps the page's
+  connection open between requests.
+- `planner.script_log` gives the calls above a slot in a drive script as the
+  drive so far, the way the slot is ranked.
+- The browser's copies of the planner, the difficulty score, the scout and
+  the down-and-distance arithmetic are gone, with the node tests that held
+  them to Python: about 650 lines of the page.
+
+### The same answers from the command line
+- `chalk next week3.json --down 3 --distance 8 --at "opp 40" --look "Cover 3"`
+  prints the planner's picks with their points, reasons and branches: the
+  Game panel in a terminal. `--fresh` leaves the game log out.
+- `chalk scout week3.json` prints the halftime report from the book's log:
+  on schedule, third downs, what a scout sees, by down, what is working,
+  explosives, what is set up and not called, and what is left on the sheet.
+- `chalk check week3.json` prints what a coordinator would flag.
+- `chalk draft week3.json` shows the blanks it would fill (series, roles, the
+  call sheet, the openers) and saves only with `-o`.
+- `chalk book week3.json --sheet KIND` prints any sheet in `chalktalk.paper`
+  (`--columns`, `--size`, `--copies`, `--reps`, `--hashes`, `--per-row`). A
+  coded sheet takes `--key` or `CHALKTALK_KEY`, and at a terminal asks for
+  the key rather than leave it in shell history. Without `--sheet` it prints
+  the playbook as before, and it now opens a single play's file as well.
+- Everything printed to the terminal is plain ASCII.
+
 ### Removed
 - `chalk site`, the installable web app (manifest, service worker, icons), the
   GitHub Pages workflow, and `docs/index.html` with the CI check that kept it

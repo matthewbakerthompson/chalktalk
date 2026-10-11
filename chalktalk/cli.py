@@ -1,12 +1,14 @@
 """
-chalktalk command line — browse the catalog and render plays without writing
-any Python.
+chalktalk command line — browse the catalog, render plays, and plan and print a
+playbook without writing any Python.
 
     chalk list plays
     chalk render mesh_concept -o out/mesh.svg
-    chalk series mesh --out out/mesh_series
-    chalk script inside_zone --reps 2
-    chalk callsheet inside_zone mesh red_zone -o out/week3.html
+    chalk design week3.json                       # draw it in the browser
+    chalk book week3.json --sheet wristband --size teen
+    chalk next week3.json --down 3 --distance 8 --at "opp 40" --look "Cover 3"
+    chalk scout week3.json                        # the halftime report
+    chalk check week3.json                        # what a coordinator would flag
     chalk demo --out out/demo
 """
 from __future__ import annotations
@@ -292,16 +294,164 @@ def cmd_callsheet(args: argparse.Namespace) -> int:
     return 0
 
 
+# Terminal output stays ASCII: call sheets get printed on press-box machines.
+_ASCII = str.maketrans({"·": "-", "—": "-", "–": "-", "’": "'", "‘": "'", "“": '"',
+                        "”": '"', "…": "...", "★": "*", "→": "->", "×": "x"})
+
+
+def _plain(text) -> str:
+    return str(text).translate(_ASCII).encode("ascii", "replace").decode("ascii")
+
+
+def _load_book(path: str) -> Playbook:
+    """A playbook file, or a play file as a book of one; a plain exit when it is neither."""
+    import json
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        if isinstance(data, dict) and isinstance(data.get("plays"), list):
+            return Playbook.model_validate(data)
+        play = Play.model_validate(data)
+        return Playbook(name=play.name, plays=[play])
+    except FileNotFoundError:
+        raise SystemExit(f"no such file: {path}")
+    except ValueError as e:                 # bad JSON, or not a play (ValidationError is one)
+        raise SystemExit(f"{path} isn't a play or a playbook: {str(e).splitlines()[0]}")
+
+
 def cmd_book(args: argparse.Namespace) -> int:
     """Turn a playbook file — from the designer or from Python — into pages."""
-    book = Playbook.load(args.file)
-    out = args.out or os.path.splitext(args.file)[0] + ".pdf"
-    if out.endswith(".html"):
-        book.save_html(out, level=args.level, theme=args.theme or "paper")
-        print(f"Saved: {os.path.abspath(out)}  ({len(book.plays)} plays)")
-    else:                                   # the exporter reports its own save
-        book.save_pdf(out, plays_per_page=args.per_page, level=args.level,
-                      theme=args.theme or "paper")
+    book = _load_book(args.file)
+    stem = os.path.splitext(args.file)[0]
+    if args.sheet == "playbook":
+        out = args.out or stem + ".pdf"
+        if out.endswith(".html"):
+            book.save_html(out, level=args.level, theme=args.theme or "paper")
+            print(f"Saved: {os.path.abspath(out)}  ({len(book.plays)} plays)")
+        else:                               # the exporter reports its own save
+            book.save_pdf(out, plays_per_page=args.per_page, level=args.level,
+                          theme=args.theme or "paper")
+        return 0
+
+    from . import paper
+    key = args.key or os.environ.get("CHALKTALK_KEY") or None
+    # Asked for, so it never sits in shell history; only at a terminal (on Windows
+    # NUL claims to be one, so the output has to be a terminal too).
+    if not key and paper.needs_key(args.sheet, book) and sys.stdin.isatty() and sys.stdout.isatty():
+        import getpass
+        key = getpass.getpass("The staff key (never saved): ").strip() or None
+    try:
+        html = paper.render(args.sheet, book, key=key, per_row=args.per_row,
+                            columns=args.columns, size=args.size, copies=args.copies,
+                            reps=args.reps, hashes=args.hashes, level=args.level)
+    except ValueError as e:
+        tip = " Pass --key, or set CHALKTALK_KEY." if "key" in str(e) else ""
+        raise SystemExit(f"{str(e).rstrip('.')}.{tip}")
+    out = args.out or f"{stem}-{args.sheet}.html"
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    with open(out, "w", encoding="utf-8") as fh:
+        fh.write(html)
+    summary, hint = paper.info(args.sheet, book, key=key, reps=args.reps, hashes=args.hashes)
+    print(_plain(f"Saved: {os.path.abspath(out)}  ({summary})"))
+    if hint:
+        print(_plain(hint))
+    return 0
+
+
+def _spot(text: str) -> int:
+    """Where the ball is, as yards to the goal: 'own 25' -> 75, 'opp 32' -> 32, '50' -> 50."""
+    import re
+    m = re.fullmatch(r"\s*(own|opp)?\s*(\d{1,2})\s*", text.lower())
+    n = int(m.group(2)) if m else 0
+    if not m or not 1 <= n <= (50 if m.group(1) else 99):
+        raise SystemExit(f"--at takes 'own 25', 'opp 32', or yards to the goal (1-99), not {text!r}")
+    return 100 - n if m.group(1) == "own" else n
+
+
+def cmd_next(args: argparse.Namespace) -> int:
+    """What the planner would call here, and why: the Game panel, in the terminal."""
+    from . import planner as P
+    from .models import DriveState
+    book = _load_book(args.file)
+    try:
+        state = DriveState(down=args.down, distance=args.distance, yard_line=_spot(args.at),
+                           hash_mark=args.hash, mode=args.mode, look=args.look)
+    except ValueError as e:
+        raise SystemExit(f"that situation doesn't work: {str(e).splitlines()[0]}")
+    picks = P.suggest(book, state, [] if args.fresh else None, k=args.k)
+    print(_plain(state.label() + (f" vs {args.look}" if args.look else "")))
+    if not picks:
+        print("No play in the book fits this situation.")
+    for i, s in enumerate(picks, 1):
+        print(_plain(f"{i:>2}. {s.call}  ({s.points:+d})"))
+        for r in s.reasons:
+            print(_plain(f"      {r.points:+d}  {r.text}"))
+        for b in s.branches:
+            print(_plain(f"      If {b.when}: {b.call}"))
+    return 0
+
+
+def cmd_scout(args: argparse.Namespace) -> int:
+    """The halftime report from the book's game log, in the terminal."""
+    from . import scout
+    from .planner import plan_of
+    from .renderer.plan_sheets import plan_title
+    book = _load_book(args.file)
+    title = plan_title(plan_of(book))
+    r = scout.report(book)
+    if not r.snaps:
+        print(_plain(f"{title}: nothing logged yet. Log snaps in the designer's Game panel."))
+        return 0
+    print(_plain(f"{title}: {r.on} of {r.snaps} on schedule ({r.rate}%), "
+                 f"{r.thirds.on} of {r.thirds.calls} on third down"))
+
+    def per_call(yards: float, calls: int) -> str:
+        return format(round(yards / calls * 10) / 10 if calls else 0, "g")
+
+    blocks = [
+        ("What a scout sees", list(r.notes)),
+        ("By down", [f"{s.label:<10} {s.on} of {s.calls} on schedule, {per_call(s.yards, s.calls)} a call"
+                     for s in r.by_down]),
+        ("What is working", [f"{per_call(l.yards, l.calls):>5} a call  {l.call} ({l.calls} calls)"
+                             for l in r.best]),
+        ("Explosives", [f"{per_call(l.yards, l.calls):>5}  {l.call}" for l in r.explosives]),
+        ("Set up and not called", list(r.ready)),
+        ("Left on the sheet", list(r.unused)),
+    ]
+    for head, lines in blocks:
+        if lines:
+            print(f"\n{head}")
+            for line in lines:
+                print(_plain(f"  {line}"))
+    return 0
+
+
+def cmd_check(args: argparse.Namespace) -> int:
+    """What a coordinator would flag in the book's plan."""
+    from . import planner as P
+    book = _load_book(args.file)
+    notes = P.check(book)
+    print(_plain(f"{book.name}: " + (f"{len(notes)} to look at" if notes else "nothing to flag")))
+    for note in notes:
+        print(_plain(f"  - {note}"))
+    return 0
+
+
+def cmd_draft(args: argparse.Namespace) -> int:
+    """Fill the plan's blanks from what the plays say about themselves."""
+    from . import planner as P
+    book = _load_book(args.file)
+    d = P.draft(book)
+    if not d.notes:
+        print("Nothing blank to fill: every play has its series, the call sheet and the script are set.")
+        return 0
+    for note in d.notes:
+        print(_plain(f"  {note}"))
+    if args.out:
+        d.book.save(args.out)
+        print(f"Saved: {os.path.abspath(args.out)}")
+    else:
+        print(f"\n{len(d.notes)} changes, not saved. Run with -o {args.file} to save them.")
     return 0
 
 
@@ -438,15 +588,56 @@ def build_parser() -> argparse.ArgumentParser:
     cs.add_argument("--wristband", help="also write a wristband .html")
     cs.set_defaults(func=cmd_callsheet)
 
-    bk = sub.add_parser("book", help="print a playbook .json to PDF or HTML")
+    from .paper import KINDS
+    bk = sub.add_parser("book", help="print a playbook .json: the playbook, or any sheet from it")
     bk.add_argument("file", help="a playbook .json saved from the designer or Python")
-    bk.add_argument("-o", "--out", help="output file (.pdf or .html); default: next to the input")
+    bk.add_argument("--sheet", default="playbook", choices=list(KINDS),
+                    help="what to print (default: playbook, as PDF unless -o says .html; "
+                         "every other sheet is HTML)")
+    bk.add_argument("-o", "--out", help="output file; default: next to the input")
     bk.add_argument("--per-page", type=int, default=2, choices=[1, 2, 4],
                     help="plays per PDF page")
+    bk.add_argument("--per-row", type=int, default=2, choices=[1, 2],
+                    help="diagrams across, for the install book")
+    bk.add_argument("--columns", type=int, default=2, choices=[1, 2, 3],
+                    help="call sheet columns")
+    bk.add_argument("--size", default="adult", choices=["youth", "teen", "adult"],
+                    help="wristband insert size")
+    bk.add_argument("--copies", type=int, default=1, help="wristband inserts to print")
+    bk.add_argument("--reps", type=int, default=1, help="practice script reps per play")
+    bk.add_argument("--hashes", action="store_true", help="practice script: alternate L, R, M")
+    bk.add_argument("--key", help="the staff key for coded sheets (or set CHALKTALK_KEY; "
+                                  "asked for when it's needed and missing)")
     bk.add_argument("--theme", choices=["turf", "paper"],
                     help="default: paper, because it prints")
     bk.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"])
     bk.set_defaults(func=cmd_book)
+
+    nx = sub.add_parser("next", help="what the planner would call next, and why")
+    nx.add_argument("file", help="a playbook .json with its game plan")
+    nx.add_argument("--down", type=int, default=1, choices=[1, 2, 3, 4])
+    nx.add_argument("--distance", type=float, default=10)
+    nx.add_argument("--at", default="own 25", help="where the ball is: 'own 25', 'opp 32', or yards to go")
+    nx.add_argument("--hash", choices=["L", "M", "R"])
+    nx.add_argument("--mode", choices=["two_minute", "four_minute"])
+    nx.add_argument("--look", help="the coverage they're showing, e.g. 'Cover 3'")
+    nx.add_argument("-k", type=int, default=3, help="how many calls (default 3)")
+    nx.add_argument("--fresh", action="store_true",
+                    help="ignore the game log (what's been called, shown and worked)")
+    nx.set_defaults(func=cmd_next)
+
+    sc = sub.add_parser("scout", help="the halftime report from a playbook's game log")
+    sc.add_argument("file")
+    sc.set_defaults(func=cmd_scout)
+
+    ck = sub.add_parser("check", help="what a coordinator would flag in a playbook's plan")
+    ck.add_argument("file")
+    ck.set_defaults(func=cmd_check)
+
+    dr = sub.add_parser("draft", help="fill a plan's blanks: series, call sheet, openers")
+    dr.add_argument("file")
+    dr.add_argument("-o", "--out", help="where to save the drafted book (nothing is saved without it)")
+    dr.set_defaults(func=cmd_draft)
 
     from .designer.server import DEFAULT_PORT
     des = sub.add_parser("design", help="open the visual play designer in your browser")

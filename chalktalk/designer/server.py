@@ -14,10 +14,13 @@ hasn't been saved survives a reload as long as the file hasn't changed since.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import secrets
+import threading
 import webbrowser
+from collections import OrderedDict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable, Optional
 
@@ -122,10 +125,72 @@ class Session:
         return {"path": path, "name": self.name(path), "mtime": _mtime(path)}
 
 
-# ── printing: the page sends the book it has, Python prints it ───────────────
+# ── the book the page sends ──────────────────────────────────────────────────
+# Every panel sends the book it is showing, and most ask again about the same
+# one: reading a big book back into Python costs more than answering, so the
+# last few are kept, by their contents.
+_BOOKS: OrderedDict[str, Playbook] = OrderedDict()
+_BOOKS_LOCK = threading.Lock()
+
 
 def _book(body: dict) -> Playbook:
-    return Playbook.model_validate(body.get("book") or {})
+    raw = body.get("book") or {}
+    key = hashlib.sha1(json.dumps(raw, separators=(",", ":")).encode("utf-8")).hexdigest()
+    with _BOOKS_LOCK:
+        if key in _BOOKS:
+            _BOOKS.move_to_end(key)
+            return _BOOKS[key]
+    book = Playbook.model_validate(raw)
+    with _BOOKS_LOCK:
+        _BOOKS[key] = book
+        while len(_BOOKS) > 8:
+            _BOOKS.popitem(last=False)
+    return book
+
+
+def _index(body: dict, name: str) -> Optional[int]:
+    value = body.get(name)
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+# ── the panels: what each shows, worked out in Python (views.py) ─────────────
+
+def play_view(session: Session, body: dict) -> dict:
+    from . import views
+    return views.play_view(Play.model_validate(body.get("play") or {}))
+
+
+def plan_view(session: Session, body: dict) -> dict:
+    from . import views
+    return views.plan_view(_book(body), _index(body, "script"))
+
+
+def game_view(session: Session, body: dict) -> dict:
+    from ..models import DriveState
+    from . import views
+    return views.game_view(_book(body), DriveState.model_validate(body.get("state") or {}),
+                           _index(body, "script"))
+
+
+def draft(session: Session, body: dict) -> dict:
+    from . import views
+    return views.draft(_book(body))
+
+
+def fill_script(session: Session, body: dict) -> dict:
+    from ..models import DriveScript
+    from . import views
+    return views.fill_script(_book(body), DriveScript.model_validate(body.get("script") or {}))
+
+
+def advance(session: Session, body: dict) -> dict:
+    from ..models import DriveState
+    from . import views
+    return views.advance(DriveState.model_validate(body.get("state") or {}),
+                         str(body.get("outcome", "")), float(body.get("gain") or 0))
+
+
+# ── printing: the page sends the book it has, Python prints it ───────────────
 
 
 def _print_args(body: dict) -> tuple[str, dict]:
@@ -178,11 +243,20 @@ ROUTES: dict[str, Callable[[Session, dict], dict]] = {
     "print": print_sheet,
     "print_info": print_info,
     "call_order": call_order,
+    "play_view": play_view,
+    "plan_view": plan_view,
+    "game_view": game_view,
+    "draft": draft,
+    "fill_script": fill_script,
+    "advance": advance,
 }
 
 
 class _Handler(BaseHTTPRequestHandler):
     server_version = "chalktalk"
+    # Keep the connection open between requests: the page asks often, and a new
+    # connection to "localhost" can wait on IPv6 before it tries 127.0.0.1.
+    protocol_version = "HTTP/1.1"
 
     def _host_ok(self) -> bool:
         # Only this machine's own names: a page on another site that rebinds
@@ -196,6 +270,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        if self.close_connection:
+            self.send_header("Connection", "close")
         self.end_headers()
         self.wfile.write(body)
 
@@ -217,17 +293,22 @@ class _Handler(BaseHTTPRequestHandler):
             return self._send(204, b"", "image/x-icon")
         self._send(404, b"Not found", "text/plain; charset=utf-8")
 
+    def _refuse(self, status: int, error: str) -> None:
+        # The body is never read, so this connection can't carry another request.
+        self.close_connection = True
+        self._json(status, {"error": error})
+
     def do_POST(self) -> None:
         session: Session = self.server.session
         if not self._host_ok() or not secrets.compare_digest(
                 self.headers.get("X-Chalktalk-Token", ""), session.token):
-            return self._json(403, {"error": "Not from this designer"})
+            return self._refuse(403, "Not from this designer")
         route = ROUTES.get(self.path.split("?", 1)[0].removeprefix("/api/"))
         if route is None:
-            return self._json(404, {"error": "No such request"})
+            return self._refuse(404, "No such request")
         length = int(self.headers.get("Content-Length") or 0)
         if length > _MAX_BODY:
-            return self._json(413, {"error": "That is too big to send"})
+            return self._refuse(413, "That is too big to send")
         try:
             body = json.loads(self.rfile.read(length) or b"{}")
             return self._json(200, route(session, body))

@@ -87,11 +87,6 @@ def test_situations_read_the_same_in_both():
         S.Situation(down=3, distance=7, label="3rd & long special"),
     ]
     payload = json.dumps([s.model_dump(mode="json") for s in sits])
-    js = _js(_book(), f"return {payload}.map(s => [sitDescribe(s), sitShort(s)]);")
-    assert js == [[s.describe(), s.short()] for s in sits]
+    js = _js(_book(), f"return {payload}.map(s => sitDescribe(s));")
+    assert js == [s.describe() for s in sits]
 
-
-def test_percentages_round_like_python():
-    values = [0.5, 1.5, 2.5, 12.5, 13.5, 62.5, 33.3, 66.7]
-    js = _js(_book(), f"return {json.dumps(values)}.map(pyRound);")
-    assert js == [round(v) for v in values]

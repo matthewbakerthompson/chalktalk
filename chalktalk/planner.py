@@ -652,6 +652,24 @@ def script_node(script: DriveScript, path: list[str]) -> Optional[ScriptCall]:
     return node
 
 
+def script_log(book: Playbook, script: DriveScript, path: list[str]) -> list[Snap]:
+    """
+    The calls above a slot in a script, as the drive so far: what `suggest`
+    reads to rank that slot the way it will be called.
+    """
+    by_id = {p.id: p for p in book.plays}
+    log: list[Snap] = []
+    state = script.start
+    for i, step in enumerate(path):
+        node, gain = script_node(script, path[:i]), _script_gain(state, step)
+        if node is not None and node.play:
+            p = by_id.get(node.play)
+            log.append(Snap(before=state, play=node.play, call=p.call if p else node.play,
+                            outcome=Outcome.GAIN, gain=gain))
+        state = advance(state, Outcome.GAIN, gain)
+    return log
+
+
 def follow(book: Playbook, script: DriveScript, state: DriveState,
            log: list[Snap]) -> tuple[list[str], Optional[ScriptCall]]:
     """
@@ -766,4 +784,5 @@ def alternation_warning(book: Playbook, log: Optional[list[Snap]] = None) -> Opt
 
 __all__ = ["Reason", "Branch", "Suggestion", "plan_of", "sections", "openers", "numbers",
            "check", "advance", "is_success", "down_label", "suggest", "drive_cards",
-           "DRIVE_CARD_STARTS", "alternation_warning"]
+           "DRIVE_CARD_STARTS", "alternation_warning", "starters", "draft", "follow",
+           "fill_script", "script_state", "script_node", "script_log", "SCRIPT_STARTS"]

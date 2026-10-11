@@ -674,9 +674,11 @@ paper.render("qbcard", book, key=key, size="teen", copies=2)   # the inserts, re
 paper.render("boards", book, key=key)      # the rack, the players' key, the signaler's sheet
 ```
 
-The designer prints all of these through Python. It still carries its own copy
-of the planner and the difficulty score, and tests run it in node against
-Python: same suggestions word for word, same scores.
+The designer asks Python for all of it: the Game panel's picks and reasons,
+the plan builder's drive-script tree, every difficulty score, the halftime
+numbers and the plan check come from these same functions, through
+`chalk design`, so a coach in the browser and a script in Python always get
+the same answer.
 
 ---
 
@@ -748,6 +750,12 @@ chalk design --theme paper
 ```bash
 chalk design week3.json              # the visual designer, in your browser
 chalk book week3.json                # a designer playbook to PDF or HTML
+chalk book week3.json --sheet wristband --size teen --copies 2   # or callsheet, script, install,
+                                     #   drivecards, gameplan, qbcard, boards, scout
+chalk next week3.json --down 3 --distance 8 --at "opp 40" --look "Cover 3"   # the planner's picks, and why
+chalk scout week3.json               # the halftime report from the game log
+chalk check week3.json               # what a coordinator would flag
+chalk draft week3.json -o week3.json # fill the plan's blanks (shows them; saves only with -o)
 chalk list plays                     # or formations | defenses | routes | series | systems | schemes | blocks | coverages | qb
 chalk system base_offense --out out/install   # the whole install book
 chalk render mesh_concept -o out/mesh.svg -d NICKEL_425 --coverage cover_3 --level hs --theme paper
