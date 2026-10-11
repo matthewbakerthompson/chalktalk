@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.13.0
 
 **The designer runs on your own machine and saves your files.**
 `chalk design week3.json` starts a small server on 127.0.0.1, opens the
@@ -53,6 +53,30 @@ package with a designer of its own, not an app to keep online.
   what it would have printed in `designer.log` in chalktalk's data folder
   (`%APPDATA%\chalktalk` on Windows).
 - The designer has an icon of its own in the browser tab.
+
+### Installing, and finding help
+- **Ready for `pip install chalktalk`.** The version is set in one place
+  (`chalktalk.__version__`), the package metadata names the license
+  (PolyForm Noncommercial 1.0.0) and the project's links, and the source
+  package includes the changelog and the examples. CI builds the wheel and
+  runs it from a clean install on Windows, macOS and Linux, and tests Python
+  3.13 as well. Publishing a GitHub release uploads it to PyPI; RELEASING.md
+  has the steps.
+- **`chalk` on its own says what chalktalk is** and lists the commands by
+  what they're for, instead of an argparse error. `chalk --help` shows the
+  same. A mistyped command suggests the right one, and `chalk list` on its
+  own lists what it can list.
+- Help text and error messages name the command the way it was typed, so
+  someone running `python -m chalktalk` gets examples that work as written.
+- **Help in the designer:** `?` or F1, Help in the More menu, or the command
+  palette. It covers getting started, the controls, where playbooks are kept
+  (with a button that shows the folder), printing to PDF, and what to do
+  when something goes wrong, and shows the version and a link to the
+  documentation.
+- The start screen says where Save keeps the playbook instead of mentioning
+  Python, and `chalk shortcut` says where the new icon is.
+- The README is plain documentation, with installation steps for coaches and
+  a troubleshooting section.
 
 ### Printing, in Python
 - **`chalktalk.paper` prints every sheet a staff uses from one playbook**:

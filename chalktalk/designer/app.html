@@ -507,6 +507,20 @@ dialog.opendlg{max-width:min(560px,94vw)}
 .orow .nm{font-size:13px;font-weight:600;color:var(--ink)}
 .orow .sub{font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
 .opendlg .dlg-foot .note{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+dialog.helpdlg{max-width:min(600px,94vw)}
+.helpdlg .dlg-body{max-height:min(70vh,640px);overflow-y:auto;padding-top:2px;font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+.helpdlg h3{margin:14px 0 6px;font-size:11.5px;font-weight:600;color:var(--muted)}
+.helpdlg h3:first-child{margin-top:4px}
+.helpdlg p,.helpdlg ol,.helpdlg ul{margin:0 0 6px}
+.helpdlg ol,.helpdlg ul{padding-left:18px}
+.helpdlg li{margin-bottom:4px}
+.helpdlg b{color:var(--ink);font-weight:600}
+.helpdlg .keys{width:100%;border-collapse:collapse}
+.helpdlg .keys td{padding:3px 0;vertical-align:top}
+.helpdlg .keys td:first-child{color:var(--muted);width:42%;padding-right:12px}
+.helpdlg .path{font-family:var(--mono);font-size:11.5px;overflow-wrap:anywhere;color:var(--ink)}
+.helpdlg .dlg-foot{justify-content:space-between}
+.helpdlg .dlg-foot a{color:var(--ink-2);font-size:12px}
 .stopped{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:1000;max-width:min(560px,calc(100vw - 24px));
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-radius:var(--r-3);
   background:var(--panel);border:1px solid var(--accent-line);box-shadow:0 20px 40px -12px oklch(0 0 0 / .7);font-size:12.5px;color:var(--ink-2)}
@@ -826,6 +840,7 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
               <button id="btnPng" role="menuitem">Download PNG</button>
               <button id="btnJson" role="menuitem">View JSON</button>
               <button id="btnPaste" role="menuitem">Paste JSON…</button>
+              <button id="btnHelp" role="menuitem">Help and shortcuts</button>
             </div>
           </div>
           <button class="primary" id="btnSave" title="Save to a file (Ctrl+S)">Save</button>
@@ -874,14 +889,14 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
       <div id="toast" role="status" aria-live="polite"></div>
       <div class="card welcome" id="welcome" role="dialog" aria-labelledby="welcomeTitle" hidden>
         <h2 id="welcomeTitle">Start a play</h2>
-        <p class="lede">Take a concept and make it yours, or start from a blank formation.
-          Save writes the playbook to a file on your computer, the same file Python opens.</p>
+        <p class="lede">Start from a play in the library, or from a blank formation. Save keeps
+          the playbook as a file on this computer, and Open finds it again.</p>
         <div class="welcome-grid" id="welcomeGrid"></div>
         <div class="welcome-foot">
           <button id="welcomeLib">Browse all <span id="welcomeCount"></span> concepts</button>
           <button id="welcomeFile" title="Open a play or a playbook .json">Open a file</button>
           <button id="welcomeBlank">Start blank</button>
-          <span class="tip kbd-only"><kbd>Ctrl</kbd>+<kbd>K</kbd> reaches everything</span>
+          <span class="tip kbd-only"><kbd>?</kbd> help · <kbd>Ctrl</kbd>+<kbd>K</kbd> finds anything</span>
         </div>
       </div>
     </div>
@@ -1070,6 +1085,61 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
     <span class="note" id="openWhere"></span>
     <button type="button" class="ghost" id="openReveal" title="Open this folder in your file manager">Show the folder</button>
     <button type="button" id="openElsewhere" title="Pick a play or playbook from anywhere on this computer">From elsewhere…</button>
+  </div>
+</dialog>
+<dialog id="helpDialog" class="helpdlg" aria-labelledby="helpTitle">
+  <div class="dlg-head">
+    <h2 id="helpTitle">Help</h2>
+    <button class="ghost icon" id="helpClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="dlg-body">
+    <h3>Getting started</h3>
+    <ol>
+      <li>Pick a play from the <b>Library</b> on the left, or start from a blank formation.</li>
+      <li>Click a player to select it, and drag to move it. To draw a route, select a player
+        and click the field; for a player who already has a route, press <b>Draw</b> first.</li>
+      <li>Press <b>Save</b>. The playbook is kept as a file on this computer.</li>
+    </ol>
+    <h3>Controls</h3>
+    <table class="keys">
+      <tr><td>Select a player</td><td>Click it, on the field or on the bench below</td></tr>
+      <tr><td>Move a player</td><td>Drag it, or arrow keys (<kbd>Shift</kbd> for a full yard)</td></tr>
+      <tr><td>Draw a route</td><td>Click the field, or <b>Draw</b> and <b>Extend</b></td></tr>
+      <tr><td>Finish a route</td><td>Double-click the last point, <b>Done</b>, or <kbd>Enter</kbd></td></tr>
+      <tr><td>Change a route</td><td>Drag a yellow handle; double-click one to delete it</td></tr>
+      <tr><td>Let go of a player</td><td>Click open field, or <kbd>Esc</kbd></td></tr>
+      <tr><td>Flip the play</td><td><kbd>F</kbd></td></tr>
+      <tr><td>Undo</td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td></tr>
+      <tr><td>Find any play, formation or command</td><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td></tr>
+      <tr><td>Open, Save, Print</td><td><kbd>Ctrl</kbd>+<kbd>O</kbd>, <kbd>Ctrl</kbd>+<kbd>S</kbd>, <kbd>Ctrl</kbd>+<kbd>P</kbd></td></tr>
+      <tr><td>Playbook, Game panel</td><td><kbd>P</kbd>, <kbd>D</kbd>; <kbd>[</kbd> and <kbd>]</kbd> turn pages</td></tr>
+      <tr><td>This help</td><td><kbd>?</kbd> or <kbd>F1</kbd></td></tr>
+    </table>
+    <h3>Your playbooks</h3>
+    <p>Saved in <span class="path" id="helpFolder"></span>. <b>Open</b> lists them.
+      To share one with your staff, send them the file; they open it with <b>Open</b>, then
+      <b>From elsewhere</b>.</p>
+    <p><button type="button" class="ghost" id="helpReveal">Show the folder</button></p>
+    <h3>Printing</h3>
+    <p><b>Print</b> makes the playbook, call sheet, wristband, practice script, install book and
+      the game-day sheets. To keep a copy as a file, choose <b>Save as PDF</b> as the printer.</p>
+    <h3>If something goes wrong</h3>
+    <ul>
+      <li><b>The page says the designer has stopped.</b> Start Chalktalk again from its icon, or
+        run <code>chalk design</code>, then reload this page. Your work is kept in this browser
+        in the meantime.</li>
+      <li><b>A file won't open.</b> Open takes plays and playbooks saved by Chalktalk, which end in
+        <code>.json</code>.</li>
+      <li><b>Something disappeared.</b> <kbd>Ctrl</kbd>+<kbd>Z</kbd> steps back. After reloading,
+        <b>Restore the previous working copy</b> in <kbd>Ctrl</kbd>+<kbd>K</kbd> brings back what
+        was on screen before.</li>
+    </ul>
+  </div>
+  <div class="dlg-foot">
+    <span class="note" id="helpVersion"></span>
+    <a id="helpDocs" target="_blank" rel="noopener" hidden>Documentation</a>
   </div>
 </dialog>
 <div class="stopped" id="stopped" role="alert" hidden>
@@ -2741,8 +2811,8 @@ function renderInspector(){
       <div><span class="lead">Nothing selected.</span>Pick a player on the field or on the bench.</div>
       <div class="legend kbd-only"><b>Click</b> a player, then the field, to draw · <b>Drag</b> a player or a handle
         · <b>Double-click</b> a handle to delete it · <b>Arrows</b> nudge, <kbd>Shift</kbd> for a yard
-        · <kbd>F</kbd> flips · <kbd>Ctrl</kbd>+<kbd>K</kbd> commands</div>
-      <div class="legend touch-only"><b>Tap</b> a player, then tap the field to draw his route · <b>Drag</b> to move
+        · <kbd>F</kbd> flips · <kbd>Ctrl</kbd>+<kbd>K</kbd> commands · <kbd>?</kbd> help</div>
+      <div class="legend touch-only"><b>Tap</b> a player, then tap the field to draw a route · <b>Drag</b> to move
         · <b>Double-tap</b> a handle to delete it · <b>Pinch</b> to zoom in</div></div>`;
     return;
   }
@@ -4648,6 +4718,19 @@ function savedWhen(ms){
     year: d.getFullYear() === now.getFullYear() ? undefined : "numeric"});
 }
 
+// Help: the controls, where the playbooks are kept, and what to do when something
+// goes wrong. The folder, version and docs link come from the designer.
+function openHelp(){
+  $("exportMenu").hidden = true;
+  $("helpFolder").textContent = SERVER ? SERVER.folder : "this browser";
+  $("helpReveal").hidden = !SERVER;
+  $("helpVersion").textContent = SERVER && SERVER.version ? `Chalktalk ${SERVER.version}` : "Chalktalk";
+  const docs = SERVER && SERVER.docs;
+  $("helpDocs").hidden = !docs;
+  if (docs) $("helpDocs").href = docs;
+  if (!$("helpDialog").open) $("helpDialog").showModal();
+}
+
 async function openFileDialog(){
   if (!SERVER) return $("fileInput").click();
   const dlg = $("openDialog"), list = $("openList");
@@ -4848,6 +4931,7 @@ function commands(){
   add("Print", "Clear call numbers", clearCallNumbers);
   add("File", "Restore the previous working copy", restorePrevious);
   add("File", "Open a file", openFileDialog, "Ctrl+O");
+  add("Help", "Help and keyboard shortcuts", openHelp, "?");
   add("Help", "Show the start screen", showWelcome);
   add("Plan", driveOpen ? "Close the drive planner" : "Open the drive planner", () => setDrive(!driveOpen), "D");
   add("Plan", "New drive", newDrive);
@@ -5100,6 +5184,9 @@ function boot(){
     toast(`Pick a player, then ${isTouch() ? "tap" : "click"} the field to draw a route`); };
   $("ioFile").onclick = () => { $("ioDialog").close(); openFileDialog(); };
   $("openClose").onclick = () => $("openDialog").close();
+  $("btnHelp").onclick = openHelp;
+  $("helpClose").onclick = () => $("helpDialog").close();
+  $("helpReveal").onclick = () => api("reveal", {}).catch(e => toast(e.message));
   $("openElsewhere").onclick = () => { $("openDialog").close(); $("fileInput").click(); };
   $("openReveal").onclick = () => api("reveal", {}).catch(e => toast(e.message));
   $("btnReveal").onclick = () => fileLink && fileLink.path &&
@@ -5167,6 +5254,9 @@ function boot(){
     else if (e.key === "f" || e.key === "F"){ flipPlay(); }
     else if (e.key === "p" || e.key === "P"){ setBook(!bookOpen); }
     else if (e.key === "d" || e.key === "D"){ setDrive(!driveOpen); }
+    else if (e.key === "?" || (e.code === "Slash" && e.shiftKey) || e.key === "F1"){
+      e.preventDefault(); openHelp();                      // F1, as on Windows; ? elsewhere
+    }
     else if (e.key === "["){ gotoPlay(bookIndex - 1); }
     else if (e.key === "]"){ gotoPlay(bookIndex + 1); }
     else if (e.key === "Escape"){

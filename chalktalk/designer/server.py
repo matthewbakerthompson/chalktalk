@@ -28,6 +28,7 @@ from typing import Callable, Optional
 
 from pydantic import ValidationError
 
+from .. import DOCS_URL, __version__
 from ..models.play import Play, Playbook
 from . import build
 
@@ -110,8 +111,10 @@ class Session:
         if self.file:
             file = {"name": self.name(self.file), "path": self.file, "kind": kind,
                     "exists": os.path.exists(self.file), "mtime": _mtime(self.file)}
+        # The docs link rides in with the session: the page itself names no web address.
         return build(play=play, playbook=book, level=self.level, theme=self.theme,
-                     server={"token": self.token, "folder": self.root, "file": file})
+                     server={"token": self.token, "folder": self.root, "file": file,
+                             "version": __version__, "docs": DOCS_URL})
 
     def save(self, body: dict) -> dict:
         """Write what the page sends, once it is sure Python can read it back."""
@@ -461,7 +464,8 @@ def serve(session: Session, port: int = DEFAULT_PORT, open_browser: bool = True,
               + ("" if os.path.exists(session.file) else "  (new: Save creates it)"))
     else:
         print(f"Folder:   {session.root}  (Save asks for a file name)")
-    print("Stops a little after you close the page." if quiet else "Press Ctrl+C to stop.",
+    print("Stops a little after you close the page." if quiet else
+          "Keep this window open while you work. Ctrl+C stops the designer.",
           flush=True)                                    # before the wait, even when piped
     if quiet:
         threading.Thread(target=_watch, args=(srv,), daemon=True).start()

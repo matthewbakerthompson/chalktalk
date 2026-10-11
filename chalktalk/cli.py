@@ -18,7 +18,7 @@ import os
 import sys
 from typing import Callable, Optional
 
-from . import __version__
+from . import DOCS_URL, __version__
 from . import catalog as _catalog
 from .catalog import series as series_catalog, systems as systems_catalog
 from .templates import (blocking as BL, coverages as CV, defense as D,
@@ -62,8 +62,11 @@ def _resolve(reg: dict, key: str, kind: str):
     if len(matches) == 1:
         return reg[matches[0]]
     if not matches:
-        raise SystemExit(f"unknown {kind} '{key}'. Try: chalk list {kind}s")
-    raise SystemExit(f"ambiguous {kind} '{key}': {', '.join(sorted(matches))}")
+        import difflib
+        near = difflib.get_close_matches(key, list(reg), n=1, cutoff=0.6)
+        hint = f" Did you mean {near[0]}?" if near else ""
+        raise SystemExit(f"Unknown {kind} '{key}'.{hint} See: {_PROG} list {kind}s")
+    raise SystemExit(f"'{key}' could be more than one {kind}: {', '.join(sorted(matches))}")
 
 
 # ── Commands ──────────────────────────────────────────────────────────────────
@@ -132,10 +135,27 @@ def cmd_list(args: argparse.Namespace) -> int:
             print(f"  {key:<16} {len(s):>2} plays   {s.name}")
         print(f"\n{len(series_catalog.ALL_SERIES)} series")
     else:
-        raise SystemExit("list what? plays | formations | defenses | routes | "
-                         "series | systems | schemes | blocks | "
-                         "coverages | qb")
+        if what:
+            print(f"Can't list '{what}'.\n")
+        print(f"{_PROG} list KIND, where KIND is one of:\n")
+        for kind, about in _LISTS:
+            print(f"  {kind:<12} {about}")
+        return 1 if what else 0
     return 0
+
+
+_LISTS = [
+    ("plays", "the stock plays, with their type and formation"),
+    ("formations", "offensive formations and their personnel"),
+    ("defenses", "defensive fronts and the coverage each shows"),
+    ("routes", "the route tree"),
+    ("series", "scripted series: a base play and its answers"),
+    ("systems", "whole offenses built from series"),
+    ("schemes", "run blocking and pass protection for the line"),
+    ("blocks", "single blocks"),
+    ("coverages", "coverage calls and fronts"),
+    ("qb", "quarterback actions"),
+]
 
 
 def _build_play(name: str, formation: Optional[str], defense: Optional[str],
@@ -150,8 +170,8 @@ def _build_play(name: str, formation: Optional[str], defense: Optional[str],
         if coverage:
             calls = {**CV.COVERAGES, **CV.FRONTS}
             if coverage not in calls:
-                raise SystemExit(f"unknown coverage '{coverage}'. "
-                                 f"Try: chalk list coverages")
+                raise SystemExit(f"Unknown coverage '{coverage}'. "
+                                 f"Try: {_PROG} list coverages")
             play = play.with_coverage(calls[coverage])
     if flip:
         from . import adjustments as A
@@ -199,7 +219,7 @@ def _series_by_key(key: str):
     matches = [k for k in reg if key.lower() in k.lower()]
     if len(matches) == 1:
         return reg[matches[0]]()
-    raise SystemExit(f"unknown series '{key}'. Try: chalk list series")
+    raise SystemExit(f"Unknown series '{key}'. Try: {_PROG} list series")
 
 
 def cmd_series(args: argparse.Namespace) -> int:
@@ -224,7 +244,7 @@ def _system_by_key(key: str):
     matches = [k for k in reg if key.lower() in k.lower()]
     if len(matches) == 1:
         return reg[matches[0]]()
-    raise SystemExit(f"unknown system '{key}'. Try: chalk list systems")
+    raise SystemExit(f"Unknown system '{key}'. Try: {_PROG} list systems")
 
 
 def cmd_system(args: argparse.Namespace) -> int:
@@ -303,9 +323,17 @@ def _plain(text) -> str:
     return str(text).translate(_ASCII).encode("ascii", "replace").decode("ascii")
 
 
+def _with_json(path: str) -> str:
+    """`week3` for `week3.json`, when only the second exists."""
+    if path and not os.path.exists(path) and os.path.exists(path + ".json"):
+        return path + ".json"
+    return path
+
+
 def _load_book(path: str) -> Playbook:
     """A playbook file, or a play file as a book of one; a plain exit when it is neither."""
     import json
+    path = _with_json(path)
     try:
         with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
@@ -314,7 +342,7 @@ def _load_book(path: str) -> Playbook:
         play = Play.model_validate(data)
         return Playbook(name=play.name, plays=[play])
     except FileNotFoundError:
-        raise SystemExit(f"no such file: {path}")
+        raise SystemExit(f"No such file: {path}")
     except ValueError as e:                 # bad JSON, or not a play (ValidationError is one)
         raise SystemExit(f"{path} isn't a play or a playbook: {str(e).splitlines()[0]}")
 
@@ -377,7 +405,7 @@ def cmd_next(args: argparse.Namespace) -> int:
         state = DriveState(down=args.down, distance=args.distance, yard_line=_spot(args.at),
                            hash_mark=args.hash, mode=args.mode, look=args.look)
     except ValueError as e:
-        raise SystemExit(f"that situation doesn't work: {str(e).splitlines()[0]}")
+        raise SystemExit(f"That situation doesn't work: {str(e).splitlines()[0]}")
     picks = P.suggest(book, state, [] if args.fresh else None, k=args.k)
     print(_plain(state.label() + (f" vs {args.look}" if args.look else "")))
     if not picks:
@@ -476,11 +504,18 @@ def cmd_design(args: argparse.Namespace) -> int:
     from .designer.server import DEFAULT_PORT, Session, running_at, serve
 
     file = play = None
-    if args.play and (os.path.exists(args.play) or args.play.lower().endswith(".json")):
-        file = os.path.abspath(args.play)       # a file to edit, or one Save will create
-    elif args.play:
-        play = _build_play(args.play, args.formation, args.defense, args.flip,
-                           getattr(args, "coverage", None))
+    named = _with_json(args.play) if args.play else None
+    if named and (os.path.exists(named) or named.lower().endswith(".json")):
+        file = os.path.abspath(named)           # a file to edit, or one Save will create
+    elif named:
+        try:
+            play = _build_play(named, args.formation, args.defense, args.flip,
+                               getattr(args, "coverage", None))
+        except SystemExit as e:
+            if not str(e).startswith("Unknown play") or "Did you mean" in str(e):
+                raise                           # a typo of a play: the suggestion is enough
+            raise SystemExit(f"{e}\nTo start a new playbook called {named}, "
+                             f"use: {_PROG} design {named}.json")
     # Where Open looks and Save as starts: --folder, else the file's own folder,
     # else the coach's playbook folder (Documents/chalktalk).
     folder = os.path.expanduser(args.folder) if args.folder else (os.path.dirname(file) if file else None)
@@ -524,8 +559,11 @@ def cmd_shortcut(args: argparse.Namespace) -> int:
         return 1
     for p in made:
         print(f"Made:     {p}")
-    print("Open Chalktalk from there: the designer opens in your browser, and stops a little "
-          "after you close it.")
+    where = {"win32": "on the desktop or in the Start menu",
+             "darwin": "in the Applications folder in your home folder (Spotlight finds it too)",
+             }.get(sys.platform, "in the applications menu or on the desktop")
+    print(f"\nTo open the designer, double-click Chalktalk {where}.\n"
+          "It stops by itself a minute or so after you close the page.")
     return 0
 
 
@@ -564,21 +602,87 @@ def cmd_demo(args: argparse.Namespace) -> int:
     print(f"{len(plays)} plays across {len(all_series)} series -> {os.path.abspath(out)}")
     for f in sorted(os.listdir(out)):
         print(f"  {f}")
-    print(f"\nOpen the playbook in the designer: chalk design {os.path.join(out, 'playbook.json')}")
+    print(f"\nOpen the playbook in the designer: {_PROG} design {os.path.join(out, 'playbook.json')}")
     return 0
 
 
 # ── Parser ────────────────────────────────────────────────────────────────────
 
+DOCS = DOCS_URL
+
+
+def _prog_name() -> str:
+    """What to call the program in help: what the coach typed, so examples paste back."""
+    typed = os.path.basename(sys.argv[0] or "")
+    if typed in ("__main__.py", "-m", "-c") or typed.endswith(".py"):
+        return "python -m chalktalk"
+    return "chalktalk" if typed.lower().startswith("chalktalk") else "chalk"
+
+
+_PROG = "chalk"
+
+_OVERVIEW = """\
+chalktalk {version}: football plays and playbooks, with a designer that runs in
+your browser.
+
+Usage: {p} <command> [options]
+
+Start here
+  design              open the designer (playbooks go in Documents/chalktalk)
+  design FILE.json    open one playbook or play in the designer
+  shortcut            add a Chalktalk icon, to start without a terminal
+  demo                write a sample playbook, call sheet, wristband and script
+
+Print and plan from a playbook
+  book FILE.json      the playbook as a PDF, or another sheet (--sheet)
+  next FILE.json      what to call next, and why
+  scout FILE.json     the halftime report from the game log
+  check FILE.json     what the game plan is missing
+  draft FILE.json     fill the game plan's empty fields
+
+The play library
+  list                what the library holds: plays, formations, defenses, ...
+  show PLAY           a play's assignments as text
+  render PLAY         draw a play as SVG, PDF or JSON
+  series NAME         a scripted series and its diagrams
+  script NAME         a practice script from a series
+  system NAME         a whole offense: install book and sheets
+  callsheet SERIES    a call sheet and wristband from series
+
+Help on one command:  {p} design --help
+Documentation:        {docs}
+"""
+
+
+class _TopLevel(argparse.ArgumentParser):
+    """The top level shows the commands grouped by what a coach is doing."""
+
+    def format_help(self) -> str:
+        return _OVERVIEW.format(version=__version__, p=self.prog, docs=DOCS)
+
+    def error(self, message: str):
+        # A mistyped command gets a suggestion rather than a list of fifteen names.
+        import difflib
+        bad = message.split("'")[1] if "invalid choice" in message else None
+        if bad is not None:
+            near = difflib.get_close_matches(bad, _COMMANDS, n=1)
+            hint = f" Did you mean '{self.prog} {near[0]}'?" if near else ""
+            self.exit(2, f"Unknown command '{bad}'.{hint} See '{self.prog} --help'.\n")
+        super().error(message)
+
+
+_COMMANDS: list[str] = []
+
+
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
-        prog="chalktalk",
-        description="Design, script, and print American football plays.")
+    prog = _prog_name()
+    p = _TopLevel(prog=prog)
     p.add_argument("--version", action="version", version=f"chalktalk {__version__}")
-    sub = p.add_subparsers(dest="command", required=True)
+    sub = p.add_subparsers(dest="command", metavar="<command>", prog=prog,
+                           parser_class=argparse.ArgumentParser)
 
     lst = sub.add_parser("list", help="list catalog contents")
-    lst.add_argument("what",
+    lst.add_argument("what", nargs="?",
                      help="plays | formations | defenses | routes | series | "
                           "schemes | blocks | coverages | qb | systems")
     lst.set_defaults(func=cmd_list)
@@ -723,11 +827,18 @@ def build_parser() -> argparse.ArgumentParser:
     dem.add_argument("--level", default="nfl", choices=["nfl", "ncaa", "hs"],
                      help="hash marks on the playbook pages")
     dem.set_defaults(func=cmd_demo)
+    _COMMANDS[:] = list(sub.choices)
     return p
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    args = build_parser().parse_args(argv)
+    global _PROG
+    parser = build_parser()
+    _PROG = parser.prog
+    args = parser.parse_args(argv)
+    if args.command is None:                  # just `chalk`: what it does and where to start
+        parser.print_help()
+        return 0
     return args.func(args)
 
 

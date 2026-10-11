@@ -147,3 +147,10 @@ enforces that too.
 - Terminal output stays ASCII (call sheets get printed on Windows machines in
   press boxes). HTML output can use whatever it likes.
 - Football terminology over programmer terminology in anything a coach reads.
+- Docs, help and messages say what a thing does and how to use it. No
+  slogans, comparisons with other tools, or feature counts.
+
+## Releasing
+
+See [RELEASING.md](RELEASING.md). The version is set only in
+`chalktalk/__init__.py`, and `CHANGELOG.md` needs a section for it.

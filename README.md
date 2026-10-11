@@ -1,44 +1,75 @@
 # chalktalk
 
-chalktalk is a Python library for American football plays and playbooks, with
-a browser-based editor.
+Football plays and playbooks in Python, with a designer that runs in your
+browser.
 
 Plays are Pydantic models stored as JSON. The library builds plays from
 formations, routes, blocking schemes and quarterback actions, draws them as
 SVG, PDF and HTML, and produces call sheets, practice scripts, wristbands,
-install plans and game plans from a playbook. `chalk design` runs the editor
-locally and saves the same JSON files the library reads.
+install plans and game plans from a playbook. `chalk design` runs the
+designer on your own computer and saves the same JSON files the library
+reads.
 
 Requires Python 3.10 or later. Licensed under PolyForm Noncommercial 1.0.0
-(see [License](#license)).
+(see License, below).
 
 ## Install
+
+1. **Get Python 3.10 or later** if the computer doesn't have it. On Windows
+   and macOS, download it from
+   [python.org/downloads](https://www.python.org/downloads/); on Windows, tick
+   **Add python.exe to PATH** on the installer's first screen. Most Linux
+   systems already have it.
+
+2. **Install chalktalk.** Open a terminal (on Windows, *Terminal* or *Command
+   Prompt* from the Start menu; on macOS, *Terminal* in Applications >
+   Utilities) and run:
+
+   ```bash
+   python -m pip install chalktalk
+   ```
+
+   On Windows, use `py` in place of `python` if `python` isn't found. On
+   macOS and Linux, use `python3`.
+
+3. **Make a shortcut** (optional):
+
+   ```bash
+   python -m chalktalk shortcut
+   ```
+
+   This adds a Chalktalk icon to the desktop and the Start menu on Windows,
+   to the Applications folder in your home folder on macOS, and to the
+   applications menu on Linux. Double-click it to open the designer; the
+   terminal isn't needed after this.
+
+chalktalk depends on `pydantic`, and on `reportlab` for PDF output. The
+designer uses only the standard library and makes no requests outside the
+computer.
+
+To upgrade, run `python -m pip install --upgrade chalktalk`. To uninstall,
+run `python -m chalktalk shortcut --remove`, then
+`python -m pip uninstall chalktalk`. Playbooks stay in `Documents/chalktalk`.
+
+To work on chalktalk itself:
 
 ```bash
 git clone https://github.com/matthewbakerthompson/chalktalk
 cd chalktalk
-pip install -e .
+python -m pip install -e ".[dev]"
 ```
-
-Dependencies: `pydantic`, and `reportlab` for PDF output. The editor uses only
-the standard library and makes no requests outside the machine.
-
-To start the editor without a terminal, create a shortcut:
-
-```bash
-chalk shortcut            # chalk shortcut --remove deletes it
-```
-
-On Windows this adds a Chalktalk shortcut to the desktop and the Start menu; on
-macOS, an app in `~/Applications`; on Linux, an entry in the applications menu.
 
 ## Quick start
 
 ```bash
+chalk                        # what chalktalk does, and its commands
 chalk design week3.json      # edit a playbook in the browser; Save writes week3.json
 chalk book week3.json        # print it to PDF
 chalk demo --out out/        # a sample playbook, call sheet, wristband and script
 ```
+
+`chalk` and `python -m chalktalk` are the same command. If the terminal says
+`chalk` isn't found, use `python -m chalktalk design` and so on.
 
 ```python
 from chalktalk import adjustments as A
@@ -77,7 +108,7 @@ glance = rpo.glance()
 ```
 
 `catalog.all_plays()` returns every stock play keyed by name. The command line
-and the editor use the same dictionary.
+and the designer use the same dictionary.
 
 To build a play from scratch:
 
@@ -102,7 +133,7 @@ Plays are immutable: every method that changes a play returns a new one.
 The origin is the center of the line of scrimmage, +x is the offense's right
 and -y is the offensive backfield. Routes are written for a player on the
 right and mirrored for players on the left by
-`Assignment.absolute_waypoints()`, which the editor and the renderers both use.
+`Assignment.absolute_waypoints()`, which the designer and the renderers both use.
 Block paths and defensive paths are not mirrored: a pull to the right is a
 pull to the right for either guard. `Play.mirror()` flips them explicitly.
 
@@ -354,6 +385,40 @@ book = Playbook.load("week3.json")
 book.save_pdf("week3.pdf", plays_per_page=4, theme="paper")
 ```
 
+Press `?` or F1 in the designer for help: the controls, where playbooks are
+kept, and what to do when something goes wrong.
+
+## Troubleshooting
+
+**The terminal says `chalk` isn't found** ("not recognized", "command not
+found"). pip installed the `chalk` command in a folder the terminal doesn't
+search. Use `python -m chalktalk` in its place, as in
+`python -m chalktalk design`, or make the shortcut, which doesn't need it.
+
+**Windows says `python` isn't found.** Use `py`. If that isn't found either,
+run the Python installer again and tick **Add python.exe to PATH**.
+
+**pip says `externally-managed-environment`** (Homebrew's Python, recent
+Debian and Ubuntu). Install with [pipx](https://pipx.pypa.io) instead:
+`pipx install chalktalk`, then `chalk shortcut`.
+
+**The browser didn't open.** Open the address `chalk design` printed, usually
+`http://127.0.0.1:8765/`.
+
+**The page says the designer has stopped.** The terminal running it was
+closed, or the computer went to sleep. Start the designer again from its icon
+or with `chalk design`, then reload the page. Unsaved work is kept in the
+browser.
+
+**The shortcut doesn't open anything.** On Windows, the shortcut writes what
+went wrong to `%APPDATA%\chalktalk\designer.log`. On any system, running
+`chalk design` in a terminal shows the same messages.
+
+**Where are my playbooks?** In `Documents/chalktalk`, unless you chose another
+folder. Help in the designer shows the folder and opens it.
+
+For anything else, [open an issue](https://github.com/matthewbakerthompson/chalktalk/issues).
+
 ## Game plans
 
 `Playbook.game_plan` holds the plan for one game: level, what the team can
@@ -373,7 +438,7 @@ In the designer, **Plan** builds it in seven steps:
 5. **Drive scripts**: the 1st-down call, the 2nd-down call on and off
    schedule, and the 3rd-down call under each. Each slot lists the playbook in
    the planner's order for that down and distance.
-6. **Calling**: how calls are signaled (see [Signaling calls](#signaling-calls)).
+6. **Calling**: how calls are signaled (see Signaling calls, below).
 7. **Check and print**: problems the plan check finds, and the sheets.
 
 **Game** follows a drive script during a game or a rehearsal. After each
@@ -616,7 +681,7 @@ designer against the Python geometry.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](https://github.com/matthewbakerthompson/chalktalk/blob/main/CONTRIBUTING.md).
 
 ## License
 

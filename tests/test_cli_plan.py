@@ -135,5 +135,5 @@ def test_a_file_that_isnt_a_book_says_so(tmp_path):
     bad.write_text('{"hello": 1}', encoding="utf-8")
     with pytest.raises(SystemExit, match="isn't a play or a playbook"):
         cli.main(["check", str(bad)])
-    with pytest.raises(SystemExit, match="no such file"):
+    with pytest.raises(SystemExit, match="No such file"):
         cli.main(["scout", str(tmp_path / "missing.json")])
