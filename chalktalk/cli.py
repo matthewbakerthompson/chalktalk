@@ -455,28 +455,77 @@ def cmd_draft(args: argparse.Namespace) -> int:
     return 0
 
 
+def _log_without_a_console() -> None:
+    """
+    Started from the shortcut (pythonw) there is nowhere to print, so a designer
+    that won't start would just not appear. Keep what it says in a log instead.
+    """
+    from .designer.shortcut import data_dir
+    try:
+        data_dir().mkdir(parents=True, exist_ok=True)
+        log = open(data_dir() / "designer.log", "w", encoding="utf-8", buffering=1)
+    except OSError:
+        log = open(os.devnull, "w", encoding="utf-8")
+    sys.stdout = sys.stderr = log
+
+
 def cmd_design(args: argparse.Namespace) -> int:
     """Run the designer on this machine and open it in the browser."""
-    from .designer.server import Session, serve
+    import webbrowser
+    from .designer.home import default_folder
+    from .designer.server import DEFAULT_PORT, Session, running_at, serve
 
     file = play = None
     if args.play and (os.path.exists(args.play) or args.play.lower().endswith(".json")):
-        file = args.play                        # a file to edit, or one Save will create
+        file = os.path.abspath(args.play)       # a file to edit, or one Save will create
     elif args.play:
         play = _build_play(args.play, args.formation, args.defense, args.flip,
                            getattr(args, "coverage", None))
+    # Where Open looks and Save as starts: --folder, else the file's own folder,
+    # else the coach's playbook folder (Documents/chalktalk).
+    folder = os.path.expanduser(args.folder) if args.folder else (os.path.dirname(file) if file else None)
+    if args.quiet and sys.stdout is None:
+        _log_without_a_console()
+    if (file is None and play is None and args.port == DEFAULT_PORT
+            and running_at(DEFAULT_PORT, folder=folder)):
+        url = f"http://127.0.0.1:{DEFAULT_PORT}/"
+        print(f"Chalktalk is already running: {url}")   # a second double-click opens it again
+        if not args.no_open:
+            webbrowser.open(url)
+        return 0
+    folder = os.path.abspath(os.path.expanduser(folder or str(default_folder())))
     try:
-        session = Session(os.getcwd(), file=file, play=play, level=args.level, theme=args.theme)
+        os.makedirs(folder, exist_ok=True)
+        session = Session(folder, file=file, play=play, level=args.level, theme=args.theme)
     except (OSError, ValueError) as e:
-        print(f"Can't open {file}: {e}", file=sys.stderr)
+        print(f"Can't open {args.play or folder}: {e}", file=sys.stderr)    # as the coach typed it
         return 1
     if play is not None:
         print(f"Loaded:   {play.call}")
     try:
-        serve(session, port=args.port, open_browser=not args.no_open)
+        serve(session, port=args.port, open_browser=not args.no_open, quiet=args.quiet)
     except OSError as e:
         print(f"Can't start the designer on port {args.port}: {e}", file=sys.stderr)
         return 1
+    return 0
+
+
+def cmd_shortcut(args: argparse.Namespace) -> int:
+    """Put a Chalktalk icon where this system keeps them, so no terminal is needed."""
+    from .designer import shortcut
+    if args.remove:
+        gone = shortcut.remove()
+        print("\n".join(f"Removed:  {p}" for p in gone) or "No Chalktalk shortcuts to remove.")
+        return 0
+    try:
+        made = shortcut.create(folder=args.folder)
+    except (OSError, RuntimeError) as e:
+        print(f"Couldn't make the shortcut: {e}", file=sys.stderr)
+        return 1
+    for p in made:
+        print(f"Made:     {p}")
+    print("Open Chalktalk from there: the designer opens in your browser, and stops a little "
+          "after you close it.")
     return 0
 
 
@@ -655,7 +704,18 @@ def build_parser() -> argparse.ArgumentParser:
                      help=f"the port on this machine to serve it from (default: {DEFAULT_PORT})")
     des.add_argument("--no-open", action="store_true",
                      help="start the designer without opening a browser")
+    des.add_argument("--folder", help="where Open looks and Save as starts "
+                                      "(default: the file's folder, else Documents/chalktalk)")
+    des.add_argument("--quiet", action="store_true",
+                     help="stop a little after the page is closed, rather than at Ctrl+C "
+                          "(what the shortcut does)")
     des.set_defaults(func=cmd_design)
+
+    sh = sub.add_parser("shortcut", help="put a Chalktalk icon on the desktop and in the start menu")
+    sh.add_argument("--folder", help="the folder the designer keeps playbooks in "
+                                     "(default: Documents/chalktalk)")
+    sh.add_argument("--remove", action="store_true", help="take the shortcuts away again")
+    sh.set_defaults(func=cmd_shortcut)
 
     dem = sub.add_parser("demo", help="generate a full example package")
     dem.add_argument("--out", default="output/demo")

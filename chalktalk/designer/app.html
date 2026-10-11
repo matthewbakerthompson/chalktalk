@@ -372,8 +372,10 @@ dialog.printdlg{max-width:min(660px,94vw)}
 .book-head{display:flex;align-items:center;gap:4px;padding:8px 8px 2px 8px}
 .book-head .title{width:auto;flex:1;min-width:0;font-size:14px}
 .book-meta{display:flex;align-items:center;gap:6px;padding:0 12px 4px;color:var(--muted);font-size:12px}
-.book-file{padding:2px 16px 10px;font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--hair);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.book-file.warn{color:var(--ink-2)}
+.book-file{display:flex;align-items:center;gap:6px;padding:2px 10px 8px 16px;font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--hair)}
+.book-file #bookFile{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book-file #bookFile.warn{color:var(--ink-2)}
+.book-file button{flex:none;height:22px;padding:0 6px;font-size:11.5px}
 .book-meta .inline{width:11ch}
 .book-meta .inline.pers{width:6ch}
 .book-meta .count{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -496,6 +498,19 @@ dialog::backdrop{background:oklch(0 0 0 / .6)}
 .dlg-foot{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--hair)}
 .dlg-foot .note{margin:0 auto 0 0}
 dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
+dialog.opendlg{max-width:min(560px,94vw)}
+.opendlg .dlg-body{max-height:min(60vh,520px);overflow-y:auto;padding-top:6px}
+.opendlg h3{margin:12px 0 6px;font-size:11.5px;font-weight:600;color:var(--muted)}
+.opendlg .olist{display:flex;flex-direction:column;gap:2px}
+.orow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;height:auto;padding:8px 10px;border-color:transparent;text-align:left}
+.orow:hover,.orow:focus-visible{background:oklch(1 0 0 / .06)}
+.orow .nm{font-size:13px;font-weight:600;color:var(--ink)}
+.orow .sub{font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
+.opendlg .dlg-foot .note{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stopped{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:1000;max-width:min(560px,calc(100vw - 24px));
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-radius:var(--r-3);
+  background:var(--panel);border:1px solid var(--accent-line);box-shadow:0 20px 40px -12px oklch(0 0 0 / .7);font-size:12.5px;color:var(--ink-2)}
+.stopped b{color:var(--ink)}
 dialog.savedlg{max-width:min(440px,92vw)}
 .savedlg label{display:block;margin-bottom:6px;color:var(--muted);font-size:12px}
 .savedlg input{width:100%}
@@ -735,7 +750,8 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
         inputmode="numeric">
       <span class="count" id="bookCount"></span>
     </div>
-    <div class="book-file" id="bookFile"></div>
+    <div class="book-file"><span id="bookFile"></span>
+      <button type="button" class="ghost" id="btnReveal" hidden title="Show this file in its folder">Show in folder</button></div>
     <div class="book-list" id="bookList" role="listbox" aria-label="Plays"></div>
     <div class="book-undo" id="bookUndo" hidden>
       <span>Deleted <b id="bookUndoName"></b></span><button id="btnUndelete">Undo</button>
@@ -1042,6 +1058,24 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
 </dialog>
 
 <input type="file" id="fileInput" accept=".json,application/json" hidden>
+<dialog id="openDialog" class="opendlg" aria-labelledby="openTitle">
+  <div class="dlg-head">
+    <h2 id="openTitle">Open a playbook</h2>
+    <button class="ghost icon" id="openClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="dlg-body" id="openList"></div>
+  <div class="dlg-foot">
+    <span class="note" id="openWhere"></span>
+    <button type="button" class="ghost" id="openReveal" title="Open this folder in your file manager">Show the folder</button>
+    <button type="button" id="openElsewhere" title="Pick a play or playbook from anywhere on this computer">From elsewhere…</button>
+  </div>
+</dialog>
+<div class="stopped" id="stopped" role="alert" hidden>
+  <span><b>The designer has stopped.</b> Your work is kept in this browser. Start Chalktalk again, then</span>
+  <button type="button" id="stoppedReload">Reload this page</button>
+</div>
 <dialog id="saveDialog" class="savedlg" aria-labelledby="saveTitle">
   <form id="saveForm">
     <div class="dlg-head"><h2 id="saveTitle">Save the playbook</h2></div>
@@ -4466,9 +4500,17 @@ function fileUnsaved(){
 
 // Asks the `chalk design` server on this machine to do something for the page.
 async function api(name, body){
-  const r = await fetch("api/" + name, {method: "POST",
-    headers: {"Content-Type": "application/json", "X-Chalktalk-Token": SERVER.token},
-    body: JSON.stringify(body || {})});
+  let r;
+  try {
+    r = await fetch("api/" + name, {method: "POST",
+      headers: {"Content-Type": "application/json", "X-Chalktalk-Token": SERVER.token},
+      body: JSON.stringify(body || {})});
+  } catch(e){
+    // Nothing answered: the designer was closed, or the computer slept through it.
+    $("stopped").hidden = false;
+    throw new Error("The designer has stopped. Start Chalktalk again to save: your work is kept in this browser.");
+  }
+  $("stopped").hidden = true;
   const got = await r.json().catch(() => ({}));
   if (!r.ok) throw Object.assign(new Error(got.error || `The designer's server answered ${r.status}`),
                                  {status: r.status});
@@ -4566,6 +4608,7 @@ async function saveFile(saveAs){
     const got = await writeFile(path, text, !!known);
     if (!got) return;
     linkFile({name: got.name, path: got.path, kind, mtime: got.mtime}, text);
+    rememberFile(got.path);
     toast(`Saved to ${got.name}`);
   } catch(e){ toast(e.message || "Couldn't save there"); }
 }
@@ -4581,11 +4624,76 @@ async function savePlayCopy(){
   } catch(e){ toast(e.message || "Couldn't save the copy"); }
 }
 
-// ── opening ────────────────────────────────────────────────────────────────
-function openFileDialog(){ $("fileInput").click(); }
+// ── opening: the coach's playbook folder, or a file from anywhere ──────────
+// The Open dialog lists the playbooks in the folder `chalk design` keeps them
+// in (Documents/chalktalk unless told otherwise), the recent ones first, and
+// opens them by their real path, so Save writes back to the same file.
+const LS_RECENT = "chalktalk.designer.recent";
+function recentPaths(){
+  try { return JSON.parse(localStorage.getItem(LS_RECENT) || "[]").filter(p => typeof p === "string"); }
+  catch(e){ return []; }
+}
+function setRecent(paths){ try { localStorage.setItem(LS_RECENT, JSON.stringify(paths.slice(0, 8))); } catch(e){} }
+function rememberFile(path){ if (path) setRecent([path, ...recentPaths().filter(p => p !== path)]); }
+
+// When a file was saved, the way a person says it.
+function savedWhen(ms){
+  const d = new Date(ms), now = new Date(), mins = (now - d) / 60000;
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${Math.round(mins)} min ago`;
+  const time = d.toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+  if (d.toDateString() === now.toDateString()) return `today ${time}`;
+  if (mins < 60 * 24 * 6) return `${d.toLocaleDateString([], {weekday: "long"})} ${time}`;
+  return d.toLocaleDateString([], {month: "short", day: "numeric",
+    year: d.getFullYear() === now.getFullYear() ? undefined : "numeric"});
+}
+
+async function openFileDialog(){
+  if (!SERVER) return $("fileInput").click();
+  const dlg = $("openDialog"), list = $("openList");
+  if (!list.children.length) list.innerHTML = `<p class="note">Looking in your folder…</p>`;
+  if (!dlg.open) dlg.showModal();
+  let got;
+  try { got = await api("files", {recent: recentPaths()}); }
+  catch(e){ list.innerHTML = `<p class="note">${esc(e.message)}</p>`; return; }
+  setRecent(got.recent.map(f => f.path));          // the ones that have gone drop off
+  $("openWhere").textContent = got.folder;
+  $("openWhere").title = got.folder;
+  const row = f => `<button type="button" class="orow" data-path="${esc(f.path)}"><span class="nm">${esc(f.title)}</span>`
+    + `<span class="sub">${esc(f.name)} · ${f.kind === "book" ? `${f.plays} ${f.plays === 1 ? "play" : "plays"}` : "a play"}`
+    + ` · ${esc(savedWhen(f.modified))}</span></button>`;
+  const shown = new Set(got.recent.map(f => f.path));
+  const rest = got.files.filter(f => !shown.has(f.path));
+  list.innerHTML = (got.recent.length ? `<h3>Recent</h3><div class="olist">${got.recent.map(row).join("")}</div>` : "")
+    + `<h3>In this folder</h3>`
+    + (rest.length ? `<div class="olist">${rest.map(row).join("")}</div>`
+       : `<p class="note">${got.files.length ? "Everything here is listed above."
+                                             : "No playbooks here yet. Save one and it shows up here."}</p>`)
+    + (got.more ? `<p class="note">The newest ${got.files.length} are listed.</p>` : "");
+  list.querySelectorAll("[data-path]").forEach(b => b.onclick = () => openPath(b.dataset.path));
+  const first = list.querySelector(".orow");
+  if (first) first.focus();
+}
+async function openPath(path){
+  let got;
+  try { got = await api("open", {path}); }
+  catch(e){
+    setRecent(recentPaths().filter(p => p !== path));
+    toast(e.message || "Couldn't open that");
+    return openFileDialog();
+  }
+  $("openDialog").close();
+  dismissWelcome();
+  loadBook(got.kind === "book" ? got.data : {name: got.data.name || "Playbook", plays: [got.data]});
+  fileLink = {name: got.name, path: got.path, kind: got.kind, mtime: got.mtime};
+  linkFile(fileLink, fileContent().text);
+  rememberFile(got.path);
+  renderFileState();
+  toast(`Opened ${got.name}`);
+}
 // A file is the document: a book opens as the book, a play as a book of one.
 // The browser hands over a file's contents but not its folder, so Save asks
-// where it goes, starting from the same name.
+// where it goes (the coach's folder, under the same name).
 async function openFile(file){
   if (!file) return;
   let obj;
@@ -4601,6 +4709,21 @@ async function openFile(file){
   renderFileState();
 }
 
+// Tell the designer this page is still open. A quiet designer (the shortcut's)
+// stops a little after the last page has gone.
+function heartbeat(){
+  if (!SERVER) return;
+  const beat = () => api("ping", {}).catch(() => {});
+  beat();
+  setInterval(beat, 20000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) beat(); });
+  window.addEventListener("pagehide", () => {
+    try { fetch("api/bye", {method: "POST", keepalive: true, body: "{}",
+                            headers: {"Content-Type": "application/json", "X-Chalktalk-Token": SERVER.token}}); }
+    catch(e){}
+  });
+}
+
 function renderFileState(){
   const btn = $("btnSave");
   if (!btn || !book) return;
@@ -4614,6 +4737,8 @@ function renderFileState(){
     line.title = fileLink && fileLink.path ? fileLink.path : "";
     line.classList.toggle("warn", unsaved);
   }
+  const reveal = $("btnReveal");
+  if (reveal) reveal.hidden = !(SERVER && fileLink && fileLink.path);
   document.title = (unsaved ? "• " : "") + (play && play.name ? play.name + " · " : "") + "Chalktalk";
 }
 
@@ -4974,6 +5099,12 @@ function boot(){
   $("welcomeBlank").onclick = () => { dismissWelcome();
     toast(`Pick a player, then ${isTouch() ? "tap" : "click"} the field to draw a route`); };
   $("ioFile").onclick = () => { $("ioDialog").close(); openFileDialog(); };
+  $("openClose").onclick = () => $("openDialog").close();
+  $("openElsewhere").onclick = () => { $("openDialog").close(); $("fileInput").click(); };
+  $("openReveal").onclick = () => api("reveal", {}).catch(e => toast(e.message));
+  $("btnReveal").onclick = () => fileLink && fileLink.path &&
+    api("reveal", {path: fileLink.path}).catch(e => toast(e.message));
+  $("stoppedReload").onclick = () => location.reload();
   $("fileInput").onchange = e => { const f = e.target.files && e.target.files[0];
     openFile(f); e.target.value = ""; };
   // Drop a .json anywhere to open it. Row drags in the playbook carry text, not files.
@@ -5076,6 +5207,8 @@ function boot(){
   try { setBook(!phone && (localStorage.getItem(LS_BOOKPANEL) === "1" || (INITIAL_BOOK && book.plays.length > 1)), true); } catch(e){}
   renderAll();
   if (bootedFresh && !welcomed()) showWelcome();
+  if (SERVER && SERVER.file && SERVER.file.exists) rememberFile(SERVER.file.path);
+  heartbeat();
 }
 
 function openIo(title, text){

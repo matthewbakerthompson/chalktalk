@@ -198,8 +198,8 @@ def test_chalk_design_opens_a_playbook(tmp_path, monkeypatch, capsys):
     _book().save(str(tmp_path / "book.json"))
     monkeypatch.chdir(tmp_path)
     started = {}
-    monkeypatch.setattr(S, "serve", lambda session, port, open_browser:
-                        started.update(session=session, port=port, open=open_browser))
+    monkeypatch.setattr(S, "serve", lambda session, port, open_browser, quiet=False:
+                        started.update(session=session, port=port, open=open_browser, quiet=quiet))
     assert cli.main(["design", "book.json", "--no-open"]) == 0
     session = started["session"]
     assert session.file == str(tmp_path / "book.json") and started["open"] is False

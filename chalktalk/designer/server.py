@@ -19,9 +19,11 @@ import json
 import os
 import secrets
 import threading
+import time
 import webbrowser
 from collections import OrderedDict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Callable, Optional
 
 from pydantic import ValidationError
@@ -70,6 +72,9 @@ class Session:
         self.level = level
         self.theme = theme
         self.token = secrets.token_urlsafe(24)
+        self.started = time.monotonic()
+        self.seen: Optional[float] = None     # the last time a page asked for anything
+        self.bye: Optional[float] = None      # when a page said it was closing
         if self.file and os.path.exists(self.file):
             self.read(self.file)          # fail now, at the prompt, not in the browser
 
@@ -190,6 +195,52 @@ def advance(session: Session, body: dict) -> dict:
                          str(body.get("outcome", "")), float(body.get("gain") or 0))
 
 
+# ── the coach's playbooks: the folder, opening by path, the file manager ─────
+
+def files(session: Session, body: dict) -> dict:
+    """The Open dialog: the recent files the page remembers, and every playbook in the folder."""
+    from . import home
+    root = Path(session.root)
+    listed, more = home.playbooks(root)
+    return {"folder": session.root, "files": listed, "more": more,
+            "recent": home.recent(body.get("recent") or [], root)}
+
+
+def open_file(session: Session, body: dict) -> dict:
+    """A play or playbook by its path, so Save writes it back where it came from."""
+    path = Path(str(body.get("path") or ""))
+    path = (path if path.is_absolute() else Path(session.root) / path).resolve()
+    if not path.is_file():
+        raise ValueError(f"{path.name} isn't there any more")
+    text = path.read_text(encoding="utf-8")
+    kind = "book" if isinstance(_parse(text), Playbook) else "play"
+    return {"data": json.loads(text), "kind": kind, "path": str(path),
+            "name": session.name(str(path)), "mtime": _mtime(str(path))}
+
+
+def reveal(session: Session, body: dict) -> dict:
+    """Show a file in the system's file manager, or the folder when there's no file yet."""
+    from . import home
+    target = Path(str(body.get("path") or session.root))
+    if not target.exists():
+        target = Path(session.root)
+        target.mkdir(parents=True, exist_ok=True)
+    home.reveal(target)
+    return {}
+
+
+# ── the page is still there: what lets a quiet designer stop on its own ──────
+
+def ping(session: Session, body: dict) -> dict:
+    session.bye = None
+    return {}
+
+
+def bye(session: Session, body: dict) -> dict:
+    session.bye = time.monotonic()
+    return {}
+
+
 # ── printing: the page sends the book it has, Python prints it ───────────────
 
 
@@ -249,6 +300,11 @@ ROUTES: dict[str, Callable[[Session, dict], dict]] = {
     "draft": draft,
     "fill_script": fill_script,
     "advance": advance,
+    "files": files,
+    "open": open_file,
+    "reveal": reveal,
+    "ping": ping,
+    "bye": bye,
 }
 
 
@@ -288,9 +344,15 @@ class _Handler(BaseHTTPRequestHandler):
             except (OSError, ValueError, ValidationError) as e:
                 return self._send(500, f"Could not open the file: {e}".encode("utf-8"),
                                   "text/plain; charset=utf-8")
+            self.server.session.seen = time.monotonic()
             return self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
         if path == "/favicon.ico":
-            return self._send(204, b"", "image/x-icon")
+            from .icon import png
+            return self._send(200, png(32), "image/png")
+        if path == "/chalktalk":
+            # Who is listening here, so a second launch opens this one instead of
+            # starting another. The folder only as a fingerprint: no paths.
+            return self._json(200, {"app": "chalktalk", "folder": _fingerprint(self.server.session.root)})
         self._send(404, b"Not found", "text/plain; charset=utf-8")
 
     def _refuse(self, status: int, error: str) -> None:
@@ -309,6 +371,7 @@ class _Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         if length > _MAX_BODY:
             return self._refuse(413, "That is too big to send")
+        session.seen = time.monotonic()
         try:
             body = json.loads(self.rfile.read(length) or b"{}")
             return self._json(200, route(session, body))
@@ -347,8 +410,49 @@ def make_server(session: Session, port: int = DEFAULT_PORT) -> ThreadingHTTPServ
     raise failure
 
 
-def serve(session: Session, port: int = DEFAULT_PORT, open_browser: bool = True) -> None:
-    """Serve until Ctrl+C."""
+def _fingerprint(folder: str) -> str:
+    return hashlib.sha1(os.path.normcase(os.path.abspath(folder)).encode("utf-8")).hexdigest()[:12]
+
+
+def running_at(port: int = DEFAULT_PORT, folder: Optional[str] = None) -> bool:
+    """Whether a chalktalk designer already answers on this port (for `folder`, if named)."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/chalktalk", timeout=1) as r:
+            there = json.load(r)
+    except (OSError, ValueError):
+        return False
+    if not isinstance(there, dict) or there.get("app") != "chalktalk":
+        return False                                     # something else lives on this port
+    return folder is None or there.get("folder") == _fingerprint(folder)
+
+
+# A quiet designer (the shortcut's) stops on its own: when nobody ever opened it,
+# a while after the last page said goodbye (long enough for a reload, or for a
+# tab in the background, which may only check in once a minute), or after a
+# long silence (a browser that closed without saying so).
+_NOBODY_CAME = 120
+_AFTER_BYE = 75
+_SILENCE = 600
+
+
+def _should_stop(session: Session, now: float) -> bool:
+    if session.seen is None:
+        return now - session.started > _NOBODY_CAME
+    if session.bye is not None and now - session.bye > _AFTER_BYE:
+        return True
+    return now - session.seen > _SILENCE
+
+
+def _watch(srv: ThreadingHTTPServer, every: float = 5.0) -> None:
+    while not _should_stop(srv.session, time.monotonic()):
+        time.sleep(every)
+    srv.shutdown()
+
+
+def serve(session: Session, port: int = DEFAULT_PORT, open_browser: bool = True,
+          quiet: bool = False) -> None:
+    """Serve until Ctrl+C, or, `quiet`, until the page has gone."""
     srv = make_server(session, port)
     url = f"http://127.0.0.1:{srv.server_address[1]}/"
     print(f"Designer: {url}")
@@ -357,7 +461,10 @@ def serve(session: Session, port: int = DEFAULT_PORT, open_browser: bool = True)
               + ("" if os.path.exists(session.file) else "  (new: Save creates it)"))
     else:
         print(f"Folder:   {session.root}  (Save asks for a file name)")
-    print("Press Ctrl+C to stop.", flush=True)    # before the wait, even when piped
+    print("Stops a little after you close the page." if quiet else "Press Ctrl+C to stop.",
+          flush=True)                                    # before the wait, even when piped
+    if quiet:
+        threading.Thread(target=_watch, args=(srv,), daemon=True).start()
     if open_browser:
         webbrowser.open(url)
     try:
@@ -368,4 +475,4 @@ def serve(session: Session, port: int = DEFAULT_PORT, open_browser: bool = True)
         srv.server_close()
 
 
-__all__ = ["Session", "serve", "make_server", "ROUTES", "DEFAULT_PORT"]
+__all__ = ["Session", "serve", "make_server", "running_at", "ROUTES", "DEFAULT_PORT"]
