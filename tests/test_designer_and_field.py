@@ -179,8 +179,9 @@ def test_designer_is_self_contained():
     assert "https://" not in html
     assert "<script src=" not in html
     assert "<link rel=" not in html
-    # the one thing it asks for is its own `chalk design` server, by a relative path
-    assert re.findall(r"fetch\(([^,)]*)", html) == ['"api/" + name']
+    # the only thing it asks for is its own `chalk design` server, by a relative path
+    fetched = re.findall(r"fetch\(([^,)]*)", html)
+    assert fetched and all(f.startswith('"api/') for f in fetched), fetched
 
 
 def test_app_template_keeps_its_placeholders():

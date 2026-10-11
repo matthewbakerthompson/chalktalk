@@ -13,6 +13,7 @@ own machine, and Save writes `week3.json`: the same file a script loads with
 
 ```bash
 chalk design week3.json      # draw in the browser; Save writes the file
+chalk shortcut               # a Chalktalk icon: double-click, no terminal
 chalk demo --out out/        # one of everything: playbook, call sheet, wristband
 ```
 
@@ -64,6 +65,19 @@ pip install -e .
 Requires Python 3.10+. Two dependencies: `pydantic` and `reportlab` (PDF export).
 The designer needs nothing more: `chalk design` serves it with the standard
 library, and the page loads nothing from the internet.
+
+For a coach who would rather not open a terminal again:
+
+```bash
+chalk shortcut
+```
+
+puts a Chalktalk icon on the desktop and in the Start menu (on macOS, an app
+in `~/Applications`; on Linux, an entry in the applications menu).
+Double-click it and the designer opens in the browser on the playbook folder,
+with no console window; double-click it again and the same designer comes to
+the front. It stops by itself a minute or so after the page is closed.
+`chalk shortcut --remove` takes the icons away.
 
 ---
 
@@ -377,13 +391,15 @@ Two things worth knowing:
 chalk design week3.json               # edit a playbook (Save creates it if it's new)
 chalk design my_play.json             # or a single play
 chalk design mesh_concept             # start from a catalog concept
-chalk design                          # a blank book; Save asks for a file name
+chalk design                          # your playbook folder; Open lists what's in it
+chalk design --folder ~/scouting      # another folder
 chalk design --level hs --no-open     # high school hashes; open the address yourself
 ```
 
 It runs a small server on your own machine (127.0.0.1, port 8765 unless that is
 taken), opens your browser on it, and keeps going until you press Ctrl+C, the
-way Jupyter does. Nothing outside your machine can reach it. The field is the
+way Jupyter does (`--quiet`, which the shortcut uses, stops it once the page
+has been closed instead). Nothing outside your machine can reach it. The field is the
 window and the tools float over it. The first time it opens, a start screen
 offers four concepts, the whole library, a file, or a blank formation. Drop a
 play or playbook `.json` anywhere on the window to open it.
@@ -461,11 +477,22 @@ chalk book week3.json -o week3.html
 
 ### Where your plays live
 
-In the file you name, on your own disk. Save writes the file `chalk design`
-opened; with no file, it asks for a name, relative to the folder you started
-it in (or a full path), and asks before replacing a file that is already
-there. Python checks the playbook loads before it writes, so a file the
-designer saved always opens with `Playbook.load`.
+In ordinary files on your own disk, by default in a `chalktalk` folder in your
+Documents (set `CHALKTALK_FOLDER`, or pass `--folder`, to use another). **Open**
+lists the playbooks there, newest first, with the ones you opened recently on
+top, and opens the real file, so Save writes back to it. "From elsewhere…"
+takes any file from the browser's picker instead; that one is a copy, and Save
+asks where to put it. **Show in folder**, next to the file name, opens the
+file manager on the file, for emailing it to a staff or backing it up.
+
+Save writes the file the designer opened; with no file, it asks for a name,
+relative to the playbook folder (or a full path), and asks before replacing a
+file that is already there. Python checks the playbook loads before it writes,
+so a file the designer saved always opens with `Playbook.load`. If the
+designer has stopped (the terminal was closed, or the computer slept through
+it), the page says so in plain words instead of failing to save: your work is
+kept in the browser, and reloading once the designer is running again picks
+up where you were.
 
 The browser also keeps a working copy, so closing the tab loses nothing. The
 playbook panel shows which file the book belongs to and whether it has unsaved
@@ -749,6 +776,7 @@ chalk design --theme paper
 
 ```bash
 chalk design week3.json              # the visual designer, in your browser
+chalk shortcut                       # a desktop / Start menu icon for it (--remove to undo)
 chalk book week3.json                # a designer playbook to PDF or HTML
 chalk book week3.json --sheet wristband --size teen --copies 2   # or callsheet, script, install,
                                      #   drivecards, gameplan, qbcard, boards, scout

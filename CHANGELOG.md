@@ -29,6 +29,31 @@ package with a designer of its own, not an app to keep online.
 - A one-play file opened from the browser no longer shows unsaved changes the
   moment it opens.
 
+### A folder for playbooks, and an icon to start the designer
+- **Playbooks live in `Documents/chalktalk`** unless `--folder` or
+  `CHALKTALK_FOLDER` names another (the real Documents folder on Windows,
+  even when OneDrive has moved it). `chalk design` with no file starts there,
+  and creates the folder the first time.
+- **Open lists the playbooks in that folder**, newest first, with each one's
+  title, play count and when it was saved, and the files opened recently on
+  top. It opens the real file, so Save writes back to it instead of asking
+  for a name. "From elsewhere…" still takes a file from the browser's picker.
+- **Show in folder** opens the file manager on the playbook's file.
+- When the designer has stopped, the page says so and how to get it back,
+  instead of a save that fails with a network error. The work is kept in the
+  browser either way.
+- **`chalk shortcut`** puts a Chalktalk icon on the desktop and in the Start
+  menu on Windows, an app in `~/Applications` on macOS, and an applications
+  menu entry on Linux. It starts `chalk design --quiet` without a console
+  window. `--folder` bakes a folder into it; `--remove` takes it away.
+- **`chalk design --quiet`** stops by itself a minute or so after the last
+  page is closed, or two minutes after starting if no page ever opens. A
+  second launch with nothing to open brings the running designer to the
+  front instead of starting another. Started without a console, it keeps
+  what it would have printed in `designer.log` in chalktalk's data folder
+  (`%APPDATA%\chalktalk` on Windows).
+- The designer has an icon of its own in the browser tab.
+
 ### Printing, in Python
 - **`chalktalk.paper` prints every sheet a staff uses from one playbook**:
   `paper.render(kind, book, ...)` for the playbook, call sheet, wristband,
