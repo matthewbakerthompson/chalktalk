@@ -116,6 +116,11 @@ load, so edit `app.html` and reload the browser.
 chalk design week3.json --no-open     # then open the address it prints
 ```
 
+`designer/home.py` knows the coach's playbook folder and lists it for Open;
+`designer/shortcut.py` makes the desktop icons. Point `CHALKTALK_FOLDER` at a
+scratch folder to try Open without touching your own Documents, and give
+`shortcut.create` explicit `targets` to try a shortcut somewhere disposable.
+
 Two rules keep it honest:
 
 1. **The browser and Python must agree on geometry.** Routes are stored relative
@@ -142,3 +147,10 @@ enforces that too.
 - Terminal output stays ASCII (call sheets get printed on Windows machines in
   press boxes). HTML output can use whatever it likes.
 - Football terminology over programmer terminology in anything a coach reads.
+- Docs, help and messages say what a thing does and how to use it. No
+  slogans, comparisons with other tools, or feature counts.
+
+## Releasing
+
+See [RELEASING.md](RELEASING.md). The version is set only in
+`chalktalk/__init__.py`, and `CHANGELOG.md` needs a section for it.

@@ -1,8 +1,7 @@
 """
-The designer prints the sheets Python prints: call sheets, wristbands, practice
-scripts. These tests run the browser's own builders in node, against the same
-playbook, and require the same sections, numbers and calls Python produces, so
-a wristband printed from the browser agrees with a call sheet printed by Python.
+Python prints every sheet now (chalktalk.paper, tested in test_paper.py). What
+the page still does itself is say how a situation reads and which call-sheet
+section a play lands in; these run that code in node against Python's.
 """
 import json
 import os
@@ -78,58 +77,6 @@ def test_the_browser_ships_pythons_buckets_in_order():
     assert [title for title, _ in buckets] == list(STANDARD_BUCKETS)
 
 
-def test_call_sheet_matches_python():
-    book = _book()
-    sheet = CallSheet.from_playbook(book).number()
-    js = _js(book, "return callSheetData(__book).sections"
-                   ".map(s => [s.title, s.rows.map(r => [r.number, r.call])]);")
-    assert js == _sheet_rows(sheet)
-    assert {title for title, _ in js} >= {"Openers", "1st & 10", "3rd & 1-2", "Goal Line",
-                                          "Two Minute", "Red Zone", "Base"}
-
-
-def test_call_sheet_keeps_numbers_the_book_already_has():
-    book = _book()
-    plays = list(book.plays)
-    plays[0] = plays[0].numbered(40)
-    plays[3] = plays[3].numbered(7)
-    book = book.model_copy(update={"plays": plays})
-    sheet = CallSheet.from_playbook(book)                # numbered: left alone
-    js = _js(book, "return callSheetData(__book).sections"
-                   ".map(s => [s.title, s.rows.map(r => [r.number, r.call])]);")
-    assert js == _sheet_rows(sheet)
-
-
-@pytest.mark.parametrize("renumber", [False, True])
-def test_wristband_matches_python(renumber):
-    book = _book()
-    if renumber:
-        book = book.model_copy(update={"plays": [p.numbered(20 + i)
-                                                 for i, p in enumerate(book.plays)]})
-    band = Wristband.from_call_sheet(CallSheet.from_playbook(book), columns=3)
-    js = _js(book, "return wristbandData(callSheetData(__book), 3).entries"
-                   ".map(e => [e.number, e.call, e.group, e.note]);")
-    assert js == [[e.number, e.call, e.group, e.note] for e in band.entries]
-
-
-@pytest.mark.parametrize("reps,alternate", [(1, False), (2, True)])
-def test_practice_script_matches_python(reps, alternate):
-    book = _book()
-    script = Script(name=book.name).add_all(book.plays, reps=reps)
-    if alternate:
-        script = script.alternate_hashes()
-    js = _js(book, f"const s = scriptData(__book, {reps}, {str(alternate).lower()});"
-                   "return {rows: s.entries.map(e => [e.number, e.sit, e.hash, e.call, e.look, e.reps]),"
-                   " balance: s.balance};")
-    rows = [[e.number, e.situation.short() if e.situation else "",
-             e.hash_mark.value if e.hash_mark else "", e.call, e.look_name, e.reps]
-            for e in script.entries]
-    assert js["rows"] == rows
-    b = script.balance()
-    assert js["balance"] == {"total_reps": b["total_reps"], "run_pct": b["run_pct"],
-                             "pass_pct": b["pass_pct"], "personnel": b["personnel"]}
-
-
 def test_situations_read_the_same_in_both():
     sits = [
         S.Situation(down=1, distance=10), S.Situation(down=1, distance=10, yard_line=8),
@@ -140,11 +87,6 @@ def test_situations_read_the_same_in_both():
         S.Situation(down=3, distance=7, label="3rd & long special"),
     ]
     payload = json.dumps([s.model_dump(mode="json") for s in sits])
-    js = _js(_book(), f"return {payload}.map(s => [sitDescribe(s), sitShort(s)]);")
-    assert js == [[s.describe(), s.short()] for s in sits]
+    js = _js(_book(), f"return {payload}.map(s => sitDescribe(s));")
+    assert js == [s.describe() for s in sits]
 
-
-def test_percentages_round_like_python():
-    values = [0.5, 1.5, 2.5, 12.5, 13.5, 62.5, 33.3, 66.7]
-    js = _js(_book(), f"return {json.dumps(values)}.map(pyRound);")
-    assert js == [round(v) for v in values]

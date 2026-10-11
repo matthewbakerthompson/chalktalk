@@ -80,6 +80,24 @@ def test_saving_needs_the_pages_token(served, tmp_path):
     assert Playbook.load(str(tmp_path / "week3.json")).team == "Owls"
 
 
+def test_one_connection_carries_request_after_request(served):
+    """The page keeps its connection open; a refused request mustn't garble the next one."""
+    port = served.server_address[1]
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+    headers = {"Host": f"127.0.0.1:{port}", "Content-Type": "application/json",
+               "X-Chalktalk-Token": served.session.token}
+    body = json.dumps({"state": {}, "outcome": "gain", "gain": 4})
+    for _ in range(3):
+        conn.request("POST", "/api/advance", body, headers)
+        r = conn.getresponse()
+        assert r.status == 200 and json.loads(r.read())["state"]["down"] == 2
+    conn.request("POST", "/api/advance", body, {**headers, "X-Chalktalk-Token": "wrong"})
+    r = conn.getresponse()
+    assert r.status == 403 and r.getheader("Connection") == "close"
+    r.read()
+    conn.close()
+
+
 def test_another_sites_name_is_turned_away(served):
     """A page that rebinds its own domain to 127.0.0.1 still sends its own name."""
     assert _ask(served, "GET", "/", host="evil.example")[0] == 403
@@ -142,13 +160,46 @@ def test_the_default_port_moves_over_when_taken(tmp_path, monkeypatch):
             srv.server_close()
 
 
+def test_the_page_prints_through_python(served):
+    book = json.loads(_book().to_json())
+    status, data = _ask(served, "POST", "/api/print", {"kind": "callsheet", "book": book, "columns": 3})
+    assert status == 200
+    html = json.loads(data)["html"]
+    assert html.startswith("<!doctype html>") and "column-count:3" in html
+    status, data = _ask(served, "POST", "/api/print_info", {"kind": "script", "book": book, "reps": 2})
+    assert status == 200 and json.loads(data)["summary"].startswith("4 reps")
+
+
+def test_print_choices_are_kept_in_bounds(served):
+    book = json.loads(_book().to_json())
+    status, data = _ask(served, "POST", "/api/print",
+                        {"kind": "callsheet", "book": book, "columns": 99, "level": "arena"})
+    assert status == 200 and "column-count:3" in json.loads(data)["html"]
+
+
+def test_a_sheet_that_needs_a_key_says_so(served):
+    from chalktalk.models import CallSystem, GamePlan
+    book = _book().model_copy(update={"game_plan": GamePlan(calls=CallSystem(methods=["wristband"]))})
+    status, data = _ask(served, "POST", "/api/print", {"kind": "qbcard", "book": json.loads(book.to_json())})
+    assert status == 400 and json.loads(data)["error"] == "Set a key first"
+    status, _ = _ask(served, "POST", "/api/print", {"kind": "menu", "book": json.loads(book.to_json())})
+    assert status == 400
+
+
+def test_call_numbers_come_in_call_sheet_order(served):
+    from chalktalk import paper
+    book = _book()
+    status, data = _ask(served, "POST", "/api/call_order", {"book": json.loads(book.to_json())})
+    assert status == 200 and json.loads(data)["order"] == paper.call_order(book)
+
+
 def test_chalk_design_opens_a_playbook(tmp_path, monkeypatch, capsys):
     from chalktalk import cli
     _book().save(str(tmp_path / "book.json"))
     monkeypatch.chdir(tmp_path)
     started = {}
-    monkeypatch.setattr(S, "serve", lambda session, port, open_browser:
-                        started.update(session=session, port=port, open=open_browser))
+    monkeypatch.setattr(S, "serve", lambda session, port, open_browser, quiet=False:
+                        started.update(session=session, port=port, open=open_browser, quiet=quiet))
     assert cli.main(["design", "book.json", "--no-open"]) == 0
     session = started["session"]
     assert session.file == str(tmp_path / "book.json") and started["open"] is False

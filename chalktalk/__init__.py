@@ -1,30 +1,24 @@
 """
-chalktalk — design, manage, and render American football plays.
+chalktalk: football plays and playbooks in Python.
 
-Playbook as code: plays are data, so they diff in git, round-trip through
-JSON, and render to SVG, PDF, and printable call sheets.
+Plays are Pydantic models that save as JSON. The library builds plays from
+formations, routes, blocking schemes and quarterback actions, draws them as
+SVG, PDF and HTML, and makes call sheets, practice scripts, wristbands and
+game plans from a playbook. `chalk design` opens the designer in a browser.
 
-Quick-start
------------
-from chalktalk import adjustments as A
-from chalktalk.catalog import (passing, running, redzone,
-                               playaction, screens, rpo)
-from chalktalk.templates import routes as R, defense as D
+    from chalktalk import adjustments as A
+    from chalktalk.catalog import passing, series as SR
+    from chalktalk.templates import defense as D
 
-mesh = passing.mesh_concept()
-mesh.render().save("mesh.svg")
+    mesh = passing.mesh_concept()
+    mesh.render().save("mesh.svg")
+    jet = mesh.adjust(A.MOTION("Z", "jet"), A.PROTECTION("Slide Rt"))
 
-# Alts: motion, tags, protection, flip — all composable and serializable
-mesh_jet = mesh.adjust(A.MOTION("Z", "jet"), A.PROTECTION("Slide Rt"))
+    iz = SR.inside_zone_series()
+    script = iz.to_script(reps=2).with_looks([D.NICKEL_425(), D.FOUR_THREE_OVER()])
+    print(script.table())
 
-# Scripted series — a base play plus everything that punishes over-reaction
-from chalktalk.catalog import series as SR
-iz = SR.inside_zone_series()
-print(iz.describe())
-
-# Practice script, call sheet, wristband
-script = iz.to_script(reps=2).with_looks([D.NICKEL_425(), D.FOUR_THREE_OVER()])
-print(script.table())
+Documentation: https://github.com/matthewbakerthompson/chalktalk#readme
 """
 from .models import (
     Point, Player, Position,
@@ -62,4 +56,5 @@ __all__ = [
     "templates", "catalog",
 ]
 
-__version__ = "0.12.0"
+__version__ = "0.13.0"
+DOCS_URL = "https://github.com/matthewbakerthompson/chalktalk#readme"

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.13.0
 
 **The designer runs on your own machine and saves your files.**
 `chalk design week3.json` starts a small server on 127.0.0.1, opens the
@@ -28,6 +28,109 @@ package with a designer of its own, not an app to keep online.
   works.
 - A one-play file opened from the browser no longer shows unsaved changes the
   moment it opens.
+
+### A folder for playbooks, and an icon to start the designer
+- **Playbooks live in `Documents/chalktalk`** unless `--folder` or
+  `CHALKTALK_FOLDER` names another (the real Documents folder on Windows,
+  even when OneDrive has moved it). `chalk design` with no file starts there,
+  and creates the folder the first time.
+- **Open lists the playbooks in that folder**, newest first, with each one's
+  title, play count and when it was saved, and the files opened recently on
+  top. It opens the real file, so Save writes back to it instead of asking
+  for a name. "From elsewhere…" still takes a file from the browser's picker.
+- **Show in folder** opens the file manager on the playbook's file.
+- When the designer has stopped, the page says so and how to get it back,
+  instead of a save that fails with a network error. The work is kept in the
+  browser either way.
+- **`chalk shortcut`** puts a Chalktalk icon on the desktop and in the Start
+  menu on Windows, an app in `~/Applications` on macOS, and an applications
+  menu entry on Linux. It starts `chalk design --quiet` without a console
+  window. `--folder` bakes a folder into it; `--remove` takes it away.
+- **`chalk design --quiet`** stops by itself a minute or so after the last
+  page is closed, or two minutes after starting if no page ever opens. A
+  second launch with nothing to open brings the running designer to the
+  front instead of starting another. Started without a console, it keeps
+  what it would have printed in `designer.log` in chalktalk's data folder
+  (`%APPDATA%\chalktalk` on Windows).
+- The designer has an icon of its own in the browser tab.
+
+### Installing, and finding help
+- **Ready for `pip install chalktalk`.** The version is set in one place
+  (`chalktalk.__version__`), the package metadata names the license
+  (PolyForm Noncommercial 1.0.0) and the project's links, and the source
+  package includes the changelog and the examples. CI builds the wheel and
+  runs it from a clean install on Windows, macOS and Linux, and tests Python
+  3.13 as well. Publishing a GitHub release uploads it to PyPI; RELEASING.md
+  has the steps.
+- **`chalk` on its own says what chalktalk is** and lists the commands by
+  what they're for, instead of an argparse error. `chalk --help` shows the
+  same. A mistyped command suggests the right one, and `chalk list` on its
+  own lists what it can list.
+- Help text and error messages name the command the way it was typed, so
+  someone running `python -m chalktalk` gets examples that work as written.
+- **Help in the designer:** `?` or F1, Help in the More menu, or the command
+  palette. It covers getting started, the controls, where playbooks are kept
+  (with a button that shows the folder), printing to PDF, and what to do
+  when something goes wrong, and shows the version and a link to the
+  documentation.
+- The start screen says where Save keeps the playbook instead of mentioning
+  Python, and `chalk shortcut` says where the new icon is.
+- The README is plain documentation, with installation steps for coaches and
+  a troubleshooting section.
+
+### Printing, in Python
+- **`chalktalk.paper` prints every sheet a staff uses from one playbook**:
+  `paper.render(kind, book, ...)` for the playbook, call sheet, wristband,
+  practice script, install book, drive cards, game plan, QB card, sign boards
+  and halftime sheet, and `paper.info` says what a sheet will hold and what it
+  is missing. The coded sheets take the staff's key and print its
+  fingerprint, never the key.
+- The drive cards, game plan, QB card, sign boards, halftime sheet and install
+  book had no Python printer before; only the browser could print them. They
+  are new in `renderer/plan_sheets.py` and `sheets.install_book_html`, and
+  print the same pages the designer did.
+- The designer's Print asks `chalk design` for the page, so every sheet comes
+  from one place. The playbook and install book follow the layers on screen
+  and the field level, as before. Write the call numbers into the plays asks
+  Python for the call-sheet order.
+- The browser's own copies of the sheets, and of the wristband codes, line
+  calls and sign boards they printed, are gone, with the node tests that held
+  them to Python. The page is about 640 lines shorter.
+
+### The planner, difficulty and scout, in Python only
+- The designer's Game panel, plan builder and play sheet ask `chalk design`
+  for what they show (`designer/views.py`): the planner's picks with their
+  reasons and branches, the scripted call, the log marked on and off
+  schedule, the halftime numbers, the plan check, the drive-script tree
+  ranked slot by slot, and every play's difficulty. Drafting the plan,
+  filling a script and moving the chains after a result run there too.
+- A panel keeps what it shows while a newer answer is on its way and redraws
+  when it lands, so nothing jumps back after an edit. Answers take a few
+  milliseconds; the server keeps the last few books it read, so asking again
+  about the same book doesn't read it again, and it keeps the page's
+  connection open between requests.
+- `planner.script_log` gives the calls above a slot in a drive script as the
+  drive so far, the way the slot is ranked.
+- The browser's copies of the planner, the difficulty score, the scout and
+  the down-and-distance arithmetic are gone, with the node tests that held
+  them to Python: about 650 lines of the page.
+
+### The same answers from the command line
+- `chalk next week3.json --down 3 --distance 8 --at "opp 40" --look "Cover 3"`
+  prints the planner's picks with their points, reasons and branches: the
+  Game panel in a terminal. `--fresh` leaves the game log out.
+- `chalk scout week3.json` prints the halftime report from the book's log:
+  on schedule, third downs, what a scout sees, by down, what is working,
+  explosives, what is set up and not called, and what is left on the sheet.
+- `chalk check week3.json` prints what a coordinator would flag.
+- `chalk draft week3.json` shows the blanks it would fill (series, roles, the
+  call sheet, the openers) and saves only with `-o`.
+- `chalk book week3.json --sheet KIND` prints any sheet in `chalktalk.paper`
+  (`--columns`, `--size`, `--copies`, `--reps`, `--hashes`, `--per-row`). A
+  coded sheet takes `--key` or `CHALKTALK_KEY`, and at a terminal asks for
+  the key rather than leave it in shell history. Without `--sheet` it prints
+  the playbook as before, and it now opens a single play's file as well.
+- Everything printed to the terminal is plain ASCII.
 
 ### Removed
 - `chalk site`, the installable web app (manifest, service worker, icons), the

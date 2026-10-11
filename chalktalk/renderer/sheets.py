@@ -330,8 +330,9 @@ def wristband_html(band: "Wristband", size: str = "adult", copies: int = 1) -> s
 # ── Playbook / series pages with diagrams ─────────────────────────────────────
 
 def _play_card(play: "Play", scale: float, extra: str = "",
-               level: Optional[str] = None, theme: str = "paper") -> str:
-    svg = play.render(scale=scale, level=level, theme=theme).render()
+               level: Optional[str] = None, theme: str = "paper",
+               hide: Sequence[str] = ()) -> str:
+    svg = play.render(scale=scale, level=level, theme=theme, hide=hide or None).render()
     meta = []
     if play.situation:
         meta.append(play.situation.describe())
@@ -348,17 +349,47 @@ def _play_card(play: "Play", scale: float, extra: str = "",
 
 def playbook_html(playbook: "Playbook", columns: int = 2, scale: float = 9.0,
                   subtitle: Optional[str] = None,
-                  level: Optional[str] = None, theme: str = "paper") -> str:
-    cards = "".join(_play_card(p, scale, level=level, theme=theme)
+                  level: Optional[str] = None, theme: str = "paper",
+                  hide: Sequence[str] = ()) -> str:
+    cards = "".join(_play_card(p, scale, level=level, theme=theme, hide=hide)
                     for p in playbook.plays)
     body = (
-        _header(playbook.name, [subtitle or ""],
-                [playbook.team or "", str(playbook.season or ""),
-                 f"{len(playbook)} plays"])
+        _header(playbook.name, [subtitle or ""], _book_meta(playbook))
         + f"<div class=\"cards\" style=\"grid-template-columns:repeat({columns},1fr)\">"
         + cards + "</div>" + _footer()
     )
     return _page(playbook.name, body)
+
+
+def _book_meta(playbook: "Playbook") -> list[str]:
+    return [playbook.team or "", str(playbook.season or ""), f"{len(playbook)} plays"]
+
+
+def install_days(playbook: "Playbook") -> list[tuple[Optional[int], list["Play"]]]:
+    """The book by install day, earliest first; plays with no day come last, as None."""
+    days: dict[Optional[int], list] = {}
+    for p in playbook.plays:
+        days.setdefault(p.install_day, []).append(p)
+    order = sorted(d for d in days if d is not None)
+    return [(d, days[d]) for d in order] + ([(None, days[None])] if None in days else [])
+
+
+def install_book_html(playbook: "Playbook", columns: int = 2, scale: float = 9.0,
+                      level: Optional[str] = None, theme: str = "paper",
+                      hide: Sequence[str] = ()) -> str:
+    """The book grouped by the day each play goes in: what to teach, in order."""
+    blocks = []
+    for day, plays in install_days(playbook):
+        title = "Not scheduled" if day is None else f"Day {day}"
+        cards = "".join(_play_card(p, scale, level=level, theme=theme, hide=hide) for p in plays)
+        blocks.append(f"<div class=\"week\"><h2>{title}</h2></div>"
+                      f"<div class=\"cards\" style=\"grid-template-columns:repeat({columns},1fr)\">"
+                      f"{cards}</div>")
+    css = (".week h2{background:var(--ink);color:var(--paper);padding:4px 8px;"
+           "border-left:none;margin:18px 0 10px;border-radius:3px}")
+    body = (_header(playbook.name, ["Install book"], _book_meta(playbook))
+            + "".join(blocks) + _footer())
+    return _page(playbook.name, body, css)
 
 
 def series_html(series: "Series", columns: int = 2, scale: float = 9.0,
@@ -450,4 +481,5 @@ def series_set_html(series_set: "SeriesSet", columns: int = 2,
 
 
 __all__ = ["script_html", "practice_html", "call_sheet_html", "wristband_html",
-           "playbook_html", "series_html", "series_set_html"]
+           "playbook_html", "install_book_html", "install_days", "series_html",
+           "series_set_html"]

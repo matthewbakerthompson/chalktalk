@@ -372,8 +372,10 @@ dialog.printdlg{max-width:min(660px,94vw)}
 .book-head{display:flex;align-items:center;gap:4px;padding:8px 8px 2px 8px}
 .book-head .title{width:auto;flex:1;min-width:0;font-size:14px}
 .book-meta{display:flex;align-items:center;gap:6px;padding:0 12px 4px;color:var(--muted);font-size:12px}
-.book-file{padding:2px 16px 10px;font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--hair);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.book-file.warn{color:var(--ink-2)}
+.book-file{display:flex;align-items:center;gap:6px;padding:2px 10px 8px 16px;font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--hair)}
+.book-file #bookFile{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book-file #bookFile.warn{color:var(--ink-2)}
+.book-file button{flex:none;height:22px;padding:0 6px;font-size:11.5px}
 .book-meta .inline{width:11ch}
 .book-meta .inline.pers{width:6ch}
 .book-meta .count{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -496,6 +498,33 @@ dialog::backdrop{background:oklch(0 0 0 / .6)}
 .dlg-foot{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--hair)}
 .dlg-foot .note{margin:0 auto 0 0}
 dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
+dialog.opendlg{max-width:min(560px,94vw)}
+.opendlg .dlg-body{max-height:min(60vh,520px);overflow-y:auto;padding-top:6px}
+.opendlg h3{margin:12px 0 6px;font-size:11.5px;font-weight:600;color:var(--muted)}
+.opendlg .olist{display:flex;flex-direction:column;gap:2px}
+.orow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;height:auto;padding:8px 10px;border-color:transparent;text-align:left}
+.orow:hover,.orow:focus-visible{background:oklch(1 0 0 / .06)}
+.orow .nm{font-size:13px;font-weight:600;color:var(--ink)}
+.orow .sub{font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
+.opendlg .dlg-foot .note{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+dialog.helpdlg{max-width:min(600px,94vw)}
+.helpdlg .dlg-body{max-height:min(70vh,640px);overflow-y:auto;padding-top:2px;font-size:12.5px;line-height:1.5;color:var(--ink-2)}
+.helpdlg h3{margin:14px 0 6px;font-size:11.5px;font-weight:600;color:var(--muted)}
+.helpdlg h3:first-child{margin-top:4px}
+.helpdlg p,.helpdlg ol,.helpdlg ul{margin:0 0 6px}
+.helpdlg ol,.helpdlg ul{padding-left:18px}
+.helpdlg li{margin-bottom:4px}
+.helpdlg b{color:var(--ink);font-weight:600}
+.helpdlg .keys{width:100%;border-collapse:collapse}
+.helpdlg .keys td{padding:3px 0;vertical-align:top}
+.helpdlg .keys td:first-child{color:var(--muted);width:42%;padding-right:12px}
+.helpdlg .path{font-family:var(--mono);font-size:11.5px;overflow-wrap:anywhere;color:var(--ink)}
+.helpdlg .dlg-foot{justify-content:space-between}
+.helpdlg .dlg-foot a{color:var(--ink-2);font-size:12px}
+.stopped{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:1000;max-width:min(560px,calc(100vw - 24px));
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-radius:var(--r-3);
+  background:var(--panel);border:1px solid var(--accent-line);box-shadow:0 20px 40px -12px oklch(0 0 0 / .7);font-size:12.5px;color:var(--ink-2)}
+.stopped b{color:var(--ink)}
 dialog.savedlg{max-width:min(440px,92vw)}
 .savedlg label{display:block;margin-bottom:6px;color:var(--muted);font-size:12px}
 .savedlg input{width:100%}
@@ -735,7 +764,8 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
         inputmode="numeric">
       <span class="count" id="bookCount"></span>
     </div>
-    <div class="book-file" id="bookFile"></div>
+    <div class="book-file"><span id="bookFile"></span>
+      <button type="button" class="ghost" id="btnReveal" hidden title="Show this file in its folder">Show in folder</button></div>
     <div class="book-list" id="bookList" role="listbox" aria-label="Plays"></div>
     <div class="book-undo" id="bookUndo" hidden>
       <span>Deleted <b id="bookUndoName"></b></span><button id="btnUndelete">Undo</button>
@@ -810,6 +840,7 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
               <button id="btnPng" role="menuitem">Download PNG</button>
               <button id="btnJson" role="menuitem">View JSON</button>
               <button id="btnPaste" role="menuitem">Paste JSON…</button>
+              <button id="btnHelp" role="menuitem">Help and shortcuts</button>
             </div>
           </div>
           <button class="primary" id="btnSave" title="Save to a file (Ctrl+S)">Save</button>
@@ -858,14 +889,14 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
       <div id="toast" role="status" aria-live="polite"></div>
       <div class="card welcome" id="welcome" role="dialog" aria-labelledby="welcomeTitle" hidden>
         <h2 id="welcomeTitle">Start a play</h2>
-        <p class="lede">Take a concept and make it yours, or start from a blank formation.
-          Save writes the playbook to a file on your computer, the same file Python opens.</p>
+        <p class="lede">Start from a play in the library, or from a blank formation. Save keeps
+          the playbook as a file on this computer, and Open finds it again.</p>
         <div class="welcome-grid" id="welcomeGrid"></div>
         <div class="welcome-foot">
           <button id="welcomeLib">Browse all <span id="welcomeCount"></span> concepts</button>
           <button id="welcomeFile" title="Open a play or a playbook .json">Open a file</button>
           <button id="welcomeBlank">Start blank</button>
-          <span class="tip kbd-only"><kbd>Ctrl</kbd>+<kbd>K</kbd> reaches everything</span>
+          <span class="tip kbd-only"><kbd>?</kbd> help · <kbd>Ctrl</kbd>+<kbd>K</kbd> finds anything</span>
         </div>
       </div>
     </div>
@@ -1042,6 +1073,79 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
 </dialog>
 
 <input type="file" id="fileInput" accept=".json,application/json" hidden>
+<dialog id="openDialog" class="opendlg" aria-labelledby="openTitle">
+  <div class="dlg-head">
+    <h2 id="openTitle">Open a playbook</h2>
+    <button class="ghost icon" id="openClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="dlg-body" id="openList"></div>
+  <div class="dlg-foot">
+    <span class="note" id="openWhere"></span>
+    <button type="button" class="ghost" id="openReveal" title="Open this folder in your file manager">Show the folder</button>
+    <button type="button" id="openElsewhere" title="Pick a play or playbook from anywhere on this computer">From elsewhere…</button>
+  </div>
+</dialog>
+<dialog id="helpDialog" class="helpdlg" aria-labelledby="helpTitle">
+  <div class="dlg-head">
+    <h2 id="helpTitle">Help</h2>
+    <button class="ghost icon" id="helpClose" aria-label="Close">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"
+        stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+  <div class="dlg-body">
+    <h3>Getting started</h3>
+    <ol>
+      <li>Pick a play from the <b>Library</b> on the left, or start from a blank formation.</li>
+      <li>Click a player to select it, and drag to move it. To draw a route, select a player
+        and click the field; for a player who already has a route, press <b>Draw</b> first.</li>
+      <li>Press <b>Save</b>. The playbook is kept as a file on this computer.</li>
+    </ol>
+    <h3>Controls</h3>
+    <table class="keys">
+      <tr><td>Select a player</td><td>Click it, on the field or on the bench below</td></tr>
+      <tr><td>Move a player</td><td>Drag it, or arrow keys (<kbd>Shift</kbd> for a full yard)</td></tr>
+      <tr><td>Draw a route</td><td>Click the field, or <b>Draw</b> and <b>Extend</b></td></tr>
+      <tr><td>Finish a route</td><td>Double-click the last point, <b>Done</b>, or <kbd>Enter</kbd></td></tr>
+      <tr><td>Change a route</td><td>Drag a yellow handle; double-click one to delete it</td></tr>
+      <tr><td>Let go of a player</td><td>Click open field, or <kbd>Esc</kbd></td></tr>
+      <tr><td>Flip the play</td><td><kbd>F</kbd></td></tr>
+      <tr><td>Undo</td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td></tr>
+      <tr><td>Find any play, formation or command</td><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td></tr>
+      <tr><td>Open, Save, Print</td><td><kbd>Ctrl</kbd>+<kbd>O</kbd>, <kbd>Ctrl</kbd>+<kbd>S</kbd>, <kbd>Ctrl</kbd>+<kbd>P</kbd></td></tr>
+      <tr><td>Playbook, Game panel</td><td><kbd>P</kbd>, <kbd>D</kbd>; <kbd>[</kbd> and <kbd>]</kbd> turn pages</td></tr>
+      <tr><td>This help</td><td><kbd>?</kbd> or <kbd>F1</kbd></td></tr>
+    </table>
+    <h3>Your playbooks</h3>
+    <p>Saved in <span class="path" id="helpFolder"></span>. <b>Open</b> lists them.
+      To share one with your staff, send them the file; they open it with <b>Open</b>, then
+      <b>From elsewhere</b>.</p>
+    <p><button type="button" class="ghost" id="helpReveal">Show the folder</button></p>
+    <h3>Printing</h3>
+    <p><b>Print</b> makes the playbook, call sheet, wristband, practice script, install book and
+      the game-day sheets. To keep a copy as a file, choose <b>Save as PDF</b> as the printer.</p>
+    <h3>If something goes wrong</h3>
+    <ul>
+      <li><b>The page says the designer has stopped.</b> Start Chalktalk again from its icon, or
+        run <code>chalk design</code>, then reload this page. Your work is kept in this browser
+        in the meantime.</li>
+      <li><b>A file won't open.</b> Open takes plays and playbooks saved by Chalktalk, which end in
+        <code>.json</code>.</li>
+      <li><b>Something disappeared.</b> <kbd>Ctrl</kbd>+<kbd>Z</kbd> steps back. After reloading,
+        <b>Restore the previous working copy</b> in <kbd>Ctrl</kbd>+<kbd>K</kbd> brings back what
+        was on screen before.</li>
+    </ul>
+  </div>
+  <div class="dlg-foot">
+    <span class="note" id="helpVersion"></span>
+    <a id="helpDocs" target="_blank" rel="noopener" hidden>Documentation</a>
+  </div>
+</dialog>
+<div class="stopped" id="stopped" role="alert" hidden>
+  <span><b>The designer has stopped.</b> Your work is kept in this browser. Start Chalktalk again, then</span>
+  <button type="button" id="stoppedReload">Reload this page</button>
+</div>
 <dialog id="saveDialog" class="savedlg" aria-labelledby="saveTitle">
   <form id="saveForm">
     <div class="dlg-head"><h2 id="saveTitle">Save the playbook</h2></div>
@@ -2707,8 +2811,8 @@ function renderInspector(){
       <div><span class="lead">Nothing selected.</span>Pick a player on the field or on the bench.</div>
       <div class="legend kbd-only"><b>Click</b> a player, then the field, to draw · <b>Drag</b> a player or a handle
         · <b>Double-click</b> a handle to delete it · <b>Arrows</b> nudge, <kbd>Shift</kbd> for a yard
-        · <kbd>F</kbd> flips · <kbd>Ctrl</kbd>+<kbd>K</kbd> commands</div>
-      <div class="legend touch-only"><b>Tap</b> a player, then tap the field to draw his route · <b>Drag</b> to move
+        · <kbd>F</kbd> flips · <kbd>Ctrl</kbd>+<kbd>K</kbd> commands · <kbd>?</kbd> help</div>
+      <div class="legend touch-only"><b>Tap</b> a player, then tap the field to draw a route · <b>Drag</b> to move
         · <b>Double-tap</b> a handle to delete it · <b>Pinch</b> to zoom in</div></div>`;
     return;
   }
@@ -2898,6 +3002,18 @@ function renderTitle(){
   document.title = (play.name ? play.name + " · " : "") + "Chalktalk";
 }
 
+// What the play asks of the players, scored by chalktalk.difficulty; redrawn on
+// its own when the answer lands, so nothing else in the sheet is touched.
+function renderDifficulty(){
+  const pv = ask("play_view", {play: exportPlay()}, renderDifficulty);
+  if (!pv) return;
+  const auto = pv.auto;
+  fillSelect($("pDiff"), [["1","Basic"],["2","Standard"],["3","Advanced"]],
+    play.difficulty ? String(play.difficulty) : null, `Auto: ${auto.tier_name}`);
+  $("pDiffWhy").textContent = `${auto.tier_name} (${auto.score} ${auto.score === 1 ? "point" : "points"})`
+    + (auto.reasons.length ? `: ${auto.reasons.join(", ")}.` : ": simple assignments.")
+    + (play.difficulty ? " Your setting stands, and the drive planner treats the play as repped." : "");
+}
 function renderMeta(){
   $("protection").value = play.protection || "";
   $("alerts").value = (play.alerts || []).join("\n");
@@ -2917,12 +3033,7 @@ function renderMeta(){
   $("pRole").value = play.role || "";
   $("pTell").value = play.tell || "";
   $("pWord").value = play.word || "";
-  const auto = difficultyOf(Object.assign({}, play, {difficulty: null}));
-  fillSelect($("pDiff"), [["1","Basic"],["2","Standard"],["3","Advanced"]],
-    play.difficulty ? String(play.difficulty) : null, `Auto: ${tierName(auto.tier)}`);
-  $("pDiffWhy").textContent = `${tierName(auto.tier)} (${auto.score} ${auto.score === 1 ? "point" : "points"})`
-    + (auto.reasons.length ? `: ${auto.reasons.join(", ")}.` : ": simple assignments.")
-    + (play.difficulty ? " Your setting stands, and the drive planner treats the play as repped." : "");
+  renderDifficulty();
   $("callNumber").value = play.call_number ?? "";
   $("sitOut").textContent = describeSituation(play.situation);
   const plan = (qbAssignment() || {}).qb;
@@ -3447,22 +3558,16 @@ function focusRow(i){
 }
 
 /* ─── paper: playbooks, call sheets, wristbands, scripts, install books ─────
-   The sheets Python prints (renderer/sheets.py), built here so a coach without
-   Python gets them. The stylesheet and the call-sheet buckets arrive from
-   Python in the catalog, and a test runs these builders in node against
-   CallSheet, Wristband and Script so the numbers on a wristband printed here
-   match the ones Python would print. */
+   Every sheet is printed by Python (chalktalk.paper): the page asks the
+   `chalk design` server for it and prints what comes back. What stays here
+   is how a situation reads on screen, and which call-sheet section a play
+   lands in, with the buckets Python ships in the catalog. */
 
 // ── situation, ported from models/situation.py ─────────────────────────────
 const ORD = {1:"1st", 2:"2nd", 3:"3rd", 4:"4th"};
 const numOr = v => (v === null || v === undefined || v === "") ? null : +v;
 const fmtG = v => String(+v);                         // Python's format(x, "g")
 const titleWords = s => s.replace(/[A-Za-z]+/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
-// Python rounds half to even; percentages on a script must agree with it.
-function pyRound(x){
-  const r = Math.round(x);
-  return Math.abs(x % 1) === 0.5 && r % 2 !== 0 ? r - 1 : r;
-}
 function zoneFor(y){
   if (y >= 90) return "backed_up"; if (y >= 60) return "own"; if (y >= 41) return "midfield";
   if (y >= 21) return "fringe"; if (y >= 11) return "red_zone"; if (y >= 4) return "low_red";
@@ -3504,15 +3609,6 @@ function sitDescribe(s){
   if (s.clock) bits.push(s.clock);
   return bits.length ? bits.join(", ") : "Any";
 }
-function sitShort(s){
-  const d = numOr(s.down), y = numOr(s.yard_line), dist = numOr(s.distance);
-  if (s.label && d === null && y === null) return s.label;
-  const bits = [];
-  if (d !== null) bits.push(dist !== null ? `${d}&${fmtG(dist)}` : String(d));
-  if (y !== null) bits.push(y <= 50 ? `O${y}` : `-${100 - y}`);
-  if (s.hash_mark) bits.push(s.hash_mark);
-  return bits.join(" ");
-}
 // The full verbal call, as Play.call builds it.
 function playCall(p){
   const bits = [p.formation && p.formation.name, p.name];
@@ -3528,274 +3624,22 @@ function bucketFor(p){
   const hit = (CATALOG.call_sheet_buckets || []).find(([, sit]) => sitMatches(sit, p.situation));
   return hit ? hit[0] : "Base";
 }
-
-// ── data: the same shapes Python builds ────────────────────────────────────
-// CallSheet.from_playbook, numbered unless the book already carries numbers.
-function callSheetData(b){
-  const placed = new Set(), sections = [];
-  for (const [title, sit] of CATALOG.call_sheet_buckets || []){
-    const hits = [];
-    b.plays.forEach((p, i) => {
-      if (placed.has(i) || !p.situation) return;
-      if (sitMatches(sit, p.situation)){ hits.push(p); placed.add(i); }
-    });
-    if (hits.length) sections.push({title, situation: sit, plays: hits});
-  }
-  const leftover = b.plays.filter((p, i) => !placed.has(i));
-  if (leftover.length) sections.push({title: "Base", situation: null, plays: leftover});
-  const numbered = b.plays.some(p => p.call_number);
-  let n = 1;
-  for (const sec of sections)
-    sec.rows = sec.plays.map(p => ({
-      number: numbered ? (p.call_number || null) : n++,
-      call: playCall(p), alerts: p.alerts || [],
-    }));
-  return {name: b.name || "Playbook", team: b.team || null, sections};
-}
-// Wristband.from_call_sheet.
-function wristbandData(sheet, columns){
-  const entries = [];
-  let n = 1;
-  for (const sec of sheet.sections) for (const r of sec.rows){
-    const number = r.number || n;
-    entries.push({number, call: r.call, group: sec.title, note: r.alerts.join("; ") || null});
-    n = number + 1;
-  }
-  return {name: sheet.name, team: sheet.team, columns: columns || 3, entries};
-}
-// Script().add_all(plays, reps=...), optionally .alternate_hashes().
-function scriptData(b, reps, alternate){
-  reps = reps || 1;
-  const hashes = ["L", "R", "M"];
-  const entries = b.plays.map((p, i) => {
-    const look = p.defense ? p.defense.name + (p.defense.coverage ? ` ${p.defense.coverage}` : "") : "";
-    return {number: i + 1, sit: p.situation ? sitShort(p.situation) : "",
-            hash: alternate ? hashes[i % 3] : "", call: playCall(p), look, reps,
-            alerts: p.alerts || [], type: p.play_type || "pass",
-            personnel: (p.formation && p.formation.personnel) || ""};
-  });
-  const total = entries.reduce((t, e) => t + e.reps, 0);
-  const byType = {}, personnel = {};
-  for (const e of entries){
-    byType[e.type] = (byType[e.type] || 0) + e.reps;
-    personnel[e.personnel] = (personnel[e.personnel] || 0) + e.reps;
-  }
-  const denom = Math.max(total, 1);
-  const runs = byType.run || 0, passes = (byType.pass || 0) + (byType.screen || 0);
-  return {name: b.name || "Playbook", entries,
-          balance: {total_reps: total, run_pct: pyRound(100 * runs / denom),
-                    pass_pct: pyRound(100 * passes / denom), personnel}};
-}
-
-// ── pages: renderer/sheets.py's _header, _footer, _page and _play_card ─────
-const sheetHeader = (title, left, right) =>
-  `<header><div><h1>${esc(title)}</h1>`
-  + left.filter(Boolean).map(b => `<div class="sub">${esc(b)}</div>`).join("")
-  + `</div><div class="meta">${right.filter(Boolean).map(b => esc(b)).join("<br>")}</div></header>`;
-const sheetFooter = note =>
-  `<div class="foot"><span>${esc(note || "")}</span><span>generated with chalktalk</span></div>`;
-const sheetPage = (title, body, extraCss) =>
-  `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>${esc(title)}</title>\n`
-  + `<style>${CATALOG.sheet_css || ""}${extraCss || ""}</style>\n</head>\n<body>\n${body}\n</body>\n</html>\n`;
 const chipRow = items => `<div class="chips">${items.filter(Boolean)
   .map(c => `<span class="chip">${esc(c)}</span>`).join("")}</div>`;
-
-// One diagram in the paper look, with the layers the coach has on.
-function paperSvg(p){
-  const keep = {play, look, scale: SCALE, pad: PAD, sel, selDef, selWp, hover};
-  play = p; look = "paper"; SCALE = 14; PAD = 28; sel = null; selDef = null; selWp = -1; hover = null;
-  try {
-    const svg = renderSvg();
-    svg.querySelector("#ui").remove(); svg.querySelector("#preview").remove();
-    svg.removeAttribute("width"); svg.removeAttribute("height");
-    return svg.outerHTML;
-  } finally {
-    ({play, look, sel, selDef, selWp, hover} = keep); SCALE = keep.scale; PAD = keep.pad;
-  }
-}
-function paperCard(p, extra){
-  const meta = [p.situation ? sitDescribe(p.situation) : null, p.protection, ...(p.tags || []).slice(0, 4)];
-  const alerts = (p.alerts || []).map(a => `<div class="alert">! ${esc(a)}</div>`).join("");
-  const desc = p.description ? `<div class="note">${esc(p.description)}</div>` : "";
-  const num = p.call_number ? `${p.call_number}. ` : "";
-  return `<div class="card"><div class="title">${esc(num + playCall(p))}</div>${paperSvg(p)}`
-       + `${extra || ""}${desc}${alerts}${chipRow(meta)}</div>`;
-}
-const cardGrid = (cards, columns) =>
-  `<div class="cards" style="grid-template-columns:repeat(${columns},1fr)">${cards.join("")}</div>`;
-const bookMeta = b => [b.team, b.season ? String(b.season) : null, `${b.plays.length} plays`];
-
-function playbookHtml(b, columns){
-  const body = sheetHeader(b.name, [], bookMeta(b))
-             + cardGrid(b.plays.map(p => paperCard(p)), columns || 2) + sheetFooter();
-  return sheetPage(b.name, body);
-}
-function callSheetHtml(d, columns){
-  const count = d.sections.reduce((n, s) => n + s.rows.length, 0);
-  const sections = d.sections.map(sec => {
-    const items = sec.rows.map(r =>
-      `<li><span class="num">${r.number || "•"}</span><span>${esc(r.call)}`
-      + r.alerts.map(a => `<div class="alert">! ${esc(a)}</div>`).join("") + `</span></li>`).join("");
-    const sub = sec.situation && !isWildcard(sec.situation)
-      ? `<div class="note">${esc(sitDescribe(sec.situation))}</div>` : "";
-    return `<div class="section"><h2>${esc(sec.title)}</h2>${sub}<ol>${items}</ol></div>`;
-  }).join("");
-  const body = sheetHeader(d.name, [d.team], [`${count} calls`])
-             + `<div class="cols" style="column-count:${columns || 2}">${sections}</div>` + sheetFooter();
-  return sheetPage(d.name, body);
-}
-// Wristband inserts (renderer/sheets.py): each prints at the size of the
-// window it slides into, dense and in capitals, with a dashed cut line.
+// The wrist coach's windows, for the print dialog's choices.
 const INSERTS = () => (CATALOG.inserts || {}).sizes || {adult: {w: 5.25, h: 3.25, cols: 3, rows: 19, label: "Adult"}};
-const insertOf = size => INSERTS()[size] || INSERTS().adult;
-function shortCall(text){
-  const words = (CATALOG.inserts || {}).words || {};
-  return String(text || "").split(/\s+/).filter(Boolean)
-    .map(w => Object.prototype.hasOwnProperty.call(words, w.toLowerCase()) ? words[w.toLowerCase()] : w)
-    .filter(Boolean).join(" ");
-}
-function bandLayout(groups, size){
-  const {rows, cols} = insertOf(size), lines = [];
-  for (const [title, entries] of groups){
-    if (title){
-      if (lines.length % rows === rows - 1) lines.push(["gap"]);
-      lines.push(["head", title]);
-    }
-    for (const [code, call] of entries) lines.push(["row", code, call]);
-  }
-  const per = rows * cols, inserts = [];
-  for (let start = 0; start < Math.max(lines.length, 1); start += per){
-    const chunk = lines.slice(start, start + per);
-    inserts.push(Array.from({length: cols}, (_, c) => chunk.slice(c * rows, (c + 1) * rows)));
-  }
-  return inserts;
-}
-const insertHtml = (size, strip, body) => { const s = insertOf(size);
-  return `<div class="insert" style="width:${s.w}in;height:${s.h}in"><div class="strip">${strip}</div><div class="body">${body}</div></div>`; };
-function listBody(columns, size){
-  const {rows} = insertOf(size);
-  return columns.map(col => `<div class="colm" style="grid-template-rows:repeat(${rows},1fr)">`
-    + col.map(l => l[0] === "head" ? `<div class="ln head">${esc(l[1])}</div>`
-        : l[0] === "row" ? `<div class="ln"><span class="c">${esc(l[1])}</span><span class="t">${esc(l[2])}</span></div>`
-        : `<div class="ln"></div>`).join("")
-    + `<div class="ln"></div>`.repeat(rows - col.length) + `</div>`).join("");
-}
-const stripHtml = (left, rule, right) =>
-  `<span>${esc(left)}</span><span class="rule">${esc(rule || "")}</span><span class="fp">${esc(right || "")}</span>`;
-const insertsPage = (cards, copies) => `<div class="inserts">${cards.join("").repeat(Math.max(1, copies || 1))}</div>`;
-const INSERT_FOOT = "Print at actual size (100%) and cut on the dashed lines.";
-
-function wristbandHtml(w, size, copies){
-  size = size || "adult";
-  const groups = new Map();
-  for (const e of w.entries){
-    const g = e.group || "Plays";
-    if (!groups.has(g)) groups.set(g, []);
-    groups.get(g).push([String(e.number), shortCall(e.call)]);
-  }
-  const layout = bandLayout([...groups], size);
-  const cards = layout.map((cols, i) => insertHtml(size, stripHtml(w.name, "", `${i + 1}/${layout.length}`), listBody(cols, size)));
-  const body = sheetHeader(w.name, [w.team], [`${w.entries.length} calls`, insertOf(size).label])
-             + insertsPage(cards, copies) + sheetFooter(INSERT_FOOT);
-  return sheetPage(`${w.name} — Wristband`, body);
-}
-
-// A coded card as a coordinate grid: the first character down the side, the
-// last digit across the top. A blank square is a dead code.
-function gridBody(card, style, label){
-  const rows = style === "letter" ? [...((CATALOG.codes || {}).letters || "ABCDEFGHJK")] : ["1","2","3","4","5","6","7","8","9"];
-  const head = `<tr><th class="r"></th>${[0,1,2,3,4,5,6,7,8,9].map(d => `<th>${d}</th>`).join("")}</tr>`;
-  const body = rows.map(r => `<tr><th class="r">${r}</th>`
-    + [0,1,2,3,4,5,6,7,8,9].map(d => { const id = card.codes[r + d]; return `<td>${id ? esc(label(id)) : ""}</td>`; }).join("")
-    + `</tr>`).join("");
-  return `<table class="grid">${head}${body}</table>`;
-}
-
-// The quarterback's inserts: a coded card per period, and the line calls.
-function qbCardHtml(b, codes, lines, size, copies){
-  size = size || "adult";
-  const plan = planOf(b);
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const label = id => shortCall(playCall(byId[id]));
-  const cards = [];
-  if (codes){
-    const grid = Object.keys(codes.cards[0] ? codes.cards[0].codes : {}).concat(codes.cards[0] ? codes.cards[0].dead : [])
-      .every(c => c.length === 2);
-    for (const card of codes.cards){
-      const rule = [signalRule(card), lines ? lineRule(lines, card.period) : ""].filter(Boolean).join(" · ");
-      const strip = stripHtml(card.period, rule, codes.fingerprint);
-      if (grid) cards.push(insertHtml(size, strip, gridBody(card, codes.style, label)));
-      else {
-        const rows = Object.entries(card.codes).sort((x, y) => codeCmp(x[0], y[0])).map(([c, id]) => [c, label(id)]);
-        for (const cols of bandLayout([["", rows]], size)) cards.push(insertHtml(size, strip, listBody(cols, size)));
-      }
-    }
-  }
-  if (lines){
-    const periods = Object.keys(Object.keys(lines.live).length ? lines.live : lines.order);
-    const rule = periods.map(p => `${p}: ${lineRule(lines, p)}`).join(" · ");
-    const rows = Object.entries(lines.words).map(([w, id]) => [w, label(id)])
-      .concat(lines.dead.map(w => [w, "—"])).sort((x, y) => byLower(x[0], y[0]));
-    for (const cols of bandLayout([["", rows]], size))
-      cards.push(insertHtml(size, stripHtml("Line calls", rule, lines.fingerprint), listBody(cols, size)));
-  }
-  const how = [codes ? "A blank square or a number not on the card means wait." : "",
-               lines ? (Object.keys(lines.order).length ? `At the line: ${lines.calls} calls; only the one the key names counts.`
-                                                       : "At the line: the live word, then the call, twice. Any other signal word is a dummy.") : ""]
-    .filter(Boolean).join(" ");
-  const keyed = codes || lines;
-  return sheetPage(`${planTitle(plan)} — QB card`,
-    sheetHeader(planTitle(plan), [codes ? "QB wristband" : "Line calls"],
-                [keyed ? `Fingerprint ${keyed.fingerprint}` : null, insertOf(size).label])
-    + insertsPage(cards, copies) + sheetFooter(`${how} ${INSERT_FOOT}`.trim()));
-}
-
-function scriptHtml(s, subtitle){
-  const rows = s.entries.map(e =>
-    `<tr><td class="n">${e.number}</td><td class="sit">${esc(e.sit)}</td><td class="sit">${esc(e.hash)}</td>`
-    + `<td class="call">${esc(e.call)}` + e.alerts.map(a => `<div class="alert">! ${esc(a)}</div>`).join("")
-    + `</td><td class="look">${esc(e.look)}</td><td class="n">${e.reps}</td>`
-    + `<td style="width:70px;border-bottom:1px solid #94a3b8"></td></tr>`).join("");
-  const b = s.balance;
-  const chips = s.entries.length ? chipRow([`${b.total_reps} reps`, `${b.run_pct}% run`, `${b.pass_pct}% pass`,
-    ...Object.keys(b.personnel).sort().map(k => `${k} pers: ${b.personnel[k]}`)]) : "";
-  const body = sheetHeader(s.name, [subtitle], [])
-    + `<table><thead><tr><th>#</th><th>Sit</th><th>Ha</th><th>Call</th><th>Look</th><th>Rep</th><th>Result</th>`
-    + `</tr></thead><tbody>${rows}</tbody></table>${chips}${sheetFooter()}`;
-  return sheetPage(s.name, body);
-}
-// Plays grouped by install day — the designer's install book.
-function installDays(b){
-  const days = new Map();
-  for (const p of b.plays){
-    const d = numOr(p.install_day);
-    const key = d === null ? "later" : d;
-    if (!days.has(key)) days.set(key, []);
-    days.get(key).push(p);
-  }
-  const order = [...days.keys()].filter(k => k !== "later").sort((a, c) => a - c);
-  if (days.has("later")) order.push("later");
-  return order.map(k => ({day: k, plays: days.get(k)}));
-}
-function installBookHtml(b, columns){
-  const blocks = installDays(b).map(({day, plays}) =>
-    `<div class="week"><h2>${day === "later" ? "Not scheduled" : `Day ${day}`}</h2></div>`
-    + cardGrid(plays.map(p => paperCard(p)), columns || 2)).join("");
-  const css = ".week h2{background:var(--ink);color:var(--paper);padding:4px 8px;"
-            + "border-left:none;margin:18px 0 10px;border-radius:3px}";
-  return sheetPage(b.name, sheetHeader(b.name, ["Install book"], bookMeta(b)) + blocks + sheetFooter(), css);
-}
 
 // Write the call-sheet numbers into the plays, so later prints keep them.
-function numberCalls(){
+async function numberCalls(){
   commit();
-  const had = book.plays.some(p => p.call_number);
-  if (had) book.plays.forEach(p => { p.call_number = null; });
-  const sheet = callSheetData(book);
-  const order = sheet.sections.flatMap(s => s.plays);
-  order.forEach((p, i) => { p.call_number = i + 1; });
-  save(); renderAll();
-  toast(`Numbered ${order.length} calls in call-sheet order`);
+  try {
+    const {order} = await api("call_order", {book: exportBook()});
+    const at = new Map(order.map((id, i) => [id, i + 1]));
+    book.plays.forEach(p => { p.call_number = at.get(p.id) || null; });
+    save(); renderAll();
+    if ($("printDialog").open) renderPrint();
+    toast(`Numbered ${order.length} calls in call-sheet order`);
+  } catch(e){ toast(e.message || "Couldn't number the calls"); }
 }
 function clearCallNumbers(){
   commit();
@@ -3803,7 +3647,7 @@ function clearCallNumbers(){
   save(); renderAll(); toast("Call numbers cleared");
 }
 
-// ── printing: a hidden frame, so no pop-up blocker and it works installed ──
+// ── printing: a hidden frame, so no pop-up blocker ─────────────────────────
 function printDocument(doc){
   const old = $("printFrame");
   if (old) old.remove();
@@ -3836,9 +3680,18 @@ const PRINT_KINDS = [
   ["scout", "Halftime sheet", "What the log says: the numbers, the tendencies, what is left"],
 ];
 const LS_PRINT = "chalktalk.designer.print";
-const printOpts = {kind: "playbook", perRow: 2, sheetCols: 2, bandCols: 3, bandSize: "adult", bandCopies: 1, reps: 1, hashes: false};
+const printOpts = {kind: "playbook", perRow: 2, sheetCols: 2, bandSize: "adult", bandCopies: 1, reps: 1, hashes: false};
 try { Object.assign(printOpts, JSON.parse(localStorage.getItem(LS_PRINT) || "{}")); } catch(e){}
 const savePrintOpts = () => { try { localStorage.setItem(LS_PRINT, JSON.stringify(printOpts)); } catch(e){} };
+
+// The sheet as Python is asked for it: the book, the choices, the layers on
+// screen, and the staff's key when one is set (the server never keeps it).
+function printRequest(){
+  return {kind: printOpts.kind, book: exportBook(), key: codeKey ? codeKey.secret : null,
+          per_row: printOpts.perRow, columns: printOpts.sheetCols, size: printOpts.bandSize,
+          copies: printOpts.bandCopies, reps: printOpts.reps, hashes: printOpts.hashes,
+          level, hide: LAYER_KEYS.filter(k => !layers[k])};
+}
 
 function openPrint(kind){
   commit();
@@ -3846,6 +3699,7 @@ function openPrint(kind){
   renderPrint();
   $("printDialog").showModal();
 }
+let printAsked = 0;                  // only the latest answer is shown
 function renderPrint(){
   const kinds = $("printKinds"); kinds.innerHTML = "";
   for (const [key, name, desc] of PRINT_KINDS){
@@ -3868,16 +3722,10 @@ function renderPrint(){
     addSeg("Insert", Object.entries(INSERTS()).map(([v, s]) => [v, s.label]), printOpts.bandSize, v => { printOpts.bandSize = v; });
     addSeg("Copies", [[1, "1"], [2, "2"], [4, "4"], [6, "6"], [11, "11"]], printOpts.bandCopies, v => { printOpts.bandCopies = +v; });
   };
-  const k = printOpts.kind, n = book.plays.length;
-  let summary = `${n} ${n === 1 ? "play" : "plays"}`, hint = "";
+  const k = printOpts.kind;
   if (k === "playbook" || k === "install")
     addSeg("Diagrams per row", [[1, "One"], [2, "Two"]], printOpts.perRow, v => { printOpts.perRow = +v; });
   if (k === "callsheet" || k === "wristband"){
-    const sheet = callSheetData(book);
-    const calls = sheet.sections.reduce((t, s) => t + s.rows.length, 0);
-    summary = `${calls} calls in ${sheet.sections.length} ${sheet.sections.length === 1 ? "section" : "sections"}`;
-    if (sheet.sections.length === 1 && sheet.sections[0].title === "Base")
-      hint = "No play has a situation yet, so every call lands in Base. Set down, distance and the ball in the play sheet.";
     if (k === "callsheet") addSeg("Columns", [[1, "One"], [2, "Two"], [3, "Three"]], printOpts.sheetCols, v => { printOpts.sheetCols = +v; });
     else bandOptions();
     const row = document.createElement("div"); row.className = "popt";
@@ -3892,84 +3740,42 @@ function renderPrint(){
     addSeg("Reps per play", [[1, "1"], [2, "2"], [3, "3"]], printOpts.reps, v => { printOpts.reps = +v; });
     addSeg("Hashes", [["off", "As set"], ["on", "Alternate L, R, M"]], printOpts.hashes ? "on" : "off",
       v => { printOpts.hashes = v === "on"; });
-    const s = scriptData(book, printOpts.reps, printOpts.hashes);
-    summary = `${s.balance.total_reps} reps · ${s.balance.run_pct}% run · ${s.balance.pass_pct}% pass`;
-  }
-  if (k === "install"){
-    const days = installDays(book), later = days.find(d => d.day === "later");
-    const count = days.filter(d => d.day !== "later").length;
-    summary = `${count} ${count === 1 ? "day" : "days"}` + (later ? ` · ${later.plays.length} not scheduled` : "");
-    if (!count) hint = "No play has an install day yet. Set it in the play sheet.";
-  }
-  if (k === "scout"){
-    const r = scoutReport(book, planLog());
-    summary = r.snaps ? `${r.on} of ${r.snaps} snaps on schedule` : "nothing logged yet";
-    if (!r.snaps) hint = "Log a drive in the Game panel and the halftime sheet fills itself.";
-  }
-  if (k === "drivecards"){
-    summary = `${(PLANDATA().card_starts || []).length} starts, three calls each`;
-    if (!planOpeners(book).length) hint = "No opening script yet: label plays \"Openers\" in the play sheet.";
   }
   if (k === "qbcard") bandOptions();
-  if (k === "gameplan" || k === "qbcard" || k === "boards"){
-    const methods = planOf(book).calls.methods || [];
-    summary = `${planCallOrder(book).length} calls` + (codeKey ? ` · fingerprint ${fingerprintOf(codeKey.bytes, planOf(book).name)}` : "");
-    const needsKey = (k === "boards" && methods.includes("boards"))
-      || (k !== "boards" && (methods.includes("wristband") || methods.includes("words")));
-    if (k === "qbcard" && !methods.includes("wristband") && !methods.includes("words"))
-      hint = "Choose wristband numbers or line calls in the drive planner, under Calling the plays.";
-    else if (k === "boards" && !methods.includes("boards"))
-      hint = "Turn on sign boards in the drive planner, under Calling the plays.";
-    else if (needsKey && !codeKey)
-      hint = "Set a key in the drive planner to print codes. The key is never saved in the playbook.";
-    else if (needsKey && (planOf(book).name || "Game plan") === "Game plan")
-      hint = "Name the game in the drive planner (Wk 3 vs Central) so each week gets fresh codes.";
-  }
-  $("printSummary").textContent = summary;
-  $("printHint").textContent = hint;
-  $("printHint").hidden = !hint;
+  // What the sheet will hold, and anything missing, from Python.
+  const showInfo = (summary, hint) => {
+    $("printSummary").textContent = summary;
+    $("printHint").textContent = hint;
+    $("printHint").hidden = !hint;
+  };
+  if (!SERVER) return showInfo("", "Printing runs through chalk design.");
+  showInfo("…", "");
+  const asked = ++printAsked;
+  api("print_info", printRequest())
+    .then(r => { if (asked === printAsked) showInfo(r.summary, r.hint); })
+    .catch(e => { if (asked === printAsked) showInfo("", e.message); });
 }
-function printNow(){
+async function printNow(){
   commit();
-  const k = printOpts.kind;
-  let doc;
-  if (k === "playbook") doc = playbookHtml(book, printOpts.perRow);
-  else if (k === "callsheet") doc = callSheetHtml(callSheetData(book), printOpts.sheetCols);
-  else if (k === "wristband") doc = wristbandHtml(wristbandData(callSheetData(book), printOpts.bandCols), printOpts.bandSize, printOpts.bandCopies);
-  else if (k === "script") doc = scriptHtml(scriptData(book, printOpts.reps, printOpts.hashes), "Practice script");
-  else if (k === "install") doc = installBookHtml(book, printOpts.perRow);
-  else if (k === "drivecards") doc = driveCardsHtml(book);
-  else if (k === "scout") doc = scoutHtml(book);
-  else {
-    const plan = planOf(book), methods = plan.calls.methods || [];
-    let codes = null, boards = null, lines = null;
-    try {
-      if (codeKey && methods.includes("wristband")) codes = wristbandCodes(book, null, plan.name, codeKey.bytes);
-      if (codeKey && methods.includes("words")) lines = lineCalls(book, plan.name, codeKey.bytes);
-      if (codeKey && methods.includes("boards")) boards = boardSymbols(book, plan.name, codeKey.bytes);
-    } catch(e){ return toast(e.message); }
-    if (k === "gameplan") doc = gamePlanHtml(book, codes, boards, lines);
-    else if (k === "qbcard"){
-      if (!codes && !lines) return toast(methods.includes("wristband") || methods.includes("words")
-        ? "Set a key first" : "Choose wristband numbers or line calls first");
-      doc = qbCardHtml(book, codes, lines, printOpts.bandSize, printOpts.bandCopies);
-    } else {
-      if (!boards) return toast(methods.includes("boards") ? "Set a key first" : "Turn on sign boards first");
-      doc = signBoardsHtml(book, boards);
-    }
-  }
-  $("printDialog").close();
-  printDocument(doc);
+  if (!SERVER) return toast("Printing runs through chalk design");
+  const go = $("printGo");
+  go.disabled = true;
+  try {
+    const {html} = await api("print", printRequest());
+    $("printDialog").close();
+    printDocument(html);
+  } catch(e){ toast(e.message || "Couldn't print that"); }
+  finally { go.disabled = false; }
 }
 
-/* ─── the drive planner: a twin of chalktalk/planner.py ─────────────────────
-   Suggest the next calls and say why. Every table (sections, thresholds, the
-   difficulty rubric) arrives from Python in the catalog, and a test runs these
-   functions in node against planner.py, so the browser and Python rank the
-   same plays with the same reasons. */
+/* ─── the planner, the difficulty score and the scout: in Python ────────────
+   chalktalk.planner, difficulty and scout do the thinking. A panel asks the
+   `chalk design` server for what it shows (designer/views.py) and draws the
+   answer. While a newer answer is on its way the panel keeps what it has, so
+   nothing jumps back to an older state; answers come back in a few
+   milliseconds, and only the newest one counts. */
 const PLANDATA = () => CATALOG.plan || {};
 const ROLE_WORDS = r => String(r || "").replace(/_/g, " ");
-const HELD = new Set(["constraint", "play_action", "shot", "trick"]);
 
 function playSlug(name){
   return String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "play";
@@ -3988,335 +3794,37 @@ function ensureIds(b){
   return b;
 }
 
+// The book's plan with the defaults filled in: what the controls show.
 function planOf(b){
   const d = PLANDATA().defaults || {}, g = (b && b.game_plan) || {};
   return Object.assign({}, d, g, {calls: Object.assign({}, d.calls || {}, g.calls || {})});
 }
-const thresholdsOf = plan => plan.success || (PLANDATA().success_by_level || {})[plan.level] || [50, 70, 100];
-
-// ── difficulty (chalktalk/difficulty.py) ───────────────────────────────────
-const PULLS = new Set(["pull", "wrap", "trap", "kick"]);
-const ZONE_BLOCKS = new Set(["reach", "scoop", "combo"]);
-const LINEMEN = new Set(["LT", "LG", "C", "RG", "RT"]);
-const QB_WORDS = {play_action: "play-action fake", boot: "throw on the move", sprint: "throw on the move",
-                  mesh: "mesh read", screen: "screen timing", option: "option read"};
-const TEMPO_WORDS = {no_huddle: "no-huddle", freeze: "freeze count", kill: "kill call", check: "check at the line"};
 function qbOf(p){
   const a = (p.assignments || []).find(x => x.player && x.player.position === "QB");
   return a ? (a.qb || null) : null;
 }
-const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
-function difficultyScore(p){
-  const R = (CATALOG.difficulty || {}).rubric || {};
-  let total = 0;
-  const reasons = [];
-  const add = (points, why) => { if (points){ total += points; reasons.push(`${why} (${points})`); } };
-  const plan = qbOf(p), as = p.assignments || [];
 
-  const movers = as.filter(a => a.motion_type);
-  let move = 0;
-  for (const a of movers){
-    move += (R.motion || {})[a.motion_type] ?? R.motion_other;
-    if ((a.motion_type === "jet" || a.motion_type === "orbit")
-        && (a.is_ball_carrier || (plan && plan.mesh_with === a.player.label))) move += R.motion_ball;
-  }
-  if (movers.length >= 2) move += R.motion_many;
-  if (movers.length)
-    add(Math.min(move, R.motion_cap), movers.map(a => `${a.player.label} ${a.motion_type}`).join(", ") + " motion");
-  else {
-    const named = ["jet", "orbit"].find(k => (p.tags || []).includes(k));
-    if (named) add(R.motion_named + (p.play_type === "run" || p.play_type === "rpo" ? R.motion_named_run : 0), `${named} motion`);
-  }
-
-  const tags = (p.tags || []).filter(t => t === "tag").length;
-  add(Math.min(tags * R.tag, R.tag_cap), plural(tags, "tag"));
-
-  if (plan){
-    add((R.qb || {})[plan.action] || 0, QB_WORDS[plan.action] || plan.action);
-    const reads = (plan.reads || []).length;
-    add(Math.min(Math.max(0, reads - 2) * R.read, R.read_cap), `${reads}-read progression`);
-    if ((plan.steps || 0) >= 7) add(R.seven_step, "7-step drop");
-    if (p.play_type === "rpo" && reads) add(R.rpo, "run blocking with a live throw");
-  }
-
-  const blocks = as.filter(a => a.block);
-  const pulls = blocks.filter(a => PULLS.has(a.block.kind));
-  const linemen = pulls.filter(a => LINEMEN.has(a.player.position)).length;
-  add(pulls.length * R.puller + (linemen >= 2 ? R.pullers_line : 0), plural(pulls.length, "puller"));
-  if (blocks.some(a => ZONE_BLOCKS.has(a.block.kind))){
-    const climbs = blocks.some(a => a.block.kind === "combo" && a.block.climbs);
-    add(R.zone + (climbs ? R.climb : 0), climbs ? "zone combos to the second level" : "zone steps");
-  }
-  const cuts = blocks.filter(a => a.block.kind === "cut").length;
-  add(Math.min(cuts * R.cut, R.cut_cap), plural(cuts, "cut block"));
-
-  const alerts = (p.alerts || []).length;
-  add(Math.min(alerts * R.alert, R.alert_cap), plural(alerts, "alert"));
-  const tempo = p.tempo || "normal";
-  add((R.tempo || {})[tempo] || 0, TEMPO_WORDS[tempo] || tempo);
-  if (p.play_type === "special") add(R.trick, "trick play");
-  return [total, reasons];
-}
-function difficultyOf(p){
-  const tiers = (CATALOG.difficulty || {}).tiers || [3, 7];
-  const [score, reasons] = difficultyScore(p);
-  if ([1, 2, 3].includes(p.difficulty))
-    return {score, tier: p.difficulty, reasons: ["set by the coach", ...reasons], coached: true};
-  return {score, tier: score <= tiers[0] ? 1 : score <= tiers[1] ? 2 : 3, reasons, coached: false};
-}
-// Points above what the team runs comfortably (difficulty.over_level).
-function overLevel(d, execution){
-  const over = d.score - (((CATALOG.difficulty || {}).team_levels || {})[execution] ?? 7);
-  if (d.coached) return d.tier <= execution ? 0 : Math.max(1, over);
-  return Math.max(0, over);
-}
-const tierName = t => ((CATALOG.difficulty || {}).tier_names || {})[t] || "";
-
-// ── the plan, read from the book ───────────────────────────────────────────
-function whenKind(w){
-  if (w.mode) return "mode";
-  if (w.downs && w.downs.length) return "down";
-  if (w.yard_line) return "zone";
-  return "base";
-}
-function whenMatches(w, down, distance, yard, hash, mode){
-  if (w.mode && mode !== w.mode) return false;
-  if (w.downs && w.downs.length && !w.downs.includes(down)) return false;
-  if (w.distance && (distance == null || distance < w.distance[0] || distance > w.distance[1])) return false;
-  if (w.yard_line && (yard == null || yard < w.yard_line[0] || yard > w.yard_line[1])) return false;
-  if (w.hash_mark && hash !== w.hash_mark) return false;
-  return true;
-}
-function inSection(p, section){
-  const sit = p.situation;
-  if (!sit) return false;
-  const w = section.when || {}, kind = whenKind(w);
-  if (kind === "mode") return ((PLANDATA().mode_labels || {})[sit.label || ""] || null) === w.mode;
-  if (kind === "down"){
-    if (sit.down == null || !w.downs.includes(sit.down)) return false;
-    return sit.distance == null || !w.distance || (w.distance[0] <= sit.distance && sit.distance <= w.distance[1]);
-  }
-  if (kind === "zone"){
-    if (sit.yard_line == null || !(w.yard_line[0] <= sit.yard_line && sit.yard_line <= w.yard_line[1])) return false;
-    return sit.down == null || (PLANDATA().zones_with_downs || []).includes(section.title);
-  }
-  return false;
-}
-function planSections(b){
-  const plan = planOf(b), ids = b.plays.map(p => p.id);
-  if (plan.sections && plan.sections.length){
-    // A staff's own sections; a play added since lands in Base, not nowhere.
-    const listed = new Set();
-    for (const s of plan.sections) if (whenKind(s.when || {}) !== "base") (s.plays || []).forEach(i => listed.add(i));
-    return plan.sections.map(s => {
-      const hits = (s.plays || []).filter(i => ids.includes(i));
-      if (whenKind(s.when || {}) === "base") for (const i of ids) if (!listed.has(i) && !hits.includes(i)) hits.push(i);
-      return [s, hits];
+// Python's answer to this question, or undefined while it is on its way (the
+// panel then keeps what it shows, and `redraw` runs when the answer lands).
+const answers = {};
+function ask(name, body, redraw){
+  if (!SERVER) return undefined;
+  const key = JSON.stringify(body);
+  const a = answers[name] || (answers[name] = {key: null, value: undefined, pending: null});
+  if (a.key === key) return a.value;
+  if (a.pending !== key){
+    a.pending = key;
+    api(name, body).then(value => {
+      if (a.pending !== key) return;           // a newer question went out after this one
+      a.key = key; a.value = value; a.pending = null;
+      redraw();
+    }, e => {
+      if (a.pending !== key) return;
+      a.key = key; a.value = undefined; a.pending = null;   // don't ask again until something changes
+      toast(e.message || "The planner didn't answer");
     });
   }
-  const out = [], placed = new Set(), all = PLANDATA().sections || [];
-  for (const s of all){
-    if (whenKind(s.when || {}) === "base") continue;
-    const hits = b.plays.filter(p => inSection(p, s)).map(p => p.id);
-    hits.forEach(h => placed.add(h));
-    out.push([s, hits]);
-  }
-  const base = all.find(s => whenKind(s.when || {}) === "base");
-  if (base) out.push([base, b.plays.filter(p => !placed.has(p.id)).map(p => p.id)]);
-  return out;
-}
-function planOpeners(b){
-  const plan = planOf(b), ids = new Set(b.plays.map(p => p.id));
-  if (plan.openers && plan.openers.length) return plan.openers.filter(i => ids.has(i));
-  return b.plays.filter(p => p.situation && p.situation.label === PLANDATA().openers_label).map(p => p.id);
-}
-// planner.beats: the play is written to beat the coverage on the field.
-function beatsLook(p, look){
-  const tags = (PLANDATA().beater_tags || {})[String(look || "").trim().toLowerCase()] || [];
-  return tags.some(t => (p.tags || []).includes(t));
-}
-// planner.starters: the staff's go-to first calls of a drive.
-function planStarters(b){
-  const ids = new Set(b.plays.map(p => p.id));
-  return (planOf(b).starters || []).filter(i => ids.has(i));
-}
-// planner.numbers: the call order, openers first; a play's number is its place.
-function planCallOrder(b){
-  const out = [];
-  for (const id of [...planOpeners(b), ...planSections(b).flatMap(([, ids]) => ids)])
-    if (!out.includes(id)) out.push(id);
-  return out;
-}
-function planCheck(b){
-  const plan = planOf(b), notes = [];
-  const key = p => String(p.series || "").trim().toLowerCase();
-  const bases = new Set(b.plays.filter(p => p.role === "base" && key(p)).map(key));
-  for (const p of b.plays){
-    if (p.role && !key(p)) notes.push(`${p.name} is a ${ROLE_WORDS(p.role)} but belongs to no series.`);
-    else if (HELD.has(p.role) && !bases.has(key(p)))
-      notes.push(`${p.name} is a ${ROLE_WORDS(p.role)} in "${p.series}", but that series has no base play.`);
-    const tier = difficultyOf(p).tier;
-    if (tier > plan.execution)
-      notes.push(`${p.name} is ${tierName(tier)}; the team is set to ${tierName(plan.execution)}.`);
-  }
-  if (!planOpeners(b).length) notes.push('No opening script: label plays "Openers" in the play sheet.');
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  for (const [section, ids] of planSections(b)){
-    if (section.title === "3rd & 1-3" && ids.length && !ids.some(i => byId[i].play_type === "run"))
-      notes.push("3rd & 1-3 has no run.");
-    if (section.title === "3rd & 7+" && ids.length && !ids.some(i => ["pass", "screen"].includes(byId[i].play_type)))
-      notes.push("3rd & 7+ has no pass or screen.");
-  }
-  const calls = plan.calls;
-  if ((calls.methods || []).includes("boards")){
-    const units = boardUnits(b).length, keep = ((CATALOG.codes || {}).board_memory || {})[plan.level] || 12;
-    if (units > keep)
-      notes.push(`${units} board symbols to learn this game; players keep about ${keep} at this level. Use a symbol per series, or fewer calls.`);
-    if (units && calls.dummy_boards * 2 < units)
-      notes.push(`${calls.dummy_boards} dummy boards for ${units} live ones: use at least ${Math.ceil(units / 2)}.`);
-  }
-  return notes;
-}
-
-// ── a first draft of the plan (planner.draft) ──────────────────────────────
-// Fills only blanks: series and roles, the call-sheet sections, an opening
-// script, each decision with a note.
-const draftHas = (p, group) => ((PLANDATA().draft_tags || {})[group] || []).some(t => (p.tags || []).includes(t));
-function draftRole(p){
-  const plan = qbOf(p), action = plan ? plan.action : null;
-  if (p.play_type === "special") return "trick";
-  if (p.play_type === "screen") return "constraint";
-  if (p.play_type === "rpo") return "answer";
-  if (p.play_type === "run" && draftHas(p, "perimeter")) return "constraint";
-  if (p.play_type === "pass" && (draftHas(p, "play_action") || action === "play_action" || action === "boot"))
-    return draftHas(p, "shot") ? "shot" : "play_action";
-  return null;
-}
-function draftSpots(p){
-  if (draftHas(p, "short")) return ["3rd & 1-3", "4th & short", "Goal line"];
-  if (draftHas(p, "red")) return ["Red zone", "Low red"];
-  if (p.play_type === "run"){
-    if (draftHas(p, "perimeter")) return ["1st & 10", "2nd & 4-6"];
-    if ((p.tags || []).includes("draw")) return ["2nd & 7+", "3rd & 7+"];
-    return ["1st & 10", "2nd & 1-3", "3rd & 1-3", "Backed up", "Four minute"];
-  }
-  if (p.play_type === "rpo") return ["1st & 10", "2nd & 4-6"];
-  if (p.play_type === "screen") return ["2nd & 7+", "3rd & 7+"];
-  if (p.play_type === "special") return ["1st & 10"];
-  if (draftHas(p, "play_action") || draftHas(p, "shot") || p.role === "play_action" || p.role === "shot")
-    return ["1st & 10", "2nd & 1-3"];
-  if (draftHas(p, "quick")) return ["2nd & 4-6", "3rd & 4-6", "Two minute"];
-  return ["2nd & 7+", "3rd & 7+", "Two minute"];
-}
-function draftPlan(b){
-  const P = PLANDATA(), notes = [];
-  const key = p => String(p.series || "").trim().toLowerCase();
-  const blank = p => !key(p) && !p.role;
-  const plays = b.plays.map(p => Object.assign({}, p));
-
-  const bases = new Map();
-  for (const p of plays) if (p.role === "base" && key(p) && !bases.has(key(p))) bases.set(key(p), p);
-  plays.forEach((p, i) => {
-    if (!blank(p) || p.play_type !== "run") return;
-    const hit = (P.run_schemes || []).find(([tag]) => (p.tags || []).includes(tag));
-    if (!hit) return;
-    const name = hit[1], role = bases.has(name.toLowerCase()) ? "complement" : "base";
-    plays[i] = p = Object.assign({}, p, {series: name, role});
-    if (role === "base") bases.set(name.toLowerCase(), p);
-    notes.push(`${p.name}: ${ROLE_WORDS(role)} of the ${name} series`);
-  });
-
-  const order = new Map();
-  for (const p of plays) if (p.role === "base" && key(p) && !order.has(key(p))) order.set(key(p), p);
-  plays.forEach((p, i) => {
-    const role = blank(p) ? draftRole(p) : null;
-    if (!role || !order.size) return;
-    const same = [...order.values()].find(x => x.formation.name === p.formation.name);
-    const home = same || order.values().next().value;
-    plays[i] = Object.assign({}, p, {series: home.series, role});
-    notes.push(`${p.name}: ${ROLE_WORDS(role)} in ${home.series} (${same ? "same formation" : "the first series"})`);
-  });
-
-  const drafted = Object.assign({}, b, {plays});
-  const plan = JSON.parse(JSON.stringify(b.game_plan || {}));
-  if (!(planOf(b).sections || []).length){
-    const all = P.sections || [];
-    const base = all.find(s => whenKind(s.when || {}) === "base");
-    const derived = planSections(drafted);
-    const spots = new Map(derived.map(([s, ids]) => [s.title, new Set(ids)]));
-    const byId = Object.fromEntries(plays.map(p => [p.id, p]));
-    const unplaced = (derived.find(([s]) => s.title === base.title) || [null, []])[1];
-    for (const id of unplaced) for (const t of draftSpots(byId[id])) spots.get(t).add(id);
-    // Base is left empty: it gathers whatever no other section lists.
-    plan.sections = all.map(s => Object.assign(JSON.parse(JSON.stringify(s)), {plays: s.title === base.title ? []
-      : plays.filter(p => spots.get(s.title).has(p.id)).map(p => p.id)}));
-    if (unplaced.length) notes.push(`Call sheet: ${unplaced.length} plays placed by their type and tags`);
-  }
-  if (!planOpeners(drafted).length){
-    const pool = plays.filter(p => p.role !== "trick" && !draftHas(p, "short") && !draftHas(p, "red"));
-    const runs = pool.filter(p => p.play_type === "run" || p.play_type === "rpo")
-      .sort((x, y) => (x.role !== "base") - (y.role !== "base"));
-    const passes = pool.filter(p => p.play_type === "pass" || p.play_type === "screen");
-    const script = [], n = P.script_length || 10;
-    while ((runs.length || passes.length) && script.length < n){
-      if (runs.length) script.push(runs.shift().id);
-      if (passes.length && script.length < n) script.push(passes.shift().id);
-    }
-    plan.openers = script;
-    if (script.length) notes.push(`Opening script: ${script.length} plays, run and pass in turn`);
-  }
-  return {book: Object.assign({}, drafted, {game_plan: plan}), notes};
-}
-// ── drive scripts (planner.follow, planner.fill_script) ────────────────────
-// Scripted in the week: the 1st-down call, the 2nd-down call on and off
-// schedule, 3rd down under each. On game day the script is followed from
-// each result; when the drive leaves it, the suggestions take over.
-const SCRIPT_DEPTH = 3;
-const scriptGain = (state, step) => step === "on" ? Math.max(1, Math.ceil(state.distance * 0.6)) : 0;
-const scriptStart = script => Object.assign(freshState(), (script && script.start) || {});
-function scriptState(script, path){
-  let st = scriptStart(script);
-  for (const step of path) st = advanceState(st, "gain", scriptGain(st, step));
-  return st;
-}
-function scriptNode(script, path){
-  let node = (script && script.first) || null;
-  for (const step of path) node = node ? (node[step] || null) : null;
-  return node;
-}
-function followScript(b, script, state, log){
-  if (state.down === 1 || state.over) return [[], state.over ? null : (script.first || null)];
-  const t = thresholdsOf(planOf(b));
-  let path = [];
-  for (const snap of log){
-    if ((snap.before.drive || 1) !== (state.drive || 1)) continue;
-    if (snap.before.down === 1) path = [];
-    const ok = isSuccess(snap.before, snap.outcome, snap.gain, t);
-    if (ok !== null) path.push(ok ? "on" : "off");
-  }
-  if (path.length >= SCRIPT_DEPTH) return [path, null];
-  return [path, scriptNode(script, path)];
-}
-function fillScript(b, script){
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const fill = (node, state, log, depth) => {
-    node = Object.assign({play: null, on: null, off: null}, node || {});
-    if (!node.play){
-      const pick = suggestCalls(b, state, log, 1, false);
-      node.play = pick.length ? pick[0].play : null;
-    }
-    if (node.play && depth + 1 < SCRIPT_DEPTH){
-      for (const step of ["on", "off"]){
-        const gain = scriptGain(state, step), after = advanceState(state, "gain", gain);
-        if (after.over || after.down === 1) continue;
-        const p = byId[node.play];
-        const snap = {before: state, play: node.play, call: p ? playCall(p) : node.play, outcome: "gain", gain, tells: []};
-        node[step] = fill(node[step], after, log.concat([snap]), depth + 1);
-      }
-    }
-    return node;
-  };
-  return Object.assign({}, script, {first: fill(script.first, scriptStart(script), [], 0)});
+  return undefined;
 }
 
 /* ─── the plan builder: the week's work, one step at a time ─────────────────
@@ -4335,6 +3843,12 @@ function openPlanner(step){
   if (!$("planDialog").open) $("planDialog").showModal();
   renderPlanner();
 }
+// The builder's view of the book, from Python (views.plan_view).
+function planView(){
+  const scripts = (planOf(book).drives || []).length;
+  planScript = Math.max(0, Math.min(planScript, scripts - 1));
+  return ask("plan_view", {book: exportBook(), script: scripts ? planScript : null}, renderPlanner);
+}
 function renderPlanner(){
   const dlg = $("planDialog");
   if (!dlg || !dlg.open) return;
@@ -4342,30 +3856,34 @@ function renderPlanner(){
   PLAN_STEPS.forEach(([k, label], i) => nav.appendChild(
     pick("pstep-btn" + (k === planStep ? " on" : ""), `<span class="n">${i + 1}</span>${esc(label)}`, () => { planStep = k; renderPlanner(); })));
   for (const s of dlg.querySelectorAll(".pstep")) s.hidden = s.dataset.step !== planStep;
-  renderPlanControls();
-  const draw = {series: renderPlanSeries, situations: renderPlanSituations, openers: renderPlanOpeners,
-                drives: renderPlanDrives, calling: renderWordTable, check: renderPlanCheck}[planStep];
-  if (draw) draw();
+  const pv = planView();
+  renderPlanControls(pv);
   const i = PLAN_STEPS.findIndex(([k]) => k === planStep);
   $("planBack").disabled = i === 0;
   $("planNext").textContent = i === PLAN_STEPS.length - 1 ? "Done" : "Next";
+  if (!pv) return;                    // Python is answering: keep what is on screen
+  const draw = {series: renderPlanSeries, situations: renderPlanSituations, openers: renderPlanOpeners,
+                drives: renderPlanDrives, calling: renderWordTable, check: renderPlanCheck}[planStep];
+  if (draw) draw(pv);
   const n = book.plays.length, tagged = book.plays.filter(p => p.series || p.role).length;
-  const scripts = (planOf(book).drives || []).length;
-  $("planFoot").textContent = `${tagged} of ${n} plays in a series · ${planOpeners(book).length} openers · `
+  const scripts = pv.scripts.length;
+  $("planFoot").textContent = `${tagged} of ${n} plays in a series · ${pv.openers.length} openers · `
     + `${scripts} drive ${scripts === 1 ? "script" : "scripts"}`;
 }
 // Edits in the builder: keep the page on the field in step, and redraw.
 function planEdited(p){ save(); if (p && p === play) renderAll(); else renderDrive(); }
 
 // The game and the calling controls (they live in the builder).
-function renderPlanControls(){
-  const plan = planOf(book), calls = plan.calls, thresholds = thresholdsOf(plan);
+function renderPlanControls(pv){
+  const plan = planOf(book), calls = plan.calls;
   if (document.activeElement !== $("dGame")) $("dGame").value = gp().name || "";
   if (document.activeElement !== $("dOpp")) $("dOpp").value = gp().opponent || "";
   setSeg($("dLevel"), plan.level);
   setSeg($("dExec"), String(plan.execution));
-  const [t1, t2] = thresholds;
-  $("dSuccess").textContent = `On schedule: ${t1}% of the distance on 1st down, ${t2}% on 2nd, all of it on 3rd and 4th.`;
+  if (pv){
+    const [t1, t2] = pv.thresholds;
+    $("dSuccess").textContent = `On schedule: ${t1}% of the distance on 1st down, ${t2}% on 2nd, all of it on 3rd and 4th.`;
+  }
   for (const b of $("dMethods").children) b.classList.toggle("sel", (calls.methods || []).includes(b.dataset.value));
   setSeg($("dRotate"), calls.rotate); setSeg($("dDigits"), String(calls.digits));
   setSeg($("dExtra"), String(calls.extra_codes)); setSeg($("dBoardsBy"), calls.boards_by);
@@ -4401,12 +3919,15 @@ function renderPlanControls(){
 }
 
 // Step 1: the draft.
-function draftTheBook(){
+async function draftTheBook(){
   commit();
-  const {book: drafted, notes} = draftPlan(book);
+  let drafted, notes;
+  try { ({book: drafted, notes} = await api("draft", {book: exportBook()})); }
+  catch(e){ return toast(e.message || "Couldn't draft the plan"); }
   if (!notes.length){ $("planDraftNotes").innerHTML = "<li>Nothing blank to fill: every play has its series, the call sheet and the script are set.</li>"; return; }
   planDraftUndo = JSON.stringify({plays: book.plays, game_plan: book.game_plan || null});
-  book.plays = drafted.plays; book.game_plan = drafted.game_plan; play = book.plays[bookIndex];
+  const d = normalizeBook(drafted);
+  book.plays = d.plays; book.game_plan = d.game_plan; play = book.plays[bookIndex];
   $("planDraftNotes").innerHTML = notes.map(n => `<li>${esc(n)}</li>`).join("");
   $("planUndoDraft").hidden = false;
   save(); renderAll();
@@ -4420,14 +3941,14 @@ function undoDraft(){
 }
 
 // Step 2: series and roles, play by play.
-function renderPlanSeries(){
+function renderPlanSeries(pv){
   const box = $("planSeries");
   const series = [...new Set(book.plays.map(p => String(p.series || "").trim()).filter(Boolean))];
   const roles = PLANDATA().roles || [];
   box.innerHTML = `<datalist id="planSeriesList">${series.map(s => `<option value="${esc(s)}">`).join("")}</datalist>`
     + `<div class="pscroll"><table class="ptable"><thead><tr><th></th><th title="Favorite">★</th><th>Play</th><th>Series</th><th>Role</th>`
     + `<th>Tell <span class="sub">what calls for it</span></th><th>Difficulty</th></tr></thead><tbody>`
-    + book.plays.map((p, i) => { const d = difficultyOf(p);
+    + book.plays.map((p, i) => { const d = pv.difficulty[p.id] || {score: 0, tier: 1, tier_name: "", reasons: []};
         return `<tr data-i="${i}"><td class="pth">${playThumb(p)}</td>`
           + `<td><button type="button" class="ghost icon fav${p.favorite ? " on" : ""}" data-fav aria-pressed="${!!p.favorite}" aria-label="Favorite ${esc(p.name)}">`
           + `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8l1.9 3.9 4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"/></svg></button></td>`
@@ -4436,7 +3957,7 @@ function renderPlanSeries(){
           + `<td><select data-f="role" aria-label="Role of ${esc(p.name)}"><option value="">—</option>`
           + roles.map(r => `<option value="${r}"${p.role === r ? " selected" : ""}>${esc(capFirst(ROLE_WORDS(r)))}</option>`).join("") + `</select></td>`
           + `<td><input data-f="tell" value="${esc(p.tell || "")}" placeholder="—" aria-label="Tell for ${esc(p.name)}"></td>`
-          + `<td><span class="tier t${d.tier}" title="${esc(d.reasons.join(", "))}">${esc(tierName(d.tier))} ${d.score}</span></td></tr>`; }).join("")
+          + `<td><span class="tier t${d.tier}" title="${esc(d.reasons.join(", "))}">${esc(d.tier_name)} ${d.score}</span></td></tr>`; }).join("")
     + `</tbody></table></div>`;
   box.querySelectorAll("[data-f]").forEach(inp => inp.onchange = e => {
     const p = book.plays[+inp.closest("tr").dataset.i];
@@ -4454,15 +3975,16 @@ function renderPlanSeries(){
 const SECTION_SHORT = {"1st & 10": "1st", "2nd & 1-3": "2 S", "2nd & 4-6": "2 M", "2nd & 7+": "2 L", "3rd & 1-3": "3 S",
   "3rd & 4-6": "3 M", "3rd & 7+": "3 L", "4th & short": "4th", "Backed up": "Bkd", "Red zone": "RZ", "Low red": "LR",
   "Goal line": "GL", "Two minute": "2:00", "Four minute": "4:00"};
-function ownSections(){
+// The first tick takes the call sheet over: every section, with the plays it holds now.
+function ownSections(pv){
   if (!(gp().sections || []).length)
-    gp().sections = planSections(book).map(([s, ids]) => Object.assign(JSON.parse(JSON.stringify(s)),
-      {plays: whenKind(s.when || {}) === "base" ? [] : ids.slice()}));
+    gp().sections = pv.sections.map(({section, ids, base}) => Object.assign(clone(section),
+      {plays: base ? [] : ids.slice()}));
   return gp().sections;
 }
-function renderPlanSituations(){
+function renderPlanSituations(pv){
   const box = $("planSit");
-  const secs = planSections(book).filter(([s]) => whenKind(s.when || {}) !== "base");
+  const secs = pv.sections.filter(x => !x.base).map(x => [x.section, x.ids]);
   const own = !!(planOf(book).sections || []).length;
   $("planSitIntro").textContent = own
     ? "Your call sheet. Tick where each play goes; a play can go in several places. Anything you tick nowhere lands in Base."
@@ -4475,7 +3997,7 @@ function renderPlanSituations(){
         + ` aria-label="${esc(p.name)}: ${esc(s.title)}" title="${esc(s.title)}"></td>`).join("") + `</tr>`).join("")
     + `</tbody></table></div>`;
   box.querySelectorAll("input[type=checkbox]").forEach(cb => cb.onchange = () => {
-    const s = ownSections().find(x => x.title === cb.dataset.sec);
+    const s = ownSections(pv).find(x => x.title === cb.dataset.sec);
     const set = new Set(s.plays || []);
     cb.checked ? set.add(cb.dataset.id) : set.delete(cb.dataset.id);
     s.plays = book.plays.map(p => p.id).filter(id => set.has(id));
@@ -4504,10 +4026,10 @@ function playListEditor(box, list, save, empty, addLabel){
   });
   box.querySelectorAll("[data-add]").forEach(b => b.onclick = () => edit(s => s.push(b.dataset.add)));
 }
-function renderPlanOpeners(){
-  playListEditor($("planOpeners"), planOpeners(book), s => { gp().openers = s; },
+function renderPlanOpeners(pv){
+  playListEditor($("planOpeners"), pv.openers, s => { gp().openers = s; },
     "No script yet. Add plays in the order you want to call them, or draft the plan in the first step.", "Add to the script");
-  playListEditor($("planStarters"), planStarters(book), s => { gp().starters = s; },
+  playListEditor($("planStarters"), pv.starters, s => { gp().starters = s; },
     "No drive starters yet. They come up on the first snap of each drive once the script is done.", "Add a drive starter");
 }
 
@@ -4516,63 +4038,48 @@ const SCRIPT_SLOTS = [[[], 1, 1, 4], [["on"], 2, 1, 2], [["off"], 2, 3, 2],
                       [["on", "on"], 3, 1, 1], [["on", "off"], 3, 2, 1], [["off", "on"], 3, 3, 1], [["off", "off"], 3, 4, 1]];
 // Read top to bottom on a phone, each call under the one it follows.
 const TREE_ORDER = {"": 0, "on": 1, "on,on": 2, "on,off": 3, "off": 4, "off,on": 5, "off,off": 6};
-const pathWords = path => path.length ? path.map(s => s === "on" ? "on schedule" : "off schedule").join(", then ") : "the first call";
 function setScriptCall(script, path, id){
   script.first = Object.assign({play: null, on: null, off: null}, script.first || {});
   let node = script.first;
   for (const step of path){ node[step] = Object.assign({play: null, on: null, off: null}, node[step] || {}); node = node[step]; }
   node.play = id || null;
 }
-// The calls above a slot, as the drive so far, so the planner ranks the slot as it will be called.
-function scriptLog(script, path){
-  const byId = Object.fromEntries(book.plays.map(p => [p.id, p]));
-  const log = [];
-  let st = scriptStart(script);
-  for (let i = 0; i < path.length; i++){
-    const n = scriptNode(script, path.slice(0, i)), gain = scriptGain(st, path[i]);
-    if (n && n.play) log.push({before: st, play: n.play, call: byId[n.play] ? playCall(byId[n.play]) : n.play,
-                               outcome: "gain", gain, tells: []});
-    st = advanceState(st, "gain", gain);
-  }
-  return log;
-}
-function renderPlanDrives(){
+function renderPlanDrives(pv){
   const list = $("planDriveList"), edit = $("planDriveEdit");
-  const drives = gp().drives = gp().drives || [];
-  planScript = Math.max(0, Math.min(planScript, drives.length - 1));
+  const drives = planOf(book).drives || [];
   const starts = PLANDATA().script_starts || PLANDATA().card_starts || [];
-  list.innerHTML = drives.map((d, i) => `<button type="button" class="dlist-btn${i === planScript ? " on" : ""}" data-i="${i}">`
-      + `<span class="nm">${esc(d.name)}</span><span class="sub">${esc(driveStateLabel(scriptStart(d)))}</span></button>`).join("")
+  list.innerHTML = pv.scripts.map((d, i) => `<button type="button" class="dlist-btn${i === planScript ? " on" : ""}" data-i="${i}">`
+      + `<span class="nm">${esc(d.name)}</span><span class="sub">${esc(d.from)}</span></button>`).join("")
     + `<select id="planNewScript" aria-label="Start a new drive script"><option value="">New script at…</option>`
     + starts.map(([t], i) => `<option value="${i}">${esc(t)}</option>`).join("") + `</select>`;
   list.querySelectorAll("[data-i]").forEach(b => b.onclick = () => { planScript = +b.dataset.i; renderPlanner(); });
   $("planNewScript").onchange = e => {
     if (e.target.value === "") return;
     const [title, st] = starts[+e.target.value];
-    drives.push({name: title.split(" · ")[0], start: Object.assign(freshState(), st), first: {play: null, on: null, off: null}});
-    planScript = drives.length - 1; planEdited();
+    const all = gp().drives = gp().drives || [];
+    all.push({name: title.split(" · ")[0], start: Object.assign(freshState(), st), first: {play: null, on: null, off: null}});
+    planScript = all.length - 1; planEdited();
   };
-  if (!drives.length){
+  if (!drives.length || !pv.tree){
     edit.innerHTML = `<p class="note">No drive scripts yet. Start one at a spot on the field: the planner can fill every call, and you change what you like.</p>`;
     return;
   }
   const script = drives[planScript], byId = Object.fromEntries(book.plays.map(p => [p.id, p]));
+  const slots = Object.fromEntries(pv.tree.map(s => [s.path.join(","), s]));
   const cell = ([path, col, row, span]) => {
-    const st = scriptState(script, path), node = scriptNode(script, path);
-    const reset = st.over || (path.length > 0 && st.down === 1);
-    const head = `<div class="dsitn">${esc(reset ? "A first down" : driveStateLabel(st))}</div><div class="dwhat">${esc(pathWords(path))}</div>`;
+    const s = slots[path.join(",")];
+    const head = `<div class="dsitn">${esc(s.label)}</div><div class="dwhat">${esc(s.words)}</div>`;
     const at = `grid-column:${col};grid-row:${row} / span ${span};--o:${TREE_ORDER[path.join(",")]};--d:${path.length}`;
-    if (reset) return `<div class="dnode reset" style="${at}">${head}<p class="note">The script starts again.</p></div>`;
-    const ranked = suggestCalls(book, st, scriptLog(script, path), book.plays.length, false);
-    const picked = node && node.play;
+    if (s.reset) return `<div class="dnode reset" style="${at}">${head}<p class="note">The script starts again.</p></div>`;
+    const picked = s.pick;
     return `<div class="dnode${picked ? "" : " empty"}" style="${at}">${head}`
-      + `<select data-path="${path.join(",")}" aria-label="Call for ${esc(pathWords(path))}"><option value="">— pick a call —</option>`
-      + ranked.map(s => `<option value="${esc(s.play)}"${picked === s.play ? " selected" : ""}>${esc(byId[s.play].name)} · ${s.points}</option>`).join("")
+      + `<select data-path="${path.join(",")}" aria-label="Call for ${esc(s.words)}"><option value="">— pick a call —</option>`
+      + s.ranked.map(r => `<option value="${esc(r.play)}"${picked === r.play ? " selected" : ""}>${esc(byId[r.play].name)} · ${r.points}</option>`).join("")
       + (picked && !byId[picked] ? `<option value="${esc(picked)}" selected>(a play no longer in the book)</option>` : "")
       + `</select></div>`;
   };
   edit.innerHTML = `<div class="dscript-head"><input id="planScriptName" value="${esc(script.name)}" aria-label="Script name">`
-      + `<span class="sub">from ${esc(driveStateLabel(scriptStart(script)))}</span></div>`
+      + `<span class="sub">from ${esc(pv.scripts[planScript].from)}</span></div>`
       + `<div class="dtree"><div class="dcolh" style="grid-column:1">1st down</div><div class="dcolh" style="grid-column:2">2nd down</div>`
       + `<div class="dcolh" style="grid-column:3">3rd down</div>${SCRIPT_SLOTS.map(cell).join("")}</div>`
       + `<p class="note">Each call lists the book in the planner's order for that spot, with its points, reading the calls above it as the drive so far.</p>`
@@ -4583,16 +4090,21 @@ function renderPlanDrives(){
     planEdited();
   });
   $("planScriptName").onchange = e => { script.name = e.target.value.trim() || "Drive"; planEdited(); };
-  $("planFill").onclick = () => { drives[planScript] = fillScript(book, script); planEdited(); };
+  $("planFill").onclick = async () => {
+    try {
+      const {script: filled} = await api("fill_script", {book: exportBook(), script});
+      gp().drives[planScript] = filled; planEdited();
+    } catch(err){ toast(err.message || "Couldn't fill the script"); }
+  };
   $("planClearScript").onclick = () => { script.first = {play: null, on: null, off: null}; planEdited(); };
   $("planDelScript").onclick = () => {
     if (!window.confirm(`Delete the script "${script.name}"?`)) return;
-    drives.splice(planScript, 1); planScript = Math.max(0, planScript - 1); planEdited();
+    gp().drives.splice(planScript, 1); planScript = Math.max(0, planScript - 1); planEdited();
   };
 }
 
 // Step 6 (in Calling): each play's line word, typed or taken from the list.
-function renderWordTable(){
+function renderWordTable(pv){
   const box = $("dWordTable");
   if (!box || $("dWordOpts").hidden) return;
   const calls = planOf(book).calls, bank = wordBankOf(calls);
@@ -4601,7 +4113,7 @@ function renderWordTable(){
   box.innerHTML = `<datalist id="wordSuggest">${bank.filter(w => !used.has(w.toLowerCase())).map(w => `<option value="${esc(w)}">`).join("")}</datalist>`
     + `<div class="row" style="margin:6px 0;max-width:420px"><button type="button" id="dWordFill">Fill blanks from the list</button>`
     + `<button type="button" id="dWordClear">Clear every word</button></div>`
-    + `<div class="pscroll"><table class="ptable"><tbody>` + planCallOrder(book).map(id =>
+    + `<div class="pscroll"><table class="ptable"><tbody>` + pv.order.map(id =>
         `<tr><td>${esc(playCall(byId[id]))}</td><td><input data-word="${esc(id)}" list="wordSuggest" value="${esc(byId[id].word || "")}"`
         + ` placeholder="from the key" aria-label="Word for ${esc(byId[id].name)}"></td></tr>`).join("")
     + `</tbody></table></div>`;
@@ -4613,7 +4125,7 @@ function renderWordTable(){
     const pool = bank.filter(w => !taken.has(w.toLowerCase()));
     for (let i = pool.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
     let n = 0;
-    for (const id of planCallOrder(book)) if (!cleanWord(byId[id].word) && pool.length){ byId[id].word = pool.shift(); n++; }
+    for (const id of pv.order) if (!cleanWord(byId[id].word) && pool.length){ byId[id].word = pool.shift(); n++; }
     planEdited(); toast(n ? `${n} words from the list: they stay until you change them` : "Every play already has a word");
   };
   $("dWordClear").onclick = () => {
@@ -4623,414 +4135,35 @@ function renderWordTable(){
 }
 
 // Step 7: the check.
-function renderPlanCheck(){
-  const notes = planCheck(book);
+function renderPlanCheck(pv){
+  const notes = pv.check;
   $("planCheckList").innerHTML = notes.length ? notes.map(n => `<li>${esc(n)}</li>`).join("") : "<li>Nothing to flag.</li>";
 }
 
-// Game day: the call the chosen script makes from here.
+// Game day: the call the chosen script makes from here (views.game_view works it out).
 let gameScript = 0;
-function renderScripted(st, log){
+function renderScripted(gv){
   const drives = planOf(book).drives || [], sel = $("dScript"), box = $("dScripted");
   $("dScriptRow").hidden = !drives.length;
   if (!drives.length){ box.innerHTML = ""; return false; }
-  if (gameScript >= drives.length) gameScript = -1;
   fillSelect(sel, drives.map((d, i) => [String(i), d.name]), gameScript >= 0 ? String(gameScript) : null, "No script");
-  const script = drives[gameScript];
-  if (!script || st.over){ box.innerHTML = ""; return false; }
-  const [path, node] = followScript(book, script, st, log);
-  const p = node && node.play && book.plays.find(q => q.id === node.play);
+  const s = gv.scripted;
+  if (!s){ box.innerHTML = ""; return false; }
+  const p = s.play && book.plays.find(q => q.id === s.play);
   if (!p){
-    box.innerHTML = `<p class="note dscripted-off">Off the script here${path.length ? ` (${esc(pathWords(path))})` : ""}: the planner's picks below.</p>`;
+    box.innerHTML = `<p class="note dscripted-off">Off the script here${s.path.length ? ` (${esc(s.words)})` : ""}: the planner's picks below.</p>`;
     return false;
   }
   box.innerHTML = `<div class="dcard scripted${pendingCall === p.id ? " picked" : ""}"><div class="dtop"><span class="drank">★</span>`
-    + `<span class="dcall">${esc(playCall(p))}</span></div>`
-    + `<div class="dbr"><span>From ${esc(script.name)}: ${esc(pathWords(path))}</span></div>`
+    + `<span class="dcall">${esc(s.call)}</span></div>`
+    + `<div class="dbr"><span>From ${esc(s.name)}: ${esc(s.words)}</span></div>`
     + `<div class="dact"><button type="button" data-go>Show</button><button type="button" data-call class="${pendingCall === p.id ? "on" : ""}">Call it</button></div></div>`;
   box.querySelector("[data-go]").onclick = () => { gotoPlay(book.plays.indexOf(p)); if (isPhone()) setDrive(false); };
   box.querySelector("[data-call]").onclick = () => { pendingCall = p.id; renderDrive(); };
   return true;
 }
 
-// Scripts on paper: each one as its tree.
-function scriptCardsHtml(b){
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  return (planOf(b).drives || []).map(script => {
-    const line = path => {
-      const node = scriptNode(script, path), st = scriptState(script, path);
-      if (path.length && (st.over || st.down === 1)) return "";
-      const p = node && node.play && byId[node.play];
-      return `<li style="padding-left:${path.length * 14}px"><span class="num">${esc(driveStateLabel(st).split(",")[0])}</span>`
-        + `<span><b>${p ? esc(playCall(p)) : "—"}</b>${path.length ? `<div class="why">${esc(pathWords(path))}</div>` : ""}</span></li>`;
-    };
-    const order = [[], ["on"], ["on", "on"], ["on", "off"], ["off"], ["off", "on"], ["off", "off"]];
-    return `<div class="dcardp"><h2>${esc(script.name)}</h2><div class="note">${esc(driveStateLabel(scriptStart(script)))}</div>`
-      + `<ol>${order.map(line).join("")}</ol></div>`;
-  }).join("");
-}
-
-/* --- scout: what the half says about you (chalktalk/scout.py) -------------
-   The log holds every snap; this reads it back. The numbers by down, what a
-   scout on the other sideline sees, what worked, and what the staff has not
-   used yet. Counting only, with the plan's own thresholds. A look is the
-   formation, the personnel, the down and distance, the hash, the part of the
-   field, or two of them; it is said only when nothing broader says it. */
-const SCOUT = () => CATALOG.scout || {explosive: {run: 12, pass: 16}, tendency_calls: 4, tendency_share: 0.8,
-  dimensions: ["formation", "personnel", "down", "hash", "field"],
-  hashes: {L: "Left hash", M: "Middle", R: "Right hash"},
-  field: [[90, "Backed up"], [60, "Coming out"], [41, "Midfield"], [21, "Fringe"], [11, "Red zone"], [4, "Low red"], [1, "Goal line"]],
-  field_words: {"Backed up": "backed up", "Coming out": "coming out", "Midfield": "around midfield",
-                "Fringe": "on the fringe", "Red zone": "in the red zone", "Low red": "in the low red",
-                "Goal line": "on the goal line"}};
-const scoutKind = p => (p.play_type === "run" || p.play_type === "rpo") ? "run" : "pass";
-const ORD_DOWN = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th"};
-const rateOf = s => s.calls ? pyRound(100 * s.on / s.calls) : 0;
-// Every look one snap was called from, the down and the spot named by the plan's own sections.
-function scoutLooks(plan, snap, p){
-  const S = SCOUT(), st = snap.before, hash = st.hash_mark || null, mode = st.mode || null;
-  const secs = (plan.sections && plan.sections.length) ? plan.sections : (PLANDATA().sections || []);
-  const section = kind => {
-    const s = secs.find(s => whenKind(s.when || {}) === kind
-      && whenMatches(s.when || {}, st.down, st.distance, st.yard_line, hash, mode));
-    return s ? s.title : null;
-  };
-  const bucket = st.distance <= 3 ? "1-3" : st.distance <= 6 ? "4-6" : "7+";
-  const out = [["formation", p.formation.name]];
-  if (p.formation.personnel) out.push(["personnel", `${p.formation.personnel} personnel`]);
-  out.push(["down", section("down") || `${ORD_DOWN[st.down]} & ${bucket}`]);
-  if (hash) out.push(["hash", S.hashes[hash]]);
-  out.push(["field", section("zone") || S.field.find(([line]) => st.yard_line >= line)[1]]);
-  return out;
-}
-// A look the way a scout puts it: "From Trips Right, on 3rd & 7+".
-function scoutSay(parts){
-  const S = SCOUT(), words = {formation: "from ", personnel: "in ", down: "on "};
-  const text = parts.map(([by, look]) => by === "hash" ? `from the ${look.toLowerCase()}`
-    : by === "field" ? (S.field_words[look] || `in ${look}`) : words[by] + look).join(", ") || "overall";
-  return text[0].toUpperCase() + text.slice(1);
-}
-// Which way a look leans, and how many calls say so, once it is a tendency.
-function scoutLean(row){
-  const S = SCOUT(), [what, n] = row.passes > row.runs ? ["thrown", row.passes] : ["run", row.runs];
-  return (row.calls >= S.tendency_calls && n / row.calls >= S.tendency_share) ? [what, n] : null;
-}
-
-function scoutReport(b, log){
-  const plan = planOf(b), S = SCOUT();
-  log = (log || plan.log || []).slice();
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const t = thresholdsOf(plan);
-  const out = {game: plan.name || "", snaps: 0, on: 0, yards: 0, by_down: [],
-               thirds: {label: "3rd down", calls: 0, on: 0, yards: 0}, by_look: [],
-               explosives: [], best: [], tendencies: [], leans: [], ready: [], unused: [], notes: []};
-  const downs = new Map(), looks = new Map(), plays = new Map(), called = new Set();
-  const seenLooks = new Map();
-  for (const snap of log){
-    const p = byId[snap.play];
-    called.add(snap.play);
-    const ok = isSuccess(snap.before, snap.outcome, snap.gain, t);
-    if (ok === null) continue;                       // a flag is not a play
-    const gain = (snap.outcome === "incomplete" || snap.outcome === "turnover") ? 0
-      : (snap.outcome === "sack" ? -Math.abs(snap.gain) : snap.gain);
-    out.snaps++; out.on += ok ? 1 : 0; out.yards += gain;
-    if (!downs.has(snap.before.down)) downs.set(snap.before.down, {calls: 0, on: 0, yards: 0});
-    const d = downs.get(snap.before.down);
-    d.calls++; d.on += ok ? 1 : 0; d.yards += gain;
-    if (snap.look){
-      if (!seenLooks.has(snap.look)) seenLooks.set(snap.look, {label: snap.look, calls: 0, on: 0, yards: 0});
-      const seen = seenLooks.get(snap.look);
-      seen.calls++; seen.on += ok ? 1 : 0; seen.yards += gain;
-    }
-    if (snap.before.down === 3){
-      const after = advanceState(snap.before, snap.outcome, snap.gain);
-      out.thirds.calls++;
-      out.thirds.on += (after.down === 1 || after.over === "touchdown") ? 1 : 0;
-    }
-    if (p){
-      const one = scoutLooks(plan, snap, p), every = [[], ...one.map(x => [x])];
-      one.forEach((a, i) => one.slice(i + 1).forEach(b => {
-        if (!(a[0] === "formation" && b[0] === "personnel")) every.push([a, b]);
-      }));
-      for (const these of every){
-        const by = these.map(x => x[0]).join("+") || "overall";
-        const look = these.map(x => x[1]).join(", ") || "Overall";
-        const key = `${by}|${look}`;
-        if (!looks.has(key))
-          looks.set(key, {row: {look, by, calls: 0, runs: 0, passes: 0, on: 0}, parts: these, covers: new Set()});
-        const L = looks.get(key);
-        L.row.calls++; L.row.on += ok ? 1 : 0;
-        if (scoutKind(p) === "run") L.row.runs++; else L.row.passes++;
-        L.covers.add(out.snaps);
-      }
-      if (!plays.has(snap.play)) plays.set(snap.play, {play: snap.play, call: playCall(p), calls: 0, yards: 0, on: 0});
-      const line = plays.get(snap.play);
-      line.calls++; line.yards += gain; line.on += ok ? 1 : 0;
-      if (gain >= S.explosive[scoutKind(p)])
-        out.explosives.push({play: snap.play, call: playCall(p), calls: 1, yards: gain, on: 1});
-    }
-  }
-  out.by_down = [...downs.entries()].sort((x, y) => x[0] - y[0])
-    .map(([down, s]) => ({label: `${ORD_DOWN[down] || down} down`, calls: s.calls, on: s.on, yards: s.yards}));
-  out.by_look = [...seenLooks.values()]
-    .sort((x, y) => y.calls - x.calls || (x.label < y.label ? -1 : x.label > y.label ? 1 : 0));
-  out.best = [...plays.values()].filter(l => l.calls >= 2)
-    .sort((x, y) => (y.yards / y.calls) - (x.yards / x.calls) || (x.play < y.play ? -1 : x.play > y.play ? 1 : 0))
-    .slice(0, 5);
-  // The whole half first, then one look at a time in dimension order, then two.
-  const cmp = (x, y) => x < y ? -1 : x > y ? 1 : 0;
-  const digits = L => L.parts.map(([by]) => S.dimensions.indexOf(by)).join("");
-  const order = [...looks.values()].sort((x, y) => x.parts.length - y.parts.length
-    || cmp(digits(x), digits(y)) || y.row.calls - x.row.calls || cmp(x.row.look, y.row.look));
-  out.tendencies = order.filter(L => L.parts.length === 1 && L.row.calls >= S.tendency_calls).map(L => L.row);
-  // Said only when no look covering all its snaps (or the same ones, listed first) leans the same way.
-  const leaning = order.filter(L => scoutLean(L.row));
-  const said = leaning.filter((L, i) => !leaning.some((U, j) => U !== L
-    && scoutLean(U.row)[0] === scoutLean(L.row)[0] && [...L.covers].every(n => U.covers.has(n))
-    && (U.covers.size > L.covers.size || j < i)));
-  out.leans = said.map(L => L.row);
-
-  // What the staff has set up, and what it has not used.
-  const shown = new Set();
-  for (const id of called){
-    const p = byId[id];
-    if (p && p.role === "base" && p.series) shown.add(String(p.series).trim());
-  }
-  for (const p of b.plays){
-    const key = String(p.series || "").trim();
-    if (shown.has(key) && p.role && p.role !== "base" && !called.has(p.id))
-      out.ready.push(`${key} has been shown: ${p.name} hasn't been called`);
-  }
-  const left = planOpeners(b).filter(i => !called.has(i));
-  if (left.length) out.unused.push(`${left.length} of the opening script left: `
-    + left.slice(0, 4).map(i => byId[i].name).join(", "));
-  const start = planStarters(b).filter(i => !called.has(i));
-  if (start.length) out.unused.push("Drive starters not used: " + start.slice(0, 4).map(i => byId[i].name).join(", "));
-  const favs = b.plays.filter(p => p.favorite && !called.has(p.id));
-  if (favs.length) out.unused.push("Favorites not used: " + favs.slice(0, 4).map(p => p.name).join(", "));
-
-  if (out.snaps)
-    out.notes.push(`${out.on} of ${out.snaps} snaps on schedule (${pyRound(100 * out.on / out.snaps)}%), `
-      + `${pyRound(out.yards / out.snaps * 10) / 10} yards a snap`);
-  if (out.thirds.calls) out.notes.push(`${out.thirds.on} of ${out.thirds.calls} on third down`);
-  for (const L of said){
-    const [what, n] = scoutLean(L.row);
-    out.notes.push(`${scoutSay(L.parts)}, you have ${what} ${n} of ${L.row.calls}: a scout sees it`);
-  }
-  for (const seen of out.by_look)
-    if (seen.calls >= S.tendency_calls) out.notes.push(`vs ${seen.label}: ${seen.on} of ${seen.calls} on schedule`);
-  if (out.explosives.length)
-    out.notes.push(`${out.explosives.length} explosive ${out.explosives.length === 1 ? "play" : "plays"}: `
-      + out.explosives.slice(0, 3).map(e => `${e.call} ${Math.trunc(e.yards)}`).join(", "));
-  return out;
-}
-
-// ── the football arithmetic ────────────────────────────────────────────────
-function advanceState(state, outcome, gain){
-  gain = +gain || 0;
-  if (state.over) return state;
-  const s = Object.assign({}, state, {snap: (state.snap || 0) + 1});
-  if (outcome === "turnover") return Object.assign(s, {over: "turnover"});
-  if (outcome === "penalty_us"){
-    const spot = Math.min(99, state.yard_line + Math.abs(gain));
-    return Object.assign(s, {yard_line: spot, distance: state.distance + (spot - state.yard_line)});
-  }
-  if (outcome === "penalty_them"){
-    const spot = Math.max(1, state.yard_line - Math.abs(gain)), moved = state.yard_line - spot;
-    if (moved >= state.distance) return Object.assign(s, {yard_line: spot, down: 1, distance: Math.min(10, spot)});
-    return Object.assign(s, {yard_line: spot, distance: state.distance - moved});
-  }
-  const g = outcome === "incomplete" ? 0 : outcome === "sack" ? -Math.abs(gain) : gain;
-  const spot = state.yard_line - g;
-  if (spot <= 0) return Object.assign(s, {yard_line: 1, over: "touchdown"});
-  if (spot >= 100) return Object.assign(s, {yard_line: 99, over: "safety"});
-  if (g >= state.distance) return Object.assign(s, {yard_line: spot, down: 1, distance: Math.min(10, spot)});
-  if (state.down === 4) return Object.assign(s, {yard_line: spot, over: "downs"});
-  return Object.assign(s, {yard_line: spot, down: state.down + 1, distance: state.distance - g});
-}
-function isSuccess(before, outcome, gain, thresholds){
-  if (outcome === "penalty_us" || outcome === "penalty_them") return null;
-  if (outcome === "turnover" || outcome === "sack" || outcome === "incomplete") return false;
-  if (gain >= before.yard_line) return true;
-  return gain >= before.distance * thresholds[Math.min(before.down, 3) - 1] / 100;
-}
-function downLabel(down, distance, yard){
-  const goal = yard != null && distance >= yard;
-  return `${ORD[down]} & ${goal ? "Goal" : fmtG(distance)}`;
-}
-function driveStateLabel(st){
-  if (st.over) return ({touchdown: "Touchdown", turnover: "Turnover", downs: "Turnover on downs",
-                        safety: "Safety"})[st.over];
-  return sitDescribe({down: st.down, distance: st.distance, yard_line: st.yard_line});
-}
-
-// ── suggestions ────────────────────────────────────────────────────────────
-const playKind = p => p.play_type === "run" ? "run"
-                    : (p.play_type === "pass" || p.play_type === "screen") ? "pass" : "other";
-const snapGain = s => s.outcome === "incomplete" ? 0 : s.outcome === "sack" ? -Math.abs(s.gain) : s.gain;
-const signed = g => (g >= 0 ? "+" : "") + fmtG(g);
-
-function suggestCalls(b, state, log, k, withBranches){
-  const plan = planOf(b);
-  log = (log || plan.log || []).slice();
-  k = k || 3;
-  if (state.over) return [];
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const order = Object.fromEntries(b.plays.map((p, i) => [p.id, i]));
-  const KP = PLANDATA().kind_points || {mode: 4, down: 3, zone: 3, base: 0};
-  const mode = state.mode || null, hash = state.hash_mark || null;
-  const thresholds = thresholdsOf(plan);
-
-  const fit = {};
-  for (const [section, ids] of planSections(b))
-    if (whenMatches(section.when || {}, state.down, state.distance, state.yard_line, hash, mode))
-      for (const id of ids) (fit[id] = fit[id] || []).push(section);
-
-  const script = planOpeners(b), called = log.map(s => s.play);
-  const special = state.down >= 3 || state.yard_line <= 20 || state.mode != null;
-  const remaining = script.filter(id => !called.includes(id));
-  const nextOpener = remaining.length && !special ? remaining[0] : null;
-  // A drive's first snap, with no opener leading: the drive starters come up.
-  const firstSnap = (state.snap || 0) === 0 && state.down === 1 && nextOpener === null;
-  const starting = new Set(firstSnap ? planStarters(b) : []);
-  const candidates = b.plays.filter(p => fit[p.id] || p.id === nextOpener || starting.has(p.id));
-  const seenTells = {};
-  log.forEach((s, i) => (s.tells || []).forEach(tell => {
-    const key = tell.trim().toLowerCase();
-    if (!(key in seenTells)) seenTells[key] = i + 1;
-  }));
-  const seriesKey = p => String(p.series || "").trim().toLowerCase();
-
-  const out = [];
-  for (const p of candidates){
-    const reasons = [];
-    const add = (points, text) => reasons.push({points, text});
-
-    // situation
-    const matched = (fit[p.id] || []).filter(s => whenKind(s.when || {}) !== "base");
-    if (matched.length){
-      let best = matched[0];
-      for (const s of matched) if (KP[whenKind(s.when)] > KP[whenKind(best.when)]) best = s;
-      add(KP[whenKind(best.when)], `In your ${best.title} calls`);
-      if (matched.length > 1) add(1, "Also fits " + matched.filter(s => s !== best).map(s => s.title).join(", "));
-    }
-    // script
-    if (p.id === nextOpener) add(6, `Next on the opening script (${script.indexOf(p.id) + 1} of ${script.length})`);
-    if (starting.has(p.id)) add(4, "A drive starter");
-    if (p.favorite) add(2, "One of your favorites");
-    if (state.look){
-      if (beatsLook(p, state.look)) add(3, `Beats ${state.look}`);
-      const qp = qbOf(p);
-      if (qp && String(readsAgainst(qp, state.look)) !== String(qp.reads || []))
-        add(1, `He has his own order vs ${state.look}`);
-    }
-    // series and tells
-    const key = seriesKey(p);
-    if (key && p.role){
-      const shown = log.filter(s => byId[s.play] && seriesKey(byId[s.play]) === key && byId[s.play].role === "base").length;
-      const baseNames = [...new Set(b.plays.filter(q => seriesKey(q) === key && q.role === "base").map(q => q.name))].sort();
-      const baseName = baseNames.length ? baseNames[0] : "its base";
-      if (p.role === "trick" && called.includes(p.id)) continue;
-      if (HELD.has(p.role)){
-        if (shown === 0) add(-4, `Hold: ${baseName} hasn't been shown yet`);
-        else if (p.role === "trick" && shown < 2) add(-2, `Hold the trick until ${baseName} has been shown twice`);
-        else add(2, `${baseName} shown ${shown}x; this is its ${ROLE_WORDS(p.role)}`);
-      } else if (p.role === "base" && shown === 0) add(1, `Establishes the ${String(p.series).trim()} series`);
-      else if ((p.role === "complement" || p.role === "answer") && shown) add(1, `Same picture as ${baseName}`);
-    }
-    if (p.tell && (p.tell.trim().toLowerCase() in seenTells))
-      add(4, `They showed it: ${p.tell.trim()} (snap ${seenTells[p.tell.trim().toLowerCase()]})`);
-    // same look, and tendency
-    const kind = playKind(p), formation = p.formation.name;
-    const fromHere = [];
-    log.forEach((s, i) => { if (byId[s.play] && byId[s.play].formation.name === formation) fromHere.push([i + 1, s]); });
-    if (kind === "pass"){
-      const runs = fromHere.filter(([, s]) => playKind(byId[s.play]) === "run");
-      if (runs.length){ const [n, s] = runs[runs.length - 1]; add(2, `Same look as ${s.call} (snap ${n})`); }
-    }
-    const kindsHere = fromHere.map(([, s]) => playKind(byId[s.play]));
-    if (kindsHere.length >= 3 && new Set(kindsHere).size === 1 && (kindsHere[0] === "run" || kindsHere[0] === "pass")
-        && (kind === "run" || kind === "pass") && kind !== kindsHere[0])
-      add(2, `Breaks a tendency: ${formation} has been a ${kindsHere[0]} ${kindsHere.length} of ${kindsHere.length}`);
-    // freshness
-    const mine = [];
-    log.forEach((s, i) => { if (s.play === p.id) mine.push([i + 1, s]); });
-    if (mine.length){
-      const [lastN, last] = mine[mine.length - 1];
-      const ago = log.length - lastN + 1;
-      if (ago <= 2) add(-3, ago === 1 ? "Just called" : "Called 2 snaps ago");
-      else {
-        add(-Math.min(mine.length, 2), `Called ${mine.length}x already`);
-        if (isSuccess(last.before, last.outcome, last.gain, thresholds))
-          add(2, `Worked earlier: ${signed(snapGain(last))} on snap ${lastN}`);
-      }
-    }
-    // yardage
-    if (state.down >= 3 && state.distance >= 7){
-      if (kind === "pass") add(2, "Long yardage: a pass or screen");
-      else if (kind === "run") add(-2, "Long yardage for a run");
-    } else if (state.down >= 2 && state.distance <= 2 && kind === "run") add(2, "Short yardage: a run");
-    const prev = log.filter(s => s.before.drive === state.drive);
-    if (prev.length && snapGain(prev[prev.length - 1]) < 0 && state.distance >= 11 && p.play_type === "screen")
-      add(2, "After a loss: a screen earns yards back");
-    // clock
-    const inMode = matched.some(s => whenKind(s.when) === "mode");
-    if (state.mode === "two_minute" && kind === "run" && !inMode) add(-2, "Two-minute: a run keeps the clock moving");
-    if (state.mode === "four_minute" && !inMode){
-      if (kind === "run") add(2, "Four-minute: keep the clock running");
-      else if (kind === "pass") add(-1, "Four-minute: an incompletion stops the clock");
-    }
-    // hash
-    if (hash && p.situation && p.situation.hash_mark && p.situation.hash_mark === hash)
-      add(1, `Planned from the ${hash} hash`);
-    // difficulty
-    const d = difficultyOf(p);
-    const over = overLevel(d, plan.execution);
-    if (over){
-      const why = d.reasons.filter(r => r !== "set by the coach").join(", ");
-      add(-over, `${tierName(d.tier)} ${d.score}: above your team's level` + (why ? ` (${why})` : ""));
-    }
-    out.push({play: p.id, name: p.name, call: playCall(p),
-              points: reasons.reduce((t, r) => t + r.points, 0), reasons, branches: []});
-  }
-  out.sort((a, c) => (c.points - a.points) || (order[a.play] - order[c.play]));
-  const top = out.slice(0, k);
-  if (withBranches !== false) for (const s of top) s.branches = branchesFor(b, state, log, s);
-  return top;
-}
-function branchesFor(b, state, log, first){
-  if (state.down > 2 || state.distance < 3) return [];
-  const hit = Math.max(1, Math.ceil(state.distance * 0.6)), out = [];
-  for (const gain of [hit, 0]){
-    const snap = {before: state, play: first.play, call: first.call, outcome: "gain", gain, tells: []};
-    const after = advanceState(state, "gain", gain);
-    if (after.over || after.down === 1) continue;
-    const nxt = suggestCalls(b, after, [...log, snap], 1, false);
-    if (nxt.length) out.push({when: downLabel(after.down, after.distance, after.yard_line), play: nxt[0].play,
-                              call: nxt[0].call, why: nxt[0].reasons.length ? nxt[0].reasons[0].text : ""});
-  }
-  return out;
-}
-function driveCards(b, k){
-  return (PLANDATA().card_starts || []).map(([title, state]) =>
-    [title, state, suggestCalls(b, Object.assign(freshState(), state), [], k || 3)]);
-}
-function alternationWarning(b, log){
-  const plan = planOf(b);
-  log = log || plan.log || [];
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  let switches = 0;
-  for (let i = 0; i + 1 < log.length; i++){
-    const a = log[i], c = log[i + 1];
-    if (!byId[a.play] || !byId[c.play]) continue;
-    if (isSuccess(a.before, a.outcome, a.gain, thresholdsOf(plan)) === false){
-      const kinds = new Set([playKind(byId[a.play]), playKind(byId[c.play])]);
-      if (kinds.size === 2 && kinds.has("run") && kinds.has("pass")) switches++;
-      else switches = 0;
-    }
-  }
-  return switches >= 3 ? "You switched between run and pass after each of the last three failed plays. Defenses expect that switch." : null;
-}
+// A drive's first snap: 1st & 10 on your own 25.
 function freshState(){
   return {down: 1, distance: 10, yard_line: 75, hash_mark: null, mode: null, drive: 1, snap: 0, over: null};
 }
@@ -5113,100 +4246,6 @@ function fingerprintOf(key, game){
   const h = hex(hmacSha256(key, utf8(`${game}|fingerprint`))).toUpperCase();
   return `${h.slice(0, 4)}-${h.slice(4, 8)}`;
 }
-function codeStream(key, label){
-  let block = 0, words = [];
-  const next = () => {
-    if (!words.length){
-      const d = hmacSha256(key, utf8(`${label}|${block++}`)), v = new DataView(d.buffer);
-      for (let i = 0; i < 32; i += 4) words.push(v.getUint32(i));
-    }
-    return words.shift();
-  };
-  const below = n => {
-    const limit = Math.floor(0x100000000 / n) * n;
-    for (;;){ const v = next(); if (v < limit) return v % n; }
-  };
-  const shuffle = items => {
-    const out = items.slice();
-    for (let i = out.length - 1; i > 0; i--){ const j = below(i + 1); [out[i], out[j]] = [out[j], out[i]]; }
-    return out;
-  };
-  return {below, shuffle};
-}
-// The format of a signal (codes.py): what the coach leaves to the key is
-// drawn from the secret, so a team that also uses chalktalk can't assume it.
-function codeSpace(style, digits){
-  const out = [];
-  if (style === "letter"){
-    const n = 10 ** (digits - 1);
-    for (const c of (CATALOG.codes || {}).letters || "ABCDEFGHJK")
-      for (let i = 0; i < n; i++) out.push(c + String(i).padStart(digits - 1, "0"));
-    return out;
-  }
-  const [low, high] = digits === 3 ? [100, 999] : [10, 99];
-  for (let c = low; c <= high; c++) out.push(String(c));
-  return out;
-}
-function codeCmp(a, b){
-  const na = /^\d+$/.test(a), nb = /^\d+$/.test(b);
-  if (na && nb) return +a - +b;
-  if (na !== nb) return na ? -1 : 1;
-  return a < b ? -1 : a > b ? 1 : 0;
-}
-function pickFrom(stream, options, last){
-  let choices = options.filter(o => o !== last);
-  if (!choices.length) choices = options.slice();
-  return choices[stream.below(choices.length)];
-}
-const range1 = n => Array.from({length: n}, (_, i) => i + 1);
-const codeStyleOf = (key, game, style) =>
-  style === "key" ? ["number", "letter"][codeStream(key, `${game}|style`).below(2)] : style;
-function signalRules(key, game, calls){
-  const stream = codeStream(key, `${game}|signals`), rules = {};
-  let lastDummy = null, lastLive = null;
-  for (const period of periodsOf(calls)){
-    let dummy = calls.dummy_digit === "none" ? null : calls.dummy_digit;
-    if (dummy === "key") dummy = lastDummy = pickFrom(stream, ["first", "middle", "last"], lastDummy);
-    let live = null;
-    if (calls.signals > 1) live = lastLive = pickFrom(stream, range1(calls.signals), lastLive);
-    rules[period] = [dummy, live];
-  }
-  return rules;
-}
-// codes.wristband: the QB's coded cards for one game.
-function wristbandCodes(b, secret, game, key){
-  key = key || keyBytes(secret);
-  const calls = planOf(b).calls;
-  const plays = planCallOrder(b), top = plays.slice(0, calls.top_calls);
-  const style = codeStyleOf(key, game, calls.code_style);
-  const space = codeSpace(style, calls.digits);
-  const need = plays.length + top.length * calls.extra_codes + calls.dead_codes;
-  if (need > space.length)
-    throw new Error(`${need} codes needed but ${calls.digits} digits give only ${space.length}: use 3 digits, or fewer extra and dead codes.`);
-  const wanted = [...plays];
-  for (let r = 0; r < calls.extra_codes; r++) wanted.push(...top);
-  const rules = signalRules(key, game, calls);
-  const cards = [];
-  let before = new Map();
-  for (const period of periodsOf(calls)){
-    const pool = codeStream(key, `${game}|${period}|wristband`).shuffle(space);
-    const codes = new Map(pool.slice(0, wanted.length).map((c, i) => [c, wanted[i]]));
-    const spare = pool.slice(wanted.length);
-    for (const code of [...codes.keys()]){
-      if (before.get(code) === codes.get(code)){
-        const swap = spare.find(c => before.get(c) !== codes.get(code));
-        spare.splice(spare.indexOf(swap), 1); spare.push(code);
-        codes.set(swap, codes.get(code)); codes.delete(code);
-      }
-    }
-    const sorted = [...codes].sort((x, y) => codeCmp(x[0], y[0]));
-    cards.push({period, codes: Object.fromEntries(sorted), dead: spare.slice(0, calls.dead_codes).sort(codeCmp),
-                dummy: rules[period][0], live: rules[period][1]});
-    before = codes;
-  }
-  return {game, fingerprint: fingerprintOf(key, game), style, plays, cards};
-}
-
 /* ─── line calls: what the quarterback says at the line ─────────────────────
    Mirrors codes.line_calls. A code word per play for the game from the
    team's chosen list (a word the coach set stays), dummy and burned words,
@@ -5214,197 +4253,15 @@ function wristbandCodes(b, secret, game, key){
    signal word, which of the calls counts. */
 const cleanWord = t => String(t || "").split(/\s+/).filter(Boolean).join(" ");
 const lowerSet = list => new Set(list.map(w => w.toLowerCase()));
-const byLower = (x, y) => { const a = x.toLowerCase(), b = y.toLowerCase(); return a < b ? -1 : a > b ? 1 : 0; };
 function cleanWords(items){
   const out = [];
   for (const w of (items || []).map(cleanWord)) if (w && !lowerSet(out).has(w.toLowerCase())) out.push(w);
   return out;
 }
-const periodsOf = calls => ((CATALOG.codes || {}).periods || {})[calls.rotate] || ["Game"];
 const liveWordsOf = calls => calls.live_signal === "own" ? cleanWords(calls.own_live)
   : (((CATALOG.codes || {}).live_signals || {})[calls.live_signal] || []);
 const wordBankOf = calls => calls.word_list === "own" ? cleanWords(calls.own_words)
   : (((CATALOG.codes || {}).word_lists || {})[calls.word_list] || []);
-function lineCalls(b, game, key){
-  const calls = planOf(b).calls;
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const signals = liveWordsOf(calls);
-  if (calls.live_signal !== "order" && signals.length < 2)
-    throw new Error("Give at least two live words, so the others can be dummies.");
-  const bank = wordBankOf(calls), burned = cleanWords(calls.burned_words);
-  const order = planCallOrder(b);
-  const own = Object.fromEntries(order.filter(id => cleanWord(byId[id].word)).map(id => [id, cleanWord(byId[id].word)]));
-  const taken = lowerSet([...Object.values(own), ...burned, ...signals]);
-  const pool = codeStream(key, `${game}|words`).shuffle(bank).filter(w => !taken.has(w.toLowerCase()));
-  const words = {};
-  for (const id of order){
-    let w = own[id];
-    if (!w || lowerSet(Object.keys(words)).has(w.toLowerCase())){
-      if (!pool.length) throw new Error(`Not enough words: the list has ${bank.length}. Add words to it, set your own on some plays, or burn fewer.`);
-      w = pool.shift();
-    }
-    words[w] = id;
-  }
-  const used = lowerSet(Object.keys(words));
-  const dead = pool.slice(0, calls.dummy_words).concat(burned.filter(w => !used.has(w.toLowerCase())));
-  const live = {}, turn = {};
-  let count = calls.signals;
-  if (calls.live_signal === "order"){
-    count = Math.max(2, calls.signals);
-    const stream = codeStream(key, `${game}|order`);
-    let last = null;
-    for (const period of periodsOf(calls)) last = turn[period] = pickFrom(stream, range1(count), last);
-  } else {
-    const stream = codeStream(key, `${game}|live`);
-    let last = null;
-    for (const period of periodsOf(calls)) last = live[period] = pickFrom(stream, signals, last);
-  }
-  return {game, fingerprint: fingerprintOf(key, game), words, dead: dead.sort(byLower),
-          live, order: turn, calls: count, signals};
-}
-const ORDINALS = ["", "1st", "2nd", "3rd"];
-// How to read a signal this period, in the words a card prints.
-function signalRule(card){
-  const bits = [];
-  if (card.dummy) bits.push(`drop the ${card.dummy} digit`);
-  if (card.live) bits.push(`the ${ORDINALS[card.live]} signal is live`);
-  return bits.join(" · ");
-}
-function lineRule(lines, period){
-  if (lines.order && lines.order[period]) return `say ${lines.calls}; the ${ORDINALS[lines.order[period]]} counts`;
-  return lines.live && lines.live[period] ? `live: ${lines.live[period]}` : "";
-}
-
-/* ─── sign boards: symbols, one cell live ───────────────────────────────────
-   Mirrors codes.boards. A board carries one, two or four symbols and only
-   one cell is live, changing every period; a symbol's meaning holds for the
-   game. One rack serves the whole game: a board means one call while its
-   top-left cell is live and another after the half. */
-const boardUnits = b => {
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const out = [];
-  for (const id of planCallOrder(b)){
-    const p = byId[id], s = String(p.series || "").trim();
-    const unit = planOf(b).calls.boards_by === "series" && s ? `series:${s}` : id;
-    if (!out.includes(unit)) out.push(unit);
-  }
-  return out;
-};
-function boardSymbols(b, game, key){
-  const c = CATALOG.codes || {}, calls = planOf(b).calls;
-  const symbols = [];
-  for (const color of Object.keys(c.board_colors || {})) for (const shape of c.board_shapes || []) symbols.push(`${shape}/${color}`);
-  const units = boardUnits(b), n = units.length + calls.dummy_boards;
-  if (n > symbols.length)
-    throw new Error(`${n} boards needed but only ${symbols.length} symbols: use a symbol per series, or fewer dummies.`);
-  const pool = codeStream(key, `${game}|boards`).shuffle(symbols);
-  const meaning = Object.fromEntries(units.map((u, i) => [u, pool[i]]));
-  const blanks = pool.slice(units.length, n);
-  let cells = calls.board_cells;
-  if (cells === "key") cells = [2, 4][codeStream(key, `${game}|cells`).below(2)];   // two or four, each game
-
-  let stream = codeStream(key, `${game}|boards|live`), last = null;
-  const live = {};
-  for (const period of periodsOf(calls)){
-    let options = [];
-    for (let x = 0; x < cells; x++) if (x !== last) options.push(x);
-    if (!options.length) options = [0];
-    last = live[period] = options[stream.below(options.length)];
-  }
-
-  const rack = Array.from({length: n}, () => new Array(cells).fill(null));
-  for (const cell of [...new Set(Object.values(live))].sort((x, y) => x - y)){
-    const column = codeStream(key, `${game}|boards|cell${cell}`).shuffle(units.map(u => meaning[u]).concat(blanks));
-    for (let i = 0; i < n; i++){
-      if (rack[i].includes(column[i])){
-        const order = [];
-        for (let j = i + 1; j < n; j++) order.push(j);
-        for (let j = 0; j < i; j++) order.push(j);
-        const j = order.find(j => !rack[i].includes(column[j]) && !rack[j].includes(column[i]));
-        if (j !== undefined) [column[i], column[j]] = [column[j], column[i]];
-      }
-    }
-    for (let i = 0; i < n; i++) rack[i][cell] = column[i];
-  }
-  stream = codeStream(key, `${game}|boards|decoys`);
-  for (const row of rack)
-    for (let x = 0; x < cells; x++)
-      while (row[x] === null){
-        const s = symbols[stream.below(symbols.length)];
-        if (!row.includes(s)) row[x] = s;
-      }
-  return {game, fingerprint: fingerprintOf(key, game), cells, units, symbols: meaning, live, boards: rack};
-}
-// One symbol as SVG in a 100x100 box: a shape in a colour, outlined in black.
-const SYMBOL_PATHS = {
-  circle: '<circle cx="50" cy="50" r="44"/>',
-  square: '<rect x="8" y="8" width="84" height="84"/>',
-  triangle: '<polygon points="50,6 94,90 6,90"/>',
-  diamond: '<polygon points="50,4 96,50 50,96 4,50"/>',
-  star: '<polygon points="50,7 61.2,37.6 93.7,38.8 68.1,58.9 77,90.2 50,72 23,90.2 31.9,58.9 6.3,38.8 38.8,37.6"/>',
-  plus: '<polygon points="35,6 65,6 65,35 94,35 94,65 65,65 65,94 35,94 35,65 6,65 6,35 35,35"/>',
-  x: '<polygon transform="rotate(45 50 50)" points="36,8 64,8 64,36 92,36 92,64 64,64 64,92 36,92 36,64 8,64 8,36 36,36"/>',
-  ring: '<path fill-rule="evenodd" d="M6,50a44,44 0 1,0 88,0a44,44 0 1,0 -88,0zM26,50a24,24 0 1,0 48,0a24,24 0 1,0 -48,0z"/>',
-};
-function symbolSvg(symbol, size){
-  const [shape, color] = symbol.split("/");
-  const fill = ((CATALOG.codes || {}).board_colors || {})[color] || "#000";
-  return `<svg viewBox="-2 -2 104 104" width="${size}" height="${size}" aria-hidden="true">`
-    + `<g fill="${fill}" stroke="#000" stroke-width="8" stroke-linejoin="round">${SYMBOL_PATHS[shape] || SYMBOL_PATHS.circle}</g></svg>`;
-}
-const COLOR_WORDS = {sky: "light blue"};
-const symbolName = symbol => { const [shape, color] = symbol.split("/"); return `${COLOR_WORDS[color] || color} ${shape}`; };
-const CELL_NAMES = {1: ["the board"], 2: ["left", "right"], 4: ["top left", "top right", "bottom left", "bottom right"]};
-const cellName = (cells, i) => (CELL_NAMES[cells] || [])[i] || `cell ${i + 1}`;
-// A little map of the board with the live cell filled in.
-function cellMap(cells, live){
-  const cols = cells === 1 ? 1 : 2, rows = cells === 4 ? 2 : 1;
-  let s = `<svg viewBox="0 0 ${cols * 14 + 2} ${rows * 10 + 2}" width="${cols * 14 + 2}" height="${rows * 10 + 2}" aria-hidden="true" style="vertical-align:-3px">`;
-  for (let i = 0; i < cells; i++)
-    s += `<rect x="${1 + (i % cols) * 14}" y="${1 + Math.floor(i / cols) * 10}" width="13" height="9" fill="${i === live ? "#000" : "none"}" stroke="#000" stroke-width="1"/>`;
-  return s + `</svg>`;
-}
-// How far a board reads, on a 22x28 poster: symbols need 0.3 in per yard.
-const BOARD_REACH = {1: 55, 2: 40, 4: 30};
-
-function signBoardsHtml(b, boards){
-  const plan = planOf(b), byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const unitName = u => u.startsWith("series:") ? `${u.slice(7)} series` : playCall(byId[u]);
-  const cells = boards.cells, cols = cells === 1 ? 1 : 2, rows = cells === 4 ? 2 : 1;
-  const pages = boards.boards.map((row, i) =>
-    `<div class="board"><div class="corner">${i + 1}</div><div class="grid" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr)">`
-    + row.map(sym => `<div class="cellb">${symbolSvg(sym, "100%")}</div>`).join("") + `</div></div>`).join("");
-  const periods = Object.keys(boards.live);
-  const liveLine = periods.map(p => `${cellMap(cells, boards.live[p])} ${esc(p)}: <b>${esc(cellName(cells, boards.live[p]))}</b>`).join(" &nbsp; ");
-  // The players' key: what each symbol means this game, and which cell to read.
-  const players = `<div class="section"><h2>What the symbols mean</h2><p class="note">Read only the live cell. ${liveLine}</p><table><tbody>`
-    + boards.units.map(u => `<tr><td style="width:44px">${symbolSvg(boards.symbols[u], 30)}</td>`
-        + `<td>${esc(symbolName(boards.symbols[u]))}</td><td class="call">${esc(unitName(u))}</td></tr>`).join("")
-    + `</tbody></table></div>`;
-  // The signaler's sheet: which board to show for each call, period by period.
-  const signaler = periods.map(p => {
-    const cell = boards.live[p];
-    const boardOf = sym => boards.boards.findIndex(row => row[cell] === sym) + 1;
-    const dummies = boards.boards.map((row, i) => [row, i + 1])
-      .filter(([row]) => !Object.values(boards.symbols).includes(row[cell])).map(([, n]) => n);
-    return `<div class="section"><h2>${esc(p)} · live cell ${esc(cellName(cells, cell))}</h2><table><tbody>`
-      + boards.units.map(u => `<tr><td class="n" style="width:44px">${boardOf(boards.symbols[u])}</td><td class="call">${esc(unitName(u))}</td></tr>`).join("")
-      + `</tbody></table><p class="note">Dummy boards: ${dummies.join(", ") || "none"}</p></div>`;
-  }).join("");
-  const reach = BOARD_REACH[cells] || 30;
-  const css = "@page{size:landscape;margin:10mm}"
-    + ".board{height:92vh;position:relative;break-after:page;border:1px solid #000;background:#fff;box-sizing:border-box;padding:3vh}"
-    + ".board .grid{display:grid;gap:3vh;height:100%}.board .cellb{display:flex;align-items:center;justify-content:center;min-height:0}"
-    + ".board .cellb svg{max-height:100%;max-width:100%}"
-    + ".board .corner{position:absolute;left:10px;top:6px;font-size:11px;color:#555}"
-    + ".keypage{break-before:page}";
-  return sheetPage(`${planTitle(plan)} — Sign boards`, pages
-    + `<div class="keypage">${sheetHeader(planTitle(plan), ["Sign boards · the players' key"], [`Fingerprint ${boards.fingerprint}`])}${players}`
-    + sheetFooter(`On a 22 x 28 in poster these boards read to about ${reach} yards; letter paper is for practice.`) + `</div>`
-    + `<div class="keypage">${sheetHeader(planTitle(plan), ["Sign boards · signaler only"], [`Fingerprint ${boards.fingerprint}`])}${signaler}`
-    + sheetFooter("Signaler only. The key is not printed.") + `</div>`, css);
-}
-
 /* ─── the drive planner in the designer ─────────────────────────────────────
    Rehearse a drive: set the situation, read the suggestions and why, call
    one, tap what happened. The log lives in the book's game plan, so it saves
@@ -5432,12 +4289,19 @@ function setDrive(open, quiet){
 const driveSide = y => y > 50 ? "own" : "opp";
 const driveYardNum = y => y > 50 ? 100 - y : y;
 
+// The Game panel's view, from Python (views.game_view).
+function gameView(){
+  const scripts = (planOf(book).drives || []).length;
+  if (gameScript >= scripts) gameScript = -1;
+  return ask("game_view", {book: exportBook(), state: driveState, script: gameScript >= 0 ? gameScript : null}, renderDrive);
+}
+
 function renderDrive(){
   renderPlanner();
   if (!driveOpen) return;
   commit();
-  const st = driveState, plan = planOf(book), log = planLog();
-  $("dsitLabel").textContent = driveStateLabel(st);
+  const st = driveState, plan = planOf(book);
+  // The situation controls follow the drive at once; what Python works out follows its answer.
   setSeg($("dDown"), String(st.down));
   if (document.activeElement !== $("dDist")) $("dDist").value = fmtG(st.distance);
   setSeg($("dSide"), driveSide(st.yard_line));
@@ -5448,16 +4312,40 @@ function renderDrive(){
   const lock = !!st.over;
   for (const id of ["dDist", "dYard"]) $(id).disabled = lock;
 
+  // result entry
+  const res = $("dResult");
+  res.hidden = !pendingCall || !!st.over;
+  if (pendingCall && !st.over){
+    const p = book.plays.find(q => q.id === pendingCall);
+    $("dCalled").textContent = p ? playCall(p) : pendingCall;
+    const tells = [...new Set(book.plays.map(q => (q.tell || "").trim()).filter(Boolean))];
+    const tb = $("dTells"); tb.innerHTML = "";
+    $("dTellsRow").hidden = !tells.length;
+    for (const t of tells){
+      const b = pick("chip" + (pendingTells.has(t) ? " sel" : ""), esc(t),
+        () => { pendingTells.has(t) ? pendingTells.delete(t) : pendingTells.add(t); renderDrive(); });
+      tb.appendChild(b);
+    }
+  }
+
+  // the plan, built in the week
+  const tagged = book.plays.filter(p => p.series || p.role).length, scripts = (plan.drives || []).length;
+  $("dPlanSum").textContent = `${planTitle(plan)} · ${tagged} of ${book.plays.length} plays in a series · `
+    + `${scripts} drive ${scripts === 1 ? "script" : "scripts"}`;
+
+  const gv = gameView();
+  if (!gv) return;                    // Python is answering: keep what is on screen
+  $("dsitLabel").textContent = gv.label;
+
   // the script's call, then the planner's picks
-  const scripted = renderScripted(st, log);
+  const scripted = renderScripted(gv);
   $("dSugHead").textContent = scripted ? "Other options" : "Suggested next";
   const box = $("dSuggest"); box.innerHTML = "";
-  if (st.over){
-    box.innerHTML = `<p class="dover">${esc(driveStateLabel(st))}. Start a new drive to keep rehearsing.</p>`;
+  if (gv.over){
+    box.innerHTML = `<p class="dover">${esc(gv.label)}. Start a new drive to keep rehearsing.</p>`;
   } else {
-    const list = suggestCalls(book, st, log, 3);
-    if (!list.length) box.innerHTML = `<p class="note" style="margin:0">No play in the book fits this situation.</p>`;
-    list.forEach((s, i) => {
+    if (!gv.suggestions.length) box.innerHTML = `<p class="note" style="margin:0">No play in the book fits this situation.</p>`;
+    gv.suggestions.forEach((s, i) => {
       const card = document.createElement("div");
       card.className = "dcard" + (s.points < 0 ? " held" : "") + (pendingCall === s.play ? " picked" : "");
       card.innerHTML = `<div class="dtop"><span class="drank">${i + 1}</span>`
@@ -5477,55 +4365,25 @@ function renderDrive(){
     });
   }
 
-  // result entry
-  const res = $("dResult");
-  res.hidden = !pendingCall || !!st.over;
-  if (pendingCall && !st.over){
-    const p = book.plays.find(q => q.id === pendingCall);
-    $("dCalled").textContent = p ? playCall(p) : pendingCall;
-    const tells = [...new Set(book.plays.map(q => (q.tell || "").trim()).filter(Boolean))];
-    const tb = $("dTells"); tb.innerHTML = "";
-    $("dTellsRow").hidden = !tells.length;
-    for (const t of tells){
-      const b = pick("chip" + (pendingTells.has(t) ? " sel" : ""), esc(t),
-        () => { pendingTells.has(t) ? pendingTells.delete(t) : pendingTells.add(t); renderDrive(); });
-      tb.appendChild(b);
-    }
-  }
-
   // the log
-  const thresholds = thresholdsOf(plan);
   const lb = $("dLog"); lb.innerHTML = "";
-  const byId = Object.fromEntries(book.plays.map(p => [p.id, p]));
-  log.forEach((s, i) => {
-    const ok = isSuccess(s.before, s.outcome, s.gain, thresholds);
-    const what = {gain: signed(s.gain), incomplete: "incomplete", sack: `sack ${signed(-Math.abs(s.gain))}`,
-                  penalty_us: `flag on us ${signed(-Math.abs(s.gain))}`, penalty_them: `flag on them ${signed(Math.abs(s.gain))}`,
-                  turnover: "turnover"}[s.outcome] || s.outcome;
+  gv.log.forEach((s, i) => {
     const row = document.createElement("div");
-    row.className = "drow" + (ok === true ? " ok" : ok === false ? " miss" : "");
-    row.innerHTML = `<span class="dn">${i + 1}</span><span class="dsit">${esc(sitShort(s.before))}</span>`
-      + `<span class="dplay">${esc((byId[s.play] || {}).name || s.call)}</span><span class="dres2">${esc(what)}</span>`;
-    row.title = ok === true ? "On schedule" : ok === false ? "Off schedule" : "Penalty: not counted";
+    row.className = "drow" + (s.ok === true ? " ok" : s.ok === false ? " miss" : "");
+    row.innerHTML = `<span class="dn">${i + 1}</span><span class="dsit">${esc(s.sit)}</span>`
+      + `<span class="dplay">${esc(s.name)}</span><span class="dres2">${esc(s.what)}</span>`;
+    row.title = s.ok === true ? "On schedule" : s.ok === false ? "Off schedule" : "Penalty: not counted";
     lb.appendChild(row);
   });
-  const done = log.filter(s => isSuccess(s.before, s.outcome, s.gain, thresholds) !== null);
-  const good = done.filter(s => isSuccess(s.before, s.outcome, s.gain, thresholds));
-  $("dLogSum").textContent = log.length ? `${good.length} of ${done.length} on schedule` : "";
-  const warn = alternationWarning(book, log);
-  $("dWarn").hidden = !warn; $("dWarn").textContent = warn || "";
+  $("dLogSum").textContent = gv.summary;
+  $("dWarn").hidden = !gv.warning; $("dWarn").textContent = gv.warning || "";
 
-  renderScout();
+  renderScout(gv.scout);
 
   // plan check
-  const notes = planCheck(book);
+  const notes = gv.check;
   $("dCheckCount").textContent = notes.length ? `(${notes.length})` : "";
   $("dCheck").innerHTML = notes.length ? notes.map(n => `<li>${esc(n)}</li>`).join("") : "<li>Nothing to flag.</li>";
-
-  // the plan, built in the week
-  const tagged = book.plays.filter(p => p.series || p.role).length, scripts = (plan.drives || []).length;
-  $("dPlanSum").textContent = `${planTitle(plan)} · ${tagged} of ${book.plays.length} plays in a series · `
-    + `${scripts} drive ${scripts === 1 ? "script" : "scripts"}`;
 }
 
 function renderKey(){
@@ -5546,17 +4404,23 @@ async function setCodeKey(secret, remember){
   } catch(e){ toast(e.message || "That key didn't work"); }
 }
 
-function logResult(outcome){
-  if (!pendingCall) return;
+let logging = false;                 // one result at a time, however fast the taps
+async function logResult(outcome){
+  if (!pendingCall || logging) return;
   const p = book.plays.find(q => q.id === pendingCall);
   const yards = Math.round(+($("dYards").value || 0));
   const snap = {before: Object.assign({}, driveState), play: pendingCall, call: p ? playCall(p) : pendingCall,
                 outcome, gain: outcome === "incomplete" || outcome === "turnover" ? 0 : yards,
                 look: driveState.look || null, tells: [...pendingTells]};
-  planLog().push(snap);
-  driveState = advanceState(driveState, outcome, snap.gain);
-  pendingCall = null; pendingTells = new Set(); $("dYards").value = "";
-  save(); renderDrive();
+  logging = true;
+  try {
+    const {state} = await api("advance", {state: driveState, outcome, gain: snap.gain});
+    planLog().push(snap);
+    driveState = state;
+    pendingCall = null; pendingTells = new Set(); $("dYards").value = "";
+    save(); renderDrive();
+  } catch(e){ toast(e.message || "Couldn't move the chains"); }
+  finally { logging = false; }
 }
 function undoResult(){
   const log = planLog();
@@ -5588,116 +4452,16 @@ const planTitle = plan => {
   return [name, vs].filter(Boolean).join(" ") || "Game plan";
 };
 
-function driveCardsHtml(b){
-  const plan = planOf(b);
-  const cards = driveCards(b, 3).map(([title, st, list]) =>
-    `<div class="dcardp"><h2>${esc(title)}</h2><div class="note">${esc(driveStateLabel(Object.assign(freshState(), st)))}</div><ol>`
-    + list.map(s => `<li><span class="num">${s.points}</span><span><b>${esc(s.call)}</b>`
-      + s.reasons.filter(r => r.points > 0).slice(0, 2).map(r => `<div class="why">${esc(r.text)}</div>`).join("")
-      + s.branches.map(bb => `<div class="br">If ${esc(bb.when)}: ${esc(bb.call)}</div>`).join("")
-      + `</span></li>`).join("") + `</ol></div>`).join("");
-  const css = ".dcards{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}"
-    + ".dcardp{border:1px solid var(--line);border-radius:6px;padding:10px;break-inside:avoid}"
-    + ".dcardp h2{font-size:13px;text-transform:none;letter-spacing:0;margin:0}"
-    + ".dcardp ol{list-style:none;margin:8px 0 0;padding:0}.dcardp li{display:flex;gap:8px;padding:4px 0;border-top:1px dotted var(--line)}"
-    + ".dcardp .num{min-width:22px;color:var(--muted);font-variant-numeric:tabular-nums}"
-    + ".why{color:var(--muted);font-size:11px}.br{font-size:11px;margin-top:2px}";
-  const scripts = scriptCardsHtml(b);
-  return sheetPage(`${planTitle(plan)} — Drive cards`,
-    sheetHeader(planTitle(plan), [scripts ? "Your drive scripts, then the planner's first calls from each start"
-                                          : "Drive cards: the first calls from each start, and what follows"],
-                [b.team, `${b.plays.length} plays`]) + `<div class="dcards">${scripts}${cards}</div>` + sheetFooter(), css);
-}
-
-// The staff's master: every section with numbers, words, symbols and codes.
-function gamePlanHtml(b, codes, boards, lines){
-  const plan = planOf(b), order = planCallOrder(b);
-  const byId = Object.fromEntries(b.plays.map(p => [p.id, p]));
-  const num = id => order.indexOf(id) + 1;
-  const wordOf = lines ? Object.fromEntries(Object.entries(lines.words).map(([w, id]) => [id, w])) : null;
-  const words = !!wordOf || ((plan.calls.methods || []).includes("words") && b.plays.some(p => p.word));
-  const periods = codes ? codes.cards.map(c => c.period) : [];
-  const codesOf = (id, card) => Object.entries(card.codes).filter(([, v]) => v === id).map(([c]) => c).join(" ");
-  const unitOf = id => { const sName = String(byId[id].series || "").trim();
-    return plan.calls.boards_by === "series" && sName ? `series:${sName}` : id; };
-  const table = (title, ids, sub) => ids.length ? `<div class="section"><h2>${esc(title)}</h2>${sub || ""}`
-    + `<table><thead><tr><th>#</th><th>Call</th>${words ? "<th>Word</th>" : ""}${boards ? "<th>Board</th>" : ""}`
-    + periods.map(p => `<th>${esc(p)}</th>`).join("") + `</tr></thead><tbody>`
-    + ids.map(id => { const p = byId[id]; return `<tr><td class="n">${num(id)}</td><td class="call">${p.favorite ? "★ " : ""}${esc(playCall(p))}`
-        + (p.series || p.role ? `<div class="note">${esc([p.series, p.role ? ROLE_WORDS(p.role) : null].filter(Boolean).join(" · "))}</div>` : "")
-        + `</td>${words ? `<td>${esc((wordOf ? wordOf[id] : p.word) || "—")}</td>` : ""}`
-        + (boards ? `<td>${boards.symbols[unitOf(id)] ? symbolSvg(boards.symbols[unitOf(id)], 22) : ""}</td>` : "")
-        + (codes ? codes.cards.map(card => `<td class="n">${esc(codesOf(id, card))}</td>`).join("") : "")
-        + `</tr>`; }).join("")
-    + `</tbody></table></div>` : "";
-  // What is live, period by period.
-  const live = [];
-  if (codes && codes.cards.some(c => signalRule(c)))
-    live.push(`Signals: ` + codes.cards.map(c => `${esc(c.period)} <b>${esc(signalRule(c) || "as is")}</b>`).join(" · "));
-  if (lines) live.push(`Line calls: ` + Object.keys(Object.keys(lines.live).length ? lines.live : lines.order)
-    .map(p => `${esc(p)} <b>${esc(lineRule(lines, p))}</b>`).join(" · ")
-    + (lines.signals.length ? ` <span class="note">(signal words: ${lines.signals.map(esc).join(", ")})</span>` : ""));
-  if (boards) live.push(`Live cell: ` + Object.entries(boards.live).map(([p, c]) =>
-    `${cellMap(boards.cells, c)} ${esc(p)} <b>${esc(cellName(boards.cells, c))}</b>`).join(" · "));
-  let body = live.length ? `<p class="note">${live.join("<br>")}</p>` : "";
-  body += table("Openers", planOpeners(b), `<div class="note">The script, in order</div>`);
-  body += table("Drive starters", planStarters(b), `<div class="note">The first call of a new drive</div>`);
-  for (const [section, ids] of planSections(b)) body += table(section.title, ids);
-  const dead = (codes ? `<div class="section"><h2>Dead codes</h2>` + codes.cards.map(card =>
-    `<div class="note">${esc(card.period)}: ${card.dead.join(" ")}</div>`).join("") + `</div>` : "")
-    + (lines && lines.dead.length ? `<div class="section"><h2>Dummy words</h2><div class="note">${lines.dead.map(esc).join(", ")}</div></div>` : "");
-  const keyed = codes || boards || lines;
-  return sheetPage(`${planTitle(plan)} — Game plan`,
-    sheetHeader(planTitle(plan), ["Game plan · staff only"],
-                [b.team, keyed ? `Fingerprint ${keyed.fingerprint}` : null, `${order.length} calls`])
-    + body + dead + sheetFooter(keyed ? "Staff only. The key is not printed." : ""));
-}
-
-// The halftime sheet: the numbers, what a scout sees, and what is left.
-function scoutHtml(b){
-  const plan = planOf(b), r = scoutReport(b, planLog());
-  const split = rows => `<table><thead><tr><th>Down</th><th class="n">Calls</th><th class="n">On schedule</th>`
-    + `<th class="n">Yards</th><th class="n">A call</th></tr></thead><tbody>`
-    + rows.map(s => `<tr><td>${esc(s.label)}</td><td class="n">${s.calls}</td>`
-        + `<td class="n">${s.on} (${rateOf(s)}%)</td><td class="n">${Math.round(s.yards)}</td>`
-        + `<td class="n">${s.calls ? pyRound(s.yards / s.calls * 10) / 10 : 0}</td></tr>`).join("")
-    + `</tbody></table>`;
-  const section = (title, inner) => inner ? `<div class="section"><h2>${esc(title)}</h2>${inner}</div>` : "";
-  const list = items => items.length ? `<ol>${items.map(i => `<li><span></span><span>${esc(i)}</span></li>`).join("")}</ol>` : "";
-  // A number and the call, the way the rest of the sheet lists things.
-  const calls = (lines, each) => lines.length ? `<ol>` + lines.map(l =>
-      `<li><span class="num">${pyRound(l.yards / l.calls * 10) / 10}</span><span>${esc(l.call)}`
-      + (each ? `<div class="note">${l.calls} calls</div>` : "") + `</span></li>`).join("") + `</ol>` : "";
-  // Every look called four times or more, under the thing a scout breaks the half down by.
-  const dims = {formation: "Formation", personnel: "Personnel", down: "Down & distance", hash: "Hash", field: "Field"};
-  const looks = r.tendencies.length ? `<table><thead><tr><th>Look</th><th class="n">Calls</th>`
-      + `<th class="n">Run</th><th class="n">Pass</th><th class="n">On schedule</th></tr></thead><tbody>`
-      + r.tendencies.map((x, i) => (i && r.tendencies[i - 1].by === x.by ? "" : `<tr><th colspan="5">${dims[x.by]}</th></tr>`)
-          + `<tr><td>${esc(x.look)}</td><td class="n">${x.calls}</td><td class="n">${x.runs}</td>`
-          + `<td class="n">${x.passes}</td><td class="n">${x.on}</td></tr>`).join("") + `</tbody></table>` : "";
-  const head = sheetHeader(planTitle(plan), ["Halftime: what the log says"],
-    [b.team, `${r.on} of ${r.snaps} on schedule`, `${r.thirds.on} of ${r.thirds.calls} on third down`]);
-  const body = section("What a scout sees", list(r.notes))
-    + section("By down", r.by_down.length ? split(r.by_down) : "")
-    + section("What is working", calls(r.best, true))
-    + section("Explosives", calls(r.explosives, false))
-    + section("Your looks", looks)
-    + section("Set up and not called", list(r.ready))
-    + section("Left on the sheet", list(r.unused));
-  return sheetPage(`${planTitle(plan)} - Halftime`, head + `<div class="cols">${body}</div>`
-    + sheetFooter("Counted from the game log."), ".cols{column-count:2;column-gap:20px}");
-}
 // The same numbers in the Game panel, while the half is going on.
-function renderScout(){
+function renderScout(r){
   const box = $("dScout");
   if (!box) return;
-  const r = scoutReport(book, planLog());
   $("dScoutSum").textContent = r.snaps ? `(${r.on}/${r.snaps} on schedule)` : "";
   if (!r.snaps){ box.innerHTML = `<p class="note" style="margin:0">Nothing logged yet.</p>`; return; }
   box.innerHTML = `<ul class="dnotes">${r.notes.map(n => `<li>${esc(n)}</li>`).join("")}</ul>`
     + `<div class="dlog">${r.by_down.map(s => `<div class="drow"><span class="dn"></span>`
         + `<span class="dsit">${esc(s.label)}</span><span class="dplay">${s.on} of ${s.calls} on schedule</span>`
-        + `<span class="dres2">${pyRound(s.yards / s.calls * 10) / 10} a call</span></div>`).join("")}</div>`
+        + `<span class="dres2">${s.per_call} a call</span></div>`).join("")}</div>`
     + (r.ready.length ? `<p class="note">${esc(r.ready[0])}</p>` : "")
     + (r.unused.length ? `<p class="note">${esc(r.unused[0])}</p>` : "")
     + `<div class="row" style="margin-top:8px"><button type="button" data-print="scout">Print the halftime sheet</button></div>`;
@@ -5806,9 +4570,17 @@ function fileUnsaved(){
 
 // Asks the `chalk design` server on this machine to do something for the page.
 async function api(name, body){
-  const r = await fetch("api/" + name, {method: "POST",
-    headers: {"Content-Type": "application/json", "X-Chalktalk-Token": SERVER.token},
-    body: JSON.stringify(body || {})});
+  let r;
+  try {
+    r = await fetch("api/" + name, {method: "POST",
+      headers: {"Content-Type": "application/json", "X-Chalktalk-Token": SERVER.token},
+      body: JSON.stringify(body || {})});
+  } catch(e){
+    // Nothing answered: the designer was closed, or the computer slept through it.
+    $("stopped").hidden = false;
+    throw new Error("The designer has stopped. Start Chalktalk again to save: your work is kept in this browser.");
+  }
+  $("stopped").hidden = true;
   const got = await r.json().catch(() => ({}));
   if (!r.ok) throw Object.assign(new Error(got.error || `The designer's server answered ${r.status}`),
                                  {status: r.status});
@@ -5906,6 +4678,7 @@ async function saveFile(saveAs){
     const got = await writeFile(path, text, !!known);
     if (!got) return;
     linkFile({name: got.name, path: got.path, kind, mtime: got.mtime}, text);
+    rememberFile(got.path);
     toast(`Saved to ${got.name}`);
   } catch(e){ toast(e.message || "Couldn't save there"); }
 }
@@ -5921,11 +4694,89 @@ async function savePlayCopy(){
   } catch(e){ toast(e.message || "Couldn't save the copy"); }
 }
 
-// ── opening ────────────────────────────────────────────────────────────────
-function openFileDialog(){ $("fileInput").click(); }
+// ── opening: the coach's playbook folder, or a file from anywhere ──────────
+// The Open dialog lists the playbooks in the folder `chalk design` keeps them
+// in (Documents/chalktalk unless told otherwise), the recent ones first, and
+// opens them by their real path, so Save writes back to the same file.
+const LS_RECENT = "chalktalk.designer.recent";
+function recentPaths(){
+  try { return JSON.parse(localStorage.getItem(LS_RECENT) || "[]").filter(p => typeof p === "string"); }
+  catch(e){ return []; }
+}
+function setRecent(paths){ try { localStorage.setItem(LS_RECENT, JSON.stringify(paths.slice(0, 8))); } catch(e){} }
+function rememberFile(path){ if (path) setRecent([path, ...recentPaths().filter(p => p !== path)]); }
+
+// When a file was saved, the way a person says it.
+function savedWhen(ms){
+  const d = new Date(ms), now = new Date(), mins = (now - d) / 60000;
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${Math.round(mins)} min ago`;
+  const time = d.toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+  if (d.toDateString() === now.toDateString()) return `today ${time}`;
+  if (mins < 60 * 24 * 6) return `${d.toLocaleDateString([], {weekday: "long"})} ${time}`;
+  return d.toLocaleDateString([], {month: "short", day: "numeric",
+    year: d.getFullYear() === now.getFullYear() ? undefined : "numeric"});
+}
+
+// Help: the controls, where the playbooks are kept, and what to do when something
+// goes wrong. The folder, version and docs link come from the designer.
+function openHelp(){
+  $("exportMenu").hidden = true;
+  $("helpFolder").textContent = SERVER ? SERVER.folder : "this browser";
+  $("helpReveal").hidden = !SERVER;
+  $("helpVersion").textContent = SERVER && SERVER.version ? `Chalktalk ${SERVER.version}` : "Chalktalk";
+  const docs = SERVER && SERVER.docs;
+  $("helpDocs").hidden = !docs;
+  if (docs) $("helpDocs").href = docs;
+  if (!$("helpDialog").open) $("helpDialog").showModal();
+}
+
+async function openFileDialog(){
+  if (!SERVER) return $("fileInput").click();
+  const dlg = $("openDialog"), list = $("openList");
+  if (!list.children.length) list.innerHTML = `<p class="note">Looking in your folder…</p>`;
+  if (!dlg.open) dlg.showModal();
+  let got;
+  try { got = await api("files", {recent: recentPaths()}); }
+  catch(e){ list.innerHTML = `<p class="note">${esc(e.message)}</p>`; return; }
+  setRecent(got.recent.map(f => f.path));          // the ones that have gone drop off
+  $("openWhere").textContent = got.folder;
+  $("openWhere").title = got.folder;
+  const row = f => `<button type="button" class="orow" data-path="${esc(f.path)}"><span class="nm">${esc(f.title)}</span>`
+    + `<span class="sub">${esc(f.name)} · ${f.kind === "book" ? `${f.plays} ${f.plays === 1 ? "play" : "plays"}` : "a play"}`
+    + ` · ${esc(savedWhen(f.modified))}</span></button>`;
+  const shown = new Set(got.recent.map(f => f.path));
+  const rest = got.files.filter(f => !shown.has(f.path));
+  list.innerHTML = (got.recent.length ? `<h3>Recent</h3><div class="olist">${got.recent.map(row).join("")}</div>` : "")
+    + `<h3>In this folder</h3>`
+    + (rest.length ? `<div class="olist">${rest.map(row).join("")}</div>`
+       : `<p class="note">${got.files.length ? "Everything here is listed above."
+                                             : "No playbooks here yet. Save one and it shows up here."}</p>`)
+    + (got.more ? `<p class="note">The newest ${got.files.length} are listed.</p>` : "");
+  list.querySelectorAll("[data-path]").forEach(b => b.onclick = () => openPath(b.dataset.path));
+  const first = list.querySelector(".orow");
+  if (first) first.focus();
+}
+async function openPath(path){
+  let got;
+  try { got = await api("open", {path}); }
+  catch(e){
+    setRecent(recentPaths().filter(p => p !== path));
+    toast(e.message || "Couldn't open that");
+    return openFileDialog();
+  }
+  $("openDialog").close();
+  dismissWelcome();
+  loadBook(got.kind === "book" ? got.data : {name: got.data.name || "Playbook", plays: [got.data]});
+  fileLink = {name: got.name, path: got.path, kind: got.kind, mtime: got.mtime};
+  linkFile(fileLink, fileContent().text);
+  rememberFile(got.path);
+  renderFileState();
+  toast(`Opened ${got.name}`);
+}
 // A file is the document: a book opens as the book, a play as a book of one.
 // The browser hands over a file's contents but not its folder, so Save asks
-// where it goes, starting from the same name.
+// where it goes (the coach's folder, under the same name).
 async function openFile(file){
   if (!file) return;
   let obj;
@@ -5941,6 +4792,21 @@ async function openFile(file){
   renderFileState();
 }
 
+// Tell the designer this page is still open. A quiet designer (the shortcut's)
+// stops a little after the last page has gone.
+function heartbeat(){
+  if (!SERVER) return;
+  const beat = () => api("ping", {}).catch(() => {});
+  beat();
+  setInterval(beat, 20000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) beat(); });
+  window.addEventListener("pagehide", () => {
+    try { fetch("api/bye", {method: "POST", keepalive: true, body: "{}",
+                            headers: {"Content-Type": "application/json", "X-Chalktalk-Token": SERVER.token}}); }
+    catch(e){}
+  });
+}
+
 function renderFileState(){
   const btn = $("btnSave");
   if (!btn || !book) return;
@@ -5954,6 +4820,8 @@ function renderFileState(){
     line.title = fileLink && fileLink.path ? fileLink.path : "";
     line.classList.toggle("warn", unsaved);
   }
+  const reveal = $("btnReveal");
+  if (reveal) reveal.hidden = !(SERVER && fileLink && fileLink.path);
   document.title = (unsaved ? "• " : "") + (play && play.name ? play.name + " · " : "") + "Chalktalk";
 }
 
@@ -6063,6 +4931,7 @@ function commands(){
   add("Print", "Clear call numbers", clearCallNumbers);
   add("File", "Restore the previous working copy", restorePrevious);
   add("File", "Open a file", openFileDialog, "Ctrl+O");
+  add("Help", "Help and keyboard shortcuts", openHelp, "?");
   add("Help", "Show the start screen", showWelcome);
   add("Plan", driveOpen ? "Close the drive planner" : "Open the drive planner", () => setDrive(!driveOpen), "D");
   add("Plan", "New drive", newDrive);
@@ -6314,6 +5183,15 @@ function boot(){
   $("welcomeBlank").onclick = () => { dismissWelcome();
     toast(`Pick a player, then ${isTouch() ? "tap" : "click"} the field to draw a route`); };
   $("ioFile").onclick = () => { $("ioDialog").close(); openFileDialog(); };
+  $("openClose").onclick = () => $("openDialog").close();
+  $("btnHelp").onclick = openHelp;
+  $("helpClose").onclick = () => $("helpDialog").close();
+  $("helpReveal").onclick = () => api("reveal", {}).catch(e => toast(e.message));
+  $("openElsewhere").onclick = () => { $("openDialog").close(); $("fileInput").click(); };
+  $("openReveal").onclick = () => api("reveal", {}).catch(e => toast(e.message));
+  $("btnReveal").onclick = () => fileLink && fileLink.path &&
+    api("reveal", {path: fileLink.path}).catch(e => toast(e.message));
+  $("stoppedReload").onclick = () => location.reload();
   $("fileInput").onchange = e => { const f = e.target.files && e.target.files[0];
     openFile(f); e.target.value = ""; };
   // Drop a .json anywhere to open it. Row drags in the playbook carry text, not files.
@@ -6376,6 +5254,9 @@ function boot(){
     else if (e.key === "f" || e.key === "F"){ flipPlay(); }
     else if (e.key === "p" || e.key === "P"){ setBook(!bookOpen); }
     else if (e.key === "d" || e.key === "D"){ setDrive(!driveOpen); }
+    else if (e.key === "?" || (e.code === "Slash" && e.shiftKey) || e.key === "F1"){
+      e.preventDefault(); openHelp();                      // F1, as on Windows; ? elsewhere
+    }
     else if (e.key === "["){ gotoPlay(bookIndex - 1); }
     else if (e.key === "]"){ gotoPlay(bookIndex + 1); }
     else if (e.key === "Escape"){
@@ -6416,6 +5297,8 @@ function boot(){
   try { setBook(!phone && (localStorage.getItem(LS_BOOKPANEL) === "1" || (INITIAL_BOOK && book.plays.length > 1)), true); } catch(e){}
   renderAll();
   if (bootedFresh && !welcomed()) showWelcome();
+  if (SERVER && SERVER.file && SERVER.file.exists) rememberFile(SERVER.file.path);
+  heartbeat();
 }
 
 function openIo(title, text){
