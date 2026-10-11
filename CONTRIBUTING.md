@@ -108,11 +108,12 @@ Set `stamp_name=False` if the adjustment writes to a dedicated `Play` field
 
 The designer lives in `chalktalk/designer/app.html`. It is a plain HTML file
 with no build step and no dependencies; `chalktalk/designer/__init__.py` inlines
-the catalog into it at build time.
+the catalog into it, and `chalktalk/designer/server.py` serves it from
+127.0.0.1 and writes the files it saves. The server rebuilds the page on every
+load, so edit `app.html` and reload the browser.
 
 ```bash
-chalk design                                  # build and open it
-chalk design --out docs/index.html --no-open  # refresh the demo page
+chalk design week3.json --no-open     # then open the address it prints
 ```
 
 Two rules keep it honest:
@@ -125,11 +126,14 @@ Two rules keep it honest:
    (`defPath`) and man match-ups (`match_man` ↔ `matchMan`, including the order
    the rat is picked in). If you change one, change the other — the designer
    tests will catch you.
-2. **Commit `docs/index.html` when the app changes.** CI rebuilds it and fails if
-   it drifts from the source.
+2. **Anything the page asks Python goes through the server.** A new request is
+   a function in `server.ROUTES` and a call to `api(name, body)` in the page,
+   with a test in `tests/test_designer_server.py`. Every request carries the
+   page's token, and the server answers only to its own address.
 
-The designer must stay a single self-contained file: no CDN, no `fetch`, no
-external assets. A test enforces that too.
+The page stays a single self-contained file: no CDN, no external assets. The
+only thing it fetches is its own server, by a relative path, and a test
+enforces that too.
 
 ## Style
 

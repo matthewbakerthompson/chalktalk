@@ -1,5 +1,43 @@
 # Changelog
 
+## Unreleased
+
+**The designer runs on your own machine and saves your files.**
+`chalk design week3.json` starts a small server on 127.0.0.1, opens the
+designer in your browser, and Save writes `week3.json`: the file a script
+opens with `Playbook.load`. The hosted web app is gone; chalktalk is a Python
+package with a designer of its own, not an app to keep online.
+
+### The designer
+- `chalk design FILE` edits that play or playbook, and Save writes it back. A
+  file that doesn't exist yet is created on the first Save. With no file, Save
+  asks for a name, relative to the folder `chalk design` was started in, and
+  asks before replacing a file that is already there.
+- Python checks every save loads back as a `Play` or `Playbook` before it
+  writes, and writes it in one step, so a half-written file can't happen.
+- Reload the page to pick up a change made to the file from Python. Unsaved
+  work survives a reload as long as the file hasn't changed since; when it
+  has, the file wins and the unsaved work is kept where the command palette
+  can bring it back.
+- It listens on this machine only, on port 8765 unless that is taken
+  (`--port` picks another). The page carries a token that every request has
+  to send back, and the server answers only to its own address, so no other
+  site can drive it. Ctrl+C stops it.
+- A click on open field lets go of a route instead of adding a point to it,
+  and no longer throws away a lineman's block. Double-click to delete a handle
+  works.
+- A one-play file opened from the browser no longer shows unsaved changes the
+  moment it opens.
+
+### Removed
+- `chalk site`, the installable web app (manifest, service worker, icons), the
+  GitHub Pages workflow, and `docs/index.html` with the CI check that kept it
+  in step. `chalk design --out` is gone too: the designer is served, not
+  written out.
+- `chalk demo` no longer writes `designer.html`; it prints the
+  `chalk design` command that opens its playbook, and `--level` sets the
+  playbook's hash marks.
+
 ## 0.12.0
 
 **The half the way the other sideline breaks it down.** The self-scout now

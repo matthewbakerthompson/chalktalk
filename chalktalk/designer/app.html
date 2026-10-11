@@ -496,6 +496,11 @@ dialog::backdrop{background:oklch(0 0 0 / .6)}
 .dlg-foot{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--hair)}
 .dlg-foot .note{margin:0 auto 0 0}
 dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
+dialog.savedlg{max-width:min(440px,92vw)}
+.savedlg label{display:block;margin-bottom:6px;color:var(--muted);font-size:12px}
+.savedlg input{width:100%}
+.savedlg .note{overflow-wrap:anywhere}
+.savedlg .dlg-foot{justify-content:flex-end}
 .pal-input{height:46px;border:0;border-bottom:1px solid var(--hair);border-radius:0;background:transparent;font-size:14px;padding:0 16px}
 .pal-input:focus{box-shadow:none;border-color:var(--hair)}
 .pal-list{max-height:min(440px,60vh);overflow-y:auto;padding:6px;scrollbar-width:thin;scrollbar-color:oklch(1 0 0 / .15) transparent}
@@ -624,6 +629,9 @@ dialog.palette{max-width:min(560px,92vw);margin-top:12vh}
   .pop{left:52px;top:44px;max-height:calc(100% - 50px)}
   .stage-box{top:40px;left:52px;right:2px;bottom:2px}
   .inspector{min-height:0;max-height:64px;overflow-y:auto;padding:4px 10px}
+  /* the strip shows one row: Done has to be in it */
+  .ihead{order:-2}
+  .ifield.iacts{order:-1}
   .bench{padding:0 6px}
   .tok{padding:2px 0}
   .book,.sheet,#drive{position:fixed;top:0;bottom:0;z-index:var(--z-sheet)}
@@ -804,7 +812,7 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
               <button id="btnPaste" role="menuitem">Paste JSON…</button>
             </div>
           </div>
-          <button class="primary" id="btnSave" title="Save to a file on this device (Ctrl+S)">Save</button>
+          <button class="primary" id="btnSave" title="Save to a file (Ctrl+S)">Save</button>
         </div>
       </div>
 
@@ -851,7 +859,7 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
       <div class="card welcome" id="welcome" role="dialog" aria-labelledby="welcomeTitle" hidden>
         <h2 id="welcomeTitle">Start a play</h2>
         <p class="lede">Take a concept and make it yours, or start from a blank formation.
-          Your plays stay on this device: save them to a file on your computer or your drive.</p>
+          Save writes the playbook to a file on your computer, the same file Python opens.</p>
         <div class="welcome-grid" id="welcomeGrid"></div>
         <div class="welcome-foot">
           <button id="welcomeLib">Browse all <span id="welcomeCount"></span> concepts</button>
@@ -1034,6 +1042,20 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
 </dialog>
 
 <input type="file" id="fileInput" accept=".json,application/json" hidden>
+<dialog id="saveDialog" class="savedlg" aria-labelledby="saveTitle">
+  <form id="saveForm">
+    <div class="dlg-head"><h2 id="saveTitle">Save the playbook</h2></div>
+    <div class="dlg-body">
+      <label for="saveName">File name</label>
+      <input id="saveName" autocomplete="off" spellcheck="false">
+      <p class="note" id="saveWhere"></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" id="saveCancel">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="printDialog" class="printdlg" aria-labelledby="printTitle">
   <div class="dlg-head">
@@ -1217,6 +1239,8 @@ dialog.plandlg[open]{display:flex;flex-direction:column}
 const CATALOG = /*__CATALOG__*/{};
 const INITIAL_PLAY = /*__PLAY__*/null;
 const INITIAL_BOOK = /*__BOOK__*/null;
+// What `chalk design` tells the page about itself: {token, folder, file?}.
+const SERVER = /*__SERVER__*/null;
 
 /* ─── ink: the theme table is shared with svg.py through the catalog ────── */
 const QB_COLOR="#fbbf24", READ_TEXT="#fde68a";   // the turf accents, kept as fallbacks
@@ -1254,6 +1278,7 @@ let selWp = -1;          // selected waypoint index
 let drag = null;         // {kind:'player'|'waypoint'|'motion', ...}
 let blockDir = 1;        // which way the next block or scheme points
 let selDef = null;       // selected defender label
+let drawFor = null;      // the player a click on open field draws for; anywhere else that click lets go
 let qbDir = 1;           // which way the quarterback's action points
 const LAYER_KEYS = ["routes","blocks","motion","qb","reads","defense","coverage","zones","title"];
 const layers = Object.fromEntries(LAYER_KEYS.map(k => [k, true]));  // what the diagram shows; exports follow it
@@ -1295,6 +1320,14 @@ function nudge(dx, dy){
     }
   }
   renderAll();
+}
+
+// Drawing is a mode a coach enters on purpose: picking a player with nothing drawn,
+// Draw or Extend. Picking someone else ends it, so does Done, Enter or Escape.
+function drawing(){ return sel !== null && drawFor === sel; }
+function drawIfBlank(label){
+  const a = findA(label);
+  drawFor = a && !a.route && !a.block ? label : null;
 }
 
 function undo(){
@@ -2090,9 +2123,10 @@ function renderSvg(){
 
 /* ─── live route preview: where the next click puts a point ───────────── */
 let hover = null;            // the snapped field point under the pointer, over open grass
+// Null unless a click on open field would add a point, so the preview never lies about it.
 function previewFrom(){
   const a = selA();
-  if (!a || !layers.routes) return null;
+  if (!a || !layers.routes || !drawing()) return null;
   const wps = a.route && a.route.route_type !== "block" ? a.route.waypoints : null;
   return wps && wps.length ? wpAbs(a.player, wps[wps.length - 1]) : [a.player.x, a.player.y];
 }
@@ -2124,24 +2158,36 @@ function stagePoint(evt, svg){
   return [ix(evt.clientX - r.left), iy(evt.clientY - r.top)];
 }
 
+// Every press redraws the stage, so the browser never sees two clicks land on one
+// element and never fires dblclick. Presses are paired here, which gives touch its
+// double-tap as well.
+let lastPress = null;        // {at, x, y} and, when it hit one, the handle (wp) or the point it placed
+function pairPress(evt){
+  const prev = lastPress, now = Date.now();
+  lastPress = {at:now, x:evt.clientX, y:evt.clientY};
+  const near = prev && now - prev.at < 450 && Math.hypot(evt.clientX - prev.x, evt.clientY - prev.y) < 12;
+  return near ? prev : null;
+}
+
 function bindStage(svg){
   svg.addEventListener("pointerdown", evt => {
     const t = evt.target;
     const [fx, fy] = stagePoint(evt, svg);
+    const again = pairPress(evt);       // the first press, when this one makes a double-click
     if (readPick){
       if (t.dataset && t.dataset.player !== undefined && playerKind(findA(t.dataset.player).player) !== "quarterback")
         return toggleRead(t.dataset.player, fieldCoverage());
       readPick = false; renderAll(); return;
     }
     if (t.dataset && t.dataset.player !== undefined){
-      sel = t.dataset.player; selDef = null; selWp = -1;
+      sel = t.dataset.player; selDef = null; selWp = -1; drawFor = null;
       pushUndo();
-      drag = {kind:"player", label:sel};
+      drag = {kind:"player", label:sel, moved:false};
       svg.setPointerCapture(evt.pointerId);
       renderAll(); return;
     }
     if (t.dataset && t.dataset.motion !== undefined){
-      sel = t.dataset.motion; pushUndo();
+      sel = t.dataset.motion; drawFor = null; pushUndo();
       drag = {kind:"motion", label:sel};
       svg.setPointerCapture(evt.pointerId);
       renderAll(); return;
@@ -2154,14 +2200,28 @@ function bindStage(svg){
       renderAll(); return;
     }
     if (t.dataset && t.dataset.wp !== undefined){
-      selWp = +t.dataset.wp; pushUndo();
+      const i = +t.dataset.wp, a = selA();
+      lastPress.wp = i;
+      if (again && a && a.route && (again.placed === i || again.wp === i)){
+        lastPress = null;
+        // A double-click on open field lands its second press on the point the first
+        // one placed: that is the last point, and the route is done.
+        if (again.placed === i){ drawFor = null; selWp = -1; renderAll(); return; }
+        pushUndo();
+        a.route.waypoints.splice(i, 1);
+        if (a.route.waypoints.length < 2) a.route = null;
+        selWp = -1; renderAll(); return;
+      }
+      selWp = i; pushUndo();
       drag = {kind:"waypoint", index:selWp};
       svg.setPointerCapture(evt.pointerId);
       renderAll(); return;
     }
-    // empty field: extend the selected player's route
+    // Open field: while drawing, a point on the selected player's route. Otherwise it
+    // is how a coach clicks off, and it must never touch the play.
     const a = selA();
-    if (a){
+    if (a && previewFrom()){
+      if (again && again.placed !== undefined){ lastPress = null; drawFor = null; selWp = -1; renderAll(); return; }
       pushUndo();
       if (!a.route || a.route.route_type === "block"){
         a.route = {route_type:"custom", waypoints:[{x:0, y:0}], depth:null};
@@ -2170,9 +2230,10 @@ function bindStage(svg){
       a.route.waypoints.push(wpRel(a.player, snap(fx), snap(fy)));
       a.route.route_type = "custom";
       selWp = a.route.waypoints.length - 1;
+      lastPress.placed = selWp;
       renderAll();
     } else {
-      sel = null; selWp = -1; renderAll();
+      sel = null; selDef = null; selWp = -1; drawFor = null; renderAll();
     }
   });
 
@@ -2195,6 +2256,7 @@ function bindStage(svg){
       renderStage(); renderInspector(); return;
     }
     if (drag.kind === "player"){
+      if (snap(fx) !== a.player.x || snap(fy) !== a.player.y) drag.moved = true;
       a.player.x = snap(fx); a.player.y = snap(fy);
       syncFormation();
     } else if (drag.kind === "motion"){
@@ -2206,28 +2268,15 @@ function bindStage(svg){
     renderStage(); renderInspector();
   });
 
-  const end = () => { if (drag){ drag = null; renderAll(); } };
-  svg.addEventListener("pointerup", end);
-  svg.addEventListener("pointercancel", end);
+  const end = clicked => {
+    if (!drag) return;
+    // Clicking a player with nothing drawn picks him to draw; dragging him only moves him.
+    if (clicked && drag.kind === "player" && !drag.moved) drawIfBlank(drag.label);
+    drag = null; renderAll();
+  };
+  svg.addEventListener("pointerup", () => end(true));
+  svg.addEventListener("pointercancel", () => end(false));
   svg.addEventListener("pointerleave", () => { hover = null; drawPreview(svg); });
-
-  svg.addEventListener("dblclick", evt => {
-    const t = evt.target;
-    if (t.dataset && t.dataset.defender !== undefined){
-      selDef = t.dataset.defender; sel = null; selWp = -1;
-      pushUndo();
-      drag = {kind:"defender", label:selDef};
-      svg.setPointerCapture(evt.pointerId);
-      renderAll(); return;
-    }
-    if (t.dataset && t.dataset.wp !== undefined){
-      const a = selA(); if (!a || !a.route) return;
-      pushUndo();
-      a.route.waypoints.splice(+t.dataset.wp, 1);
-      if (a.route.waypoints.length < 2) a.route = null;
-      selWp = -1; renderAll();
-    }
-  });
 }
 
 /* ─── panels ────────────────────────────────────────────────────────────── */
@@ -2520,7 +2569,7 @@ function benchToken(label, cls, glyph, caption, title, onPick){
 function renderBench(){
   const box = $("playerList"); box.innerHTML = "";
   const all = assignments();
-  const pickOffense = label => { sel = label; selDef = null; selWp = -1; renderAll(); };
+  const pickOffense = label => { sel = label; selDef = null; selWp = -1; drawIfBlank(label); renderAll(); };
 
   // The line: one group, five dots, one caption.
   const line = all.filter(a => OL.has(a.player.position));
@@ -2656,7 +2705,7 @@ function renderInspector(){
     inspectorEnter(box, "none");
     box.innerHTML = `<div class="empty">
       <div><span class="lead">Nothing selected.</span>Pick a player on the field or on the bench.</div>
-      <div class="legend kbd-only"><b>Click</b> the field to add a route point · <b>Drag</b> a player or a handle
+      <div class="legend kbd-only"><b>Click</b> a player, then the field, to draw · <b>Drag</b> a player or a handle
         · <b>Double-click</b> a handle to delete it · <b>Arrows</b> nudge, <kbd>Shift</kbd> for a yard
         · <kbd>F</kbd> flips · <kbd>Ctrl</kbd>+<kbd>K</kbd> commands</div>
       <div class="legend touch-only"><b>Tap</b> a player, then tap the field to draw his route · <b>Drag</b> to move
@@ -2665,13 +2714,19 @@ function renderInspector(){
   }
   const p = a.player, kind = playerKind(p);
   const isOL = kind === "lineman", isQB = kind === "quarterback";
-  const drawing = !!(a.route && a.route.route_type !== "block");
+  const routed = !!(a.route && a.route.route_type !== "block");
   inspectorEnter(box, "off:" + p.label);
   const what = p.position !== p.label ? `${esc(p.position)} · ${kind}` : kind;
   const tap = isTouch() ? "tap" : "click";
-  const tip = drawing ? `${capFirst(tap)} the field to extend the route · drag a handle to bend it`
-            : isOL   ? `Pick a block here, or ${tap} the field to pull him`
-                     : `${capFirst(tap)} the field to start a route`;
+  const tip = drawing() ? (routed ? `${capFirst(tap)} the field to add points · double-${tap} or Done to finish`
+                         : isOL   ? `${capFirst(tap)} the field to pull him`
+                                  : `${capFirst(tap)} the field to start a route`)
+            : routed ? "Drag a handle to bend it · Extend to add points"
+            : isOL   ? "Pick a block here, or Draw to pull him"
+                     : "Draw to start a route";
+  const drawBtn = drawing()
+    ? `<button id="btnDraw" class="on" title="Stop adding points (Enter)">Done</button>`
+    : `<button id="btnDraw" title="${routed ? "Add points to the end of his route" : "Draw his route on the field, point by point"}">${routed ? "Extend" : "Draw"}</button>`;
   box.innerHTML = `
     <div class="ihead">
       <div class="top"><span class="glyph"></span><span class="who">${esc(p.label)}</span><span class="what">${what}</span></div>
@@ -2695,14 +2750,15 @@ function renderInspector(){
       <button id="btnReadPick" class="${readPick ? "on" : ""}" title="Tap receivers on the field in the order he works them">${readPick ? "Done" : "Set reads"}</button>
     </div></div>` : ""}
     <div class="isep"></div>
-    <div class="ifield"><label>&nbsp;</label><div class="btns">
+    <div class="ifield iacts"><label>&nbsp;</label><div class="btns">
+      ${drawBtn}
       <button id="btnBc" class="${a.is_ball_carrier ? "on" : ""}" title="Give this player the ball">Ball carrier</button>
       ${a.block ? "" : `<button id="btnBlock" title="Base block, route cleared">Block</button>`}
       ${(a.route || a.block) ? `<button id="btnClearRoute" class="danger" title="Clear the route and the block">Clear</button>` : ""}
     </div></div>
     <div class="ifield grow"><label for="pNote">Note</label><input id="pNote" value="${esc(a.note ?? "")}"
       placeholder="Coaching point" autocomplete="off"></div>
-    ${drawing ? `<div class="ifield"><label>Waypoints</label><div class="wps" id="wpList"></div></div>` : ""}`;
+    ${routed ? `<div class="ifield"><label>Waypoints</label><div class="wps" id="wpList"></div></div>` : ""}`;
 
   fillSelect($("routeSel"),
     Object.keys(CATALOG.routes).map(k => [k, words(k)]),
@@ -2712,7 +2768,7 @@ function renderInspector(){
     pushUndo();
     a.route = clone(CATALOG.routes[e.target.value]);
     a.block = null;                       // a player blocks or runs, not both
-    selWp = -1; renderAll();
+    selWp = -1; drawFor = null; renderAll();
   };
   fillSelect($("blockSel"),
     Object.keys(CATALOG.blocks).map(k => [k, words(k)]),
@@ -2722,7 +2778,7 @@ function renderInspector(){
     pushUndo();
     a.block = clone(CATALOG.blocks[e.target.value][String(blockDir)]);
     a.route = null;                       // a player blocks or runs, not both
-    renderAll();
+    drawFor = null; renderAll();
   };
   if (a.block){
     $("blockDir").value = String(blockDir);
@@ -2762,11 +2818,12 @@ function renderInspector(){
     pushUndo();
     a.block = clone(CATALOG.blocks.BASE[String(blockDir)]);
     a.route = null;
-    renderAll();
+    drawFor = null; renderAll();
   });
   bind("btnClearRoute", "onclick", () => {
-    pushUndo(); a.route = null; a.block = null; selWp = -1; renderAll();
+    pushUndo(); a.route = null; a.block = null; selWp = -1; drawFor = null; renderAll();
   });
+  $("btnDraw").onclick = () => { drawFor = drawing() ? null : p.label; selWp = -1; renderAll(); };
 
   const wl = $("wpList");
   if (wl){
@@ -3070,7 +3127,7 @@ function bookJson(){ return JSON.stringify(exportBook(), null, 2); }
 function save(){
   commit();
   try { localStorage.setItem(LS_BOOK, JSON.stringify({book: exportBook(), index: bookIndex,
-                                                     linkId: fileLink ? fileLink.id : null})); }
+                                                     link: fileLink, saved: fileSaved})); }
   catch(e){}
   renderFileState();
 }
@@ -3080,7 +3137,7 @@ function restore(){
     if (raw){
       const got = JSON.parse(raw);
       if (got && got.book) return {book: normalizeBook(got.book), index: got.index | 0,
-                                   linkId: got.linkId || null};
+                                   link: got.link || null, saved: got.saved ?? null};
     }
     const old = localStorage.getItem(LS_KEY);       // a play saved by an older build
     if (old) return {book: normalizeBook({plays: [JSON.parse(old)]}), index: 0};
@@ -3106,28 +3163,52 @@ function restorePrevious(){
 
 function startBook(){
   const stored = restore();
-  if (INITIAL_BOOK){
+  const file = SERVER && SERVER.file;
+  const resume = s => { book = s.book; bookIndex = s.index; fileLink = s.link; fileSaved = s.saved; };
+  if (file && stored && stored.link && stored.link.path === file.path &&
+      stored.link.mtime === (file.mtime ?? null)){
+    // Back on the file this working copy came from, and nobody has touched the
+    // file since: carry on, unsaved changes and all.
+    resume(stored);
+  } else if (INITIAL_BOOK){
+    // The file changed since this working copy was made from it (from Python,
+    // say), or it is another file: the file wins, and the working copy is kept
+    // one step back where the palette can bring it back.
     const incoming = normalizeBook(clone(INITIAL_BOOK));
-    if (stored && JSON.stringify(stored.book.plays.map(p => p.name)) !==
-                  JSON.stringify(incoming.plays.map(p => p.name))) stashWorkingCopy(stored);
+    const sameFile = stored && stored.link && file && stored.link.path === file.path;
+    if (stored && (sameFile || JSON.stringify(stored.book.plays.map(p => p.name)) !==
+                               JSON.stringify(incoming.plays.map(p => p.name)))) stashWorkingCopy(stored);
     book = incoming; bookIndex = 0;
+  } else if (INITIAL_PLAY && file){
+    // A file holding one play: that play is the book.
+    if (stored) stashWorkingCopy(stored);
+    book = normalizeBook({name: INITIAL_PLAY.name, plays: [clone(INITIAL_PLAY)]}); bookIndex = 0;
   } else if (INITIAL_PLAY && stored){
     // Opened on one play with a book already in progress: it joins the book.
-    book = stored.book; restoredLinkId = stored.linkId;
+    resume(stored);
     const at = book.plays.findIndex(p => p.name === INITIAL_PLAY.name);
     if (at >= 0) bookIndex = at;
     else { bookIndex = Math.min(book.plays.length, (stored.index | 0) + 1);
            book.plays.splice(bookIndex, 0, normalizePlay(clone(INITIAL_PLAY))); }
   } else if (INITIAL_PLAY){
     book = normalizeBook({plays: [clone(INITIAL_PLAY)]}); bookIndex = 0;
+  } else if (file && stored){
+    // A new file to be: start it blank, and keep what was there before.
+    stashWorkingCopy(stored);
+    book = normalizeBook(null); bookIndex = 0;
+    bootedFresh = true;
   } else if (stored){
-    book = stored.book; bookIndex = stored.index; restoredLinkId = stored.linkId;
+    resume(stored);
   } else {
     book = normalizeBook(null); bookIndex = 0;
     bootedFresh = true;
   }
   bookIndex = clampIndex(bookIndex);
   play = book.plays[bookIndex];
+  if (file && !(fileLink && fileLink.path === file.path)){
+    fileLink = {name: file.name, path: file.path, kind: file.kind, mtime: file.mtime ?? null};
+    fileSaved = file.exists ? fileContent().text : null;
+  }
 }
 
 /* ─── pages ─────────────────────────────────────────────────────────────── */
@@ -5704,19 +5785,14 @@ function addVariations(){
   toast(`${picked.length} ${picked.length === 1 ? "variation" : "variations"} added to the book`);
 }
 
-/* ─── files: the coach's own disk or drive ──────────────────────────────────
-   Nothing leaves the device. The browser keeps a working copy so a closed tab
-   loses nothing; the real copy is a file the coach saves wherever they keep
-   their work: a folder on the laptop, a synced Google Drive or OneDrive folder,
-   iCloud Drive on an iPad. Where the browser allows it (Chrome, Edge,
-   Chromebooks) Save writes back to that same file, even after the app is
-   closed and reopened. Elsewhere Save hands the file over: the share sheet on
-   an iPad ("Save to Files"), a download everywhere else. */
-const CAN_PICK = typeof window !== "undefined" && "showSaveFilePicker" in window;
-const JSON_TYPES = [{description: "chalktalk play or playbook", accept: {"application/json": [".json"]}}];
-let fileLink = null;         // {id, handle?, name, kind: "play" | "book"}
+/* ─── files: playbooks on the coach's own disk ──────────────────────────────
+   `chalk design` serves this page from the coach's own machine, and Save
+   writes the playbook to a file in the folder it was started in, or wherever
+   the coach names. The browser keeps a working copy too, so a closed tab loses
+   nothing, but the real copy is the file: Python loads it, `chalk book`
+   prints it. Opening the page any other way, Save falls back to a download. */
+let fileLink = null;         // {name, path, kind: "play" | "book", mtime}; path is null until Save knows where
 let fileSaved = null;        // the text last written to, or read from, that file
-let restoredLinkId = null;   // the working copy's file, from the last session
 
 // What Save writes: the book, or a single play when that is all there is.
 function fileContent(){
@@ -5728,7 +5804,25 @@ function fileUnsaved(){
   return book.plays.length > 1 || !isPristine(play);
 }
 
-// ── IndexedDB: remembers which file the working copy belongs to ────────────
+// Asks the `chalk design` server on this machine to do something for the page.
+async function api(name, body){
+  const r = await fetch("api/" + name, {method: "POST",
+    headers: {"Content-Type": "application/json", "X-Chalktalk-Token": SERVER.token},
+    body: JSON.stringify(body || {})});
+  const got = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(got.error || `The designer's server answered ${r.status}`),
+                                 {status: r.status});
+  return got;
+}
+
+function linkFile(link, text){
+  fileLink = {name: link.name, path: link.path || null, kind: link.kind, mtime: link.mtime ?? null};
+  fileSaved = text;
+  save();
+}
+function unlinkFile(){ fileLink = null; fileSaved = null; }
+
+// ── IndexedDB: the code key, when the staff asks this device to remember it ──
 function idbOpen(){
   return new Promise((ok, fail) => {
     const r = indexedDB.open("chalktalk", 1);
@@ -5760,101 +5854,79 @@ async function idbGet(key){
     return v;
   } catch(e){ return undefined; }
 }
-function linkFile(link, text){
-  fileLink = Object.assign({id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`}, link);
-  fileSaved = text;
-  idbPut("link", {id: fileLink.id, handle: fileLink.handle || null, name: fileLink.name,
-                  kind: fileLink.kind, saved: text});
-  save();
-}
-function unlinkFile(){
-  if (!fileLink) return;
-  fileLink = null; fileSaved = null;
-  idbPut("link", undefined);
-}
-// On start: if the working copy came from a file, reattach it.
-async function restoreLink(){
-  if (!restoredLinkId) return;
-  const got = await idbGet("link");
-  if (!got || got.id !== restoredLinkId) return;
-  fileLink = {id: got.id, handle: got.handle || null, name: got.name, kind: got.kind};
-  fileSaved = got.saved;
-  renderFileState();
-}
 
 // ── saving ─────────────────────────────────────────────────────────────────
-async function canWrite(handle){
-  try {
-    const mode = {mode: "readwrite"};
-    if ((await handle.queryPermission(mode)) === "granted") return true;
-    return (await handle.requestPermission(mode)) === "granted";
-  } catch(e){ return false; }
+// The file to save to, asked for by name: relative to the folder chalk design
+// was started in, or a full path.
+function askSaveName(suggested, title){
+  return new Promise(done => {
+    const dlg = $("saveDialog");
+    $("saveTitle").textContent = title;
+    $("saveName").value = suggested;
+    $("saveWhere").textContent = `In ${SERVER.folder}`;
+    // Answer from the buttons themselves; the close event only covers Escape.
+    let settled = false;
+    const finish = answer => {
+      if (settled) return;
+      settled = true; dlg.onclose = null;
+      if (dlg.open) dlg.close();
+      done(answer);
+    };
+    $("saveForm").onsubmit = e => {
+      e.preventDefault();
+      const answer = $("saveName").value.trim();
+      if (answer) finish(answer);
+    };
+    $("saveCancel").onclick = () => finish(null);
+    dlg.onclose = () => finish(null);
+    dlg.showModal();
+    const v = $("saveName").value, dot = v.toLowerCase().endsWith(".json") ? v.length - 5 : v.length;
+    $("saveName").setSelectionRange(0, dot);
+  });
 }
-async function writeHandle(handle, text){
-  const w = await handle.createWritable();
-  await w.write(text); await w.close();
-}
-// Without a file picker: the share sheet on an iPad or iPhone, a download elsewhere.
-async function handOver(name, text){
-  const touchApple = navigator.maxTouchPoints > 1 && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
-  if (touchApple && navigator.canShare){
-    const f = new File([text], name, {type: "application/json"});
-    if (navigator.canShare({files: [f]})){
-      try { await navigator.share({files: [f], title: name}); return "shared"; }
-      catch(e){ if (e && e.name === "AbortError") return "cancelled"; }
-    }
+// Writes through the server; a name that is already taken is replaced only on a yes.
+async function writeFile(path, text, overwrite){
+  try { return await api("save", {path, text, overwrite: !!overwrite}); }
+  catch(e){
+    if (e.status !== 409 || overwrite) throw e;
+    if (!window.confirm(`${e.message}. Replace it?`)) return null;
+    return api("save", {path, text, overwrite: true});
   }
-  download(name, text);
-  return "downloaded";
 }
 async function saveFile(saveAs){
   commit();
   const {kind, text} = fileContent();
   const suggested = (kind === "book" ? slug(book.name) : slug(play.name)) + ".json";
+  if (!SERVER) return download((fileLink && fileLink.name) || suggested, text);
+  const known = !saveAs && fileLink && fileLink.path;
+  const path = known || await askSaveName((fileLink && fileLink.name) || suggested,
+                                          saveAs ? "Save as" : "Save the playbook");
+  if (!path) return;
   try {
-    if (CAN_PICK){
-      let handle = !saveAs && fileLink && fileLink.handle;
-      if (handle && !(await canWrite(handle))) handle = null;
-      if (!handle) handle = await window.showSaveFilePicker(
-        {suggestedName: (!saveAs && fileLink && fileLink.name) || suggested, types: JSON_TYPES});
-      await writeHandle(handle, text);
-      linkFile({handle, name: handle.name, kind}, text);
-      toast(`Saved to ${handle.name}`);
-    } else {
-      const name = (!saveAs && fileLink && fileLink.name) || suggested;
-      const how = await handOver(name, text);
-      if (how === "cancelled") return;
-      linkFile({handle: null, name, kind}, text);
-      toast(how === "shared" ? `${name} is ready to save` : `Downloaded ${name}`);
-    }
-    persistStorage();
-  } catch(e){
-    if (e && e.name === "AbortError") return;
-    toast("Couldn't save there. Try Save as.");
-  }
+    const got = await writeFile(path, text, !!known);
+    if (!got) return;
+    linkFile({name: got.name, path: got.path, kind, mtime: got.mtime}, text);
+    toast(`Saved to ${got.name}`);
+  } catch(e){ toast(e.message || "Couldn't save there"); }
 }
 // A copy of the play on the field, without changing which file the book saves to.
 async function savePlayCopy(){
   const text = playJson(), name = slug(play.name) + ".json";
+  if (!SERVER) return download(name, text);
+  const path = await askSaveName(name, "Save a copy of this play");
+  if (!path) return;
   try {
-    if (CAN_PICK){
-      const handle = await window.showSaveFilePicker({suggestedName: name, types: JSON_TYPES});
-      await writeHandle(handle, text);
-      toast(`Saved a copy to ${handle.name}`);
-    } else if ((await handOver(name, text)) !== "cancelled") toast(`Saved a copy of ${play.name}`);
-  } catch(e){ if (!e || e.name !== "AbortError") toast("Couldn't save the copy"); }
+    const got = await writeFile(path, text, false);
+    if (got) toast(`Saved a copy to ${got.name}`);
+  } catch(e){ toast(e.message || "Couldn't save the copy"); }
 }
 
 // ── opening ────────────────────────────────────────────────────────────────
-async function openFileDialog(){
-  if (!("showOpenFilePicker" in window)) return $("fileInput").click();
-  try {
-    const [handle] = await window.showOpenFilePicker({types: JSON_TYPES, multiple: false});
-    await openFile(await handle.getFile(), handle);
-  } catch(e){ if (!e || e.name !== "AbortError") toast("Couldn't open that file"); }
-}
+function openFileDialog(){ $("fileInput").click(); }
 // A file is the document: a book opens as the book, a play as a book of one.
-async function openFile(file, handle){
+// The browser hands over a file's contents but not its folder, so Save asks
+// where it goes, starting from the same name.
+async function openFile(file){
   if (!file) return;
   let obj;
   try { obj = JSON.parse(await file.text()); }
@@ -5864,17 +5936,9 @@ async function openFile(file, handle){
   if (!kind) return toast("That file isn't a play or a playbook");
   dismissWelcome();
   loadBook(kind === "book" ? obj : {name: obj.name || "Playbook", plays: [obj]});
-  linkFile({handle: handle || null, name: file.name, kind}, fileContent().text);
+  fileLink = {name: file.name, path: null, kind};    // first, so the text is the file's own shape
+  linkFile(fileLink, fileContent().text);
   renderFileState();
-}
-
-// Installed apps ask the browser to keep the working copy through clean-ups.
-function persistStorage(){
-  try {
-    if (navigator.storage && navigator.storage.persist &&
-        window.matchMedia && window.matchMedia("(display-mode: standalone)").matches)
-      navigator.storage.persist();
-  } catch(e){}
 }
 
 function renderFileState(){
@@ -5882,11 +5946,12 @@ function renderFileState(){
   if (!btn || !book) return;
   const unsaved = fileUnsaved();
   btn.classList.toggle("dirty", unsaved);
-  btn.title = fileLink ? `Save to ${fileLink.name} (Ctrl+S)` : "Save to a file on this device (Ctrl+S)";
+  btn.title = fileLink && fileLink.path ? `Save to ${fileLink.name} (Ctrl+S)` : "Save to a file (Ctrl+S)";
   const line = $("bookFile");
   if (line){
     line.textContent = fileLink ? `${fileLink.name} · ${unsaved ? "unsaved changes" : "saved"}`
                                 : "Not saved to a file yet";
+    line.title = fileLink && fileLink.path ? fileLink.path : "";
     line.classList.toggle("warn", unsaved);
   }
   document.title = (unsaved ? "• " : "") + (play && play.name ? play.name + " · " : "") + "Chalktalk";
@@ -6259,11 +6324,7 @@ function boot(){
     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (!f) return;
     e.preventDefault(); dismissWelcome();
-    // Chromium hands over the file itself, so Save can write back to it.
-    const item = e.dataTransfer.items && e.dataTransfer.items[0];
-    const pending = item && item.getAsFileSystemHandle ? item.getAsFileSystemHandle() : null;
-    Promise.resolve(pending).catch(() => null)
-      .then(h => openFile(f, h && h.kind === "file" ? h : null));
+    openFile(f);
   });
   $("bookName").oninput = e => { book.name = e.target.value; save(); renderBook(); };
   $("bookTeam").oninput = e => { book.team = e.target.value || null; save(); };
@@ -6322,7 +6383,12 @@ function boot(){
       if (welcomeOpen()) return dismissWelcome();
       if (pop) return closePop();
       if (!$("exportMenu").hidden) return ($("exportMenu").hidden = true);
+      if (drawing()){ drawFor = null; return renderAll(); }
       sel = null; selDef = null; selWp = -1; renderAll();
+    }
+    // A focused button takes its own Enter.
+    else if (e.key === "Enter" && drawing() && !(e.target.closest && e.target.closest("button,a"))){
+      drawFor = null; renderAll();
     }
     else if (e.key.startsWith("Arrow") && (sel || selDef)){
       e.preventDefault();
@@ -6350,8 +6416,6 @@ function boot(){
   try { setBook(!phone && (localStorage.getItem(LS_BOOKPANEL) === "1" || (INITIAL_BOOK && book.plays.length > 1)), true); } catch(e){}
   renderAll();
   if (bootedFresh && !welcomed()) showWelcome();
-  restoreLink();
-  persistStorage();
 }
 
 function openIo(title, text){
