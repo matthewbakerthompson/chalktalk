@@ -1,0 +1,33 @@
+name: Add football knowledge
+description: A formation, route, play, series, blocking scheme, coverage, quarterback action or adjustment chalktalk should know.
+labels: [football]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind
+      options:
+        - Formation or defensive look
+        - Route
+        - Play
+        - Series
+        - Blocking scheme
+        - Coverage
+        - Quarterback action
+        - Adjustment
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      description: What coaches call it. Add other common names if there are any.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: How it's run
+      description: Alignment, assignments, reads and landmarks. A diagram, photo of a whiteboard or link to film helps.
+    validations:
+      required: true

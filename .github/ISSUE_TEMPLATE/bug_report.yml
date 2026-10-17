@@ -1,0 +1,29 @@
+name: Bug report
+description: Something in the library, the command line or the designer doesn't work.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to make it happen again
+      description: The command you ran, or a short script. Attach the play or playbook JSON if it matters.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: chalktalk version
+      description: Output of `chalk --version`.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Python version and operating system
+      placeholder: Python 3.12, Windows 11
