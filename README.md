@@ -1,7 +1,14 @@
 # chalktalk
 
+[![tests](https://github.com/matthewbakerthompson/chalktalk/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/matthewbakerthompson/chalktalk/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/chalktalk)](https://pypi.org/project/chalktalk/)
+[![Python versions](https://img.shields.io/pypi/pyversions/chalktalk)](https://pypi.org/project/chalktalk/)
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue)](https://polyformproject.org/licenses/noncommercial/1.0.0)
+
 Football plays and playbooks in Python, with a designer that runs in your
 browser.
+
+![The designer: Mesh Concept against a Nickel 4-2-5 playing Cover 3, with the H receiver selected](docs/images/designer.png)
 
 Plays are Pydantic models stored as JSON. The library builds plays from
 formations, routes, blocking schemes and quarterback actions, draws them as
@@ -9,6 +16,16 @@ SVG, PDF and HTML, and produces call sheets, practice scripts, wristbands,
 install plans and game plans from a playbook. `chalk design` runs the
 designer on your own computer and saves the same JSON files the library
 reads.
+
+<p>
+  <img src="docs/images/flood-vs-cover-3.svg" width="32%" alt="Flood against a Nickel 4-2-5 playing Cover 3">
+  <img src="docs/images/inside-zone.svg" width="32%" alt="Inside Zone against a 4-3 Over front">
+  <img src="docs/images/counter-trey.svg" width="32%" alt="Counter Trey against a 4-3 Under front, in the print theme">
+</p>
+
+Flood against Cover 3, Inside Zone against a 4-3 Over, and Counter Trey in
+the print theme, as the library draws them. `python examples/readme_images.py`
+redraws them into `docs/images/`.
 
 Requires Python 3.10 or later. Licensed under PolyForm Noncommercial 1.0.0
 (see License, below).
@@ -654,6 +671,7 @@ python examples/game_week.py            # series, practice, call sheet, wristban
 python examples/redzone_package.py
 python examples/export_playbook_pdf.py
 python examples/comprehensive_demo.py
+python examples/readme_images.py        # the diagrams at the top of this README
 ```
 
 ## Tests

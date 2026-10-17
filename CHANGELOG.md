@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+- The README opens with a screenshot of the designer and three diagrams the
+  library draws. `python examples/readme_images.py` redraws the diagrams into
+  `docs/images/`.
+
 ## 0.13.0
 
 **The designer runs on your own machine and saves your files.**

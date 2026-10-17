@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="596" viewBox="0 0 1100 596">
+<defs>
+  <marker id="arr-route" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0.5, 9 3.5, 0 6.5" fill="#ffffff"/></marker>
+  <marker id="arr-run" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0.5, 9 3.5, 0 6.5" fill="#f59e0b"/></marker>
+  <marker id="arr-motion" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0.5, 9 3.5, 0 6.5" fill="#7dd3fc"/></marker>
+  <marker id="arr-def" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0.5, 9 3.5, 0 6.5" fill="#f0806a"/></marker>
+  <marker id="arr-qb" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse"><polygon points="0 0.5, 9 3.5, 0 6.5" fill="#fbbf24"/></marker>
+</defs>
+<rect width="1100" height="596" fill="#22503a"/>
+<rect x="0" y="424.0" width="1100" height="90.0" fill="#1f4b37"/>
+<rect x="0" y="244.0" width="1100" height="90.0" fill="#1f4b37"/>
+<rect x="0" y="64.0" width="1100" height="90.0" fill="#1f4b37"/>
+<rect x="0" y="-116.0" width="1100" height="90.0" fill="#1f4b37"/>
+<rect x="0" y="0" width="70.0" height="596" fill="#1a3a2b"/>
+<rect x="1030.0" y="0" width="70.0" height="596" fill="#1a3a2b"/>
+<line x1="70.0" y1="514.0" x2="1030.0" y2="514.0" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+<line x1="70.0" y1="424.0" x2="1030.0" y2="424.0" stroke="rgba(255,255,255,0.92)" stroke-width="2.2"/>
+<line x1="70.0" y1="334.0" x2="1030.0" y2="334.0" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+<line x1="70.0" y1="244.0" x2="1030.0" y2="244.0" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+<line x1="70.0" y1="154.0" x2="1030.0" y2="154.0" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+<line x1="70.0" y1="64.0" x2="1030.0" y2="64.0" stroke="rgba(255,255,255,0.22)" stroke-width="1"/>
+<line x1="490.0" y1="568.0" x2="499.0" y2="568.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="550.0" x2="499.0" y2="550.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="532.0" x2="499.0" y2="532.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="514.0" x2="499.0" y2="514.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="496.0" x2="499.0" y2="496.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="478.0" x2="499.0" y2="478.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="460.0" x2="499.0" y2="460.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="442.0" x2="499.0" y2="442.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="424.0" x2="499.0" y2="424.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="406.0" x2="499.0" y2="406.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="388.0" x2="499.0" y2="388.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="370.0" x2="499.0" y2="370.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="352.0" x2="499.0" y2="352.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="334.0" x2="499.0" y2="334.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="316.0" x2="499.0" y2="316.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="298.0" x2="499.0" y2="298.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="280.0" x2="499.0" y2="280.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="262.0" x2="499.0" y2="262.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="244.0" x2="499.0" y2="244.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="226.0" x2="499.0" y2="226.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="208.0" x2="499.0" y2="208.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="190.0" x2="499.0" y2="190.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="172.0" x2="499.0" y2="172.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="154.0" x2="499.0" y2="154.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="136.0" x2="499.0" y2="136.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="118.0" x2="499.0" y2="118.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="100.0" x2="499.0" y2="100.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="82.0" x2="499.0" y2="82.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="64.0" x2="499.0" y2="64.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="46.0" x2="499.0" y2="46.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="490.0" y1="28.0" x2="499.0" y2="28.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="568.0" x2="610.0" y2="568.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="550.0" x2="610.0" y2="550.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="532.0" x2="610.0" y2="532.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="514.0" x2="610.0" y2="514.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="496.0" x2="610.0" y2="496.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="478.0" x2="610.0" y2="478.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="460.0" x2="610.0" y2="460.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="442.0" x2="610.0" y2="442.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="424.0" x2="610.0" y2="424.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="406.0" x2="610.0" y2="406.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="388.0" x2="610.0" y2="388.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="370.0" x2="610.0" y2="370.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="352.0" x2="610.0" y2="352.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="334.0" x2="610.0" y2="334.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="316.0" x2="610.0" y2="316.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="298.0" x2="610.0" y2="298.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="280.0" x2="610.0" y2="280.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="262.0" x2="610.0" y2="262.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="244.0" x2="610.0" y2="244.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="226.0" x2="610.0" y2="226.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="208.0" x2="610.0" y2="208.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="190.0" x2="610.0" y2="190.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="172.0" x2="610.0" y2="172.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="154.0" x2="610.0" y2="154.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="136.0" x2="610.0" y2="136.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="118.0" x2="610.0" y2="118.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="100.0" x2="610.0" y2="100.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="82.0" x2="610.0" y2="82.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="64.0" x2="610.0" y2="64.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="46.0" x2="610.0" y2="46.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="601.0" y1="28.0" x2="610.0" y2="28.0" stroke="rgba(255,255,255,0.20)" stroke-width="1.5"/>
+<line x1="70.0" y1="28.0" x2="70.0" y2="568.0" stroke="rgba(255,255,255,0.78)" stroke-width="2"/>
+<line x1="1030.0" y1="28.0" x2="1030.0" y2="568.0" stroke="rgba(255,255,255,0.78)" stroke-width="2"/>
+<path d="M 466.1,431.0 L 460.0,445.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+<line x1="467.0" y1="448.5" x2="453.0" y2="442.7" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" opacity="0.9"/>
+<path d="M 514.0,431.6 L 514.0,445.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+<line x1="521.6" y1="445.6" x2="506.4" y2="445.6" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" opacity="0.9"/>
+<path d="M 550.0,431.6 L 550.0,445.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+<line x1="557.6" y1="445.6" x2="542.4" y2="445.6" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" opacity="0.9"/>
+<path d="M 586.0,431.6 L 586.0,445.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+<line x1="593.6" y1="445.6" x2="578.4" y2="445.6" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" opacity="0.9"/>
+<path d="M 633.9,431.0 L 640.0,445.6" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+<line x1="647.0" y1="442.7" x2="633.0" y2="448.5" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" opacity="0.9"/>
+<path d="M 557.6,518.9 C 563.8,522.8 576.8,535.8 595.0,542.8 C 613.2,549.8 655.0,557.8 667.0,560.8" fill="none" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arr-qb)" opacity="0.95"/>
+<path d="M 658.0,424.0 C 667.0,421.0 694.0,415.0 712.0,406.0 C 730.0,397.0 757.0,376.0 766.0,370.0" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arr-route)" opacity="0.94"/>
+<path d="M 154.0,424.0 C 154.0,394.0 142.3,292.0 154.0,244.0 C 165.7,196.0 212.5,154.0 224.2,136.0" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arr-route)" opacity="0.94"/>
+<path d="M 910.0,442.0 C 910.0,418.0 898.3,340.0 910.0,298.0 C 921.7,256.0 968.5,208.0 980.2,190.0" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arr-route)" opacity="0.94"/>
+<path d="M 766.0,442.0 C 766.0,424.0 760.6,358.0 766.0,334.0 C 771.4,310.0 793.0,304.0 798.4,298.0" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arr-route)" opacity="0.94"/>
+<path d="M 640.0,514.0 C 649.0,514.0 679.0,523.0 694.0,514.0 C 709.0,505.0 724.0,469.0 730.0,460.0" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arr-route)" opacity="0.94"/>
+<circle cx="753.0" cy="350.5" r="6.5" fill="#15221b" stroke="#fbbf24" stroke-width="1.4" opacity="0.95"/>
+<text x="753.0" y="352.9" text-anchor="middle" fill="#fde68a" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="7" font-weight="700">3</text>
+<circle cx="960.6" cy="177.2" r="6.5" fill="#15221b" stroke="#fbbf24" stroke-width="1.4" opacity="0.95"/>
+<text x="960.6" y="179.6" text-anchor="middle" fill="#fde68a" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="7" font-weight="700">1</text>
+<circle cx="781.0" cy="282.3" r="6.5" fill="#15221b" stroke="#fbbf24" stroke-width="1.4" opacity="0.95"/>
+<text x="781.0" y="284.7" text-anchor="middle" fill="#fde68a" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="7" font-weight="700">2</text>
+<path d="M 444.2,408.3 C 441.1,410.9 430.4,414.2 425.8,424.0 C 421.2,433.8 418.3,460.0 416.8,467.2" fill="none" stroke="#f0806a" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arr-def)" opacity="0.9"/>
+<path d="M 514.8,415.0 C 515.1,418.3 515.6,425.5 516.6,434.8 C 517.5,444.1 519.8,464.8 520.5,470.8" fill="none" stroke="#f0806a" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arr-def)" opacity="0.9"/>
+<path d="M 585.2,415.0 C 584.9,418.3 584.4,425.5 583.4,434.8 C 582.5,444.1 580.2,464.8 579.5,470.8" fill="none" stroke="#f0806a" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arr-def)" opacity="0.9"/>
+<path d="M 655.8,408.3 C 658.9,410.9 669.6,414.2 674.2,424.0 C 678.8,433.8 681.7,460.0 683.2,467.2" fill="none" stroke="#f0806a" stroke-width="2.2" stroke-linecap="round" marker-end="url(#arr-def)" opacity="0.9"/>
+<ellipse cx="474.4" cy="226.0" rx="69.3" ry="56.7" fill="rgba(240,128,106,0.13)" stroke="rgba(240,128,106,0.35)" stroke-width="1"/>
+<text x="474.4" y="229.5" text-anchor="middle" fill="#f0806a" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" opacity="0.9">W</text>
+<line x1="486.1" y1="343.0" x2="480.1" y2="282.5" stroke="#f0806a" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arr-def)" opacity="0.85"/>
+<ellipse cx="625.6" cy="226.0" rx="69.3" ry="56.7" fill="rgba(240,128,106,0.13)" stroke="rgba(240,128,106,0.35)" stroke-width="1"/>
+<text x="625.6" y="229.5" text-anchor="middle" fill="#f0806a" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" opacity="0.9">M</text>
+<line x1="580.2" y1="343.6" x2="604.7" y2="280.1" stroke="#f0806a" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arr-def)" opacity="0.85"/>
+<ellipse cx="244.0" cy="64.0" rx="100.8" ry="75.6" fill="rgba(240,128,106,0.13)" stroke="rgba(240,128,106,0.35)" stroke-width="1"/>
+<text x="244.0" y="67.5" text-anchor="middle" fill="#f0806a" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" opacity="0.9">LCB</text>
+<line x1="156.3" y1="397.3" x2="224.5" y2="138.2" stroke="#f0806a" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arr-def)" opacity="0.85"/>
+<ellipse cx="334.0" cy="226.0" rx="75.6" ry="56.7" fill="rgba(240,128,106,0.13)" stroke="rgba(240,128,106,0.35)" stroke-width="1"/>
+<text x="334.0" y="229.5" text-anchor="middle" fill="#f0806a" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" opacity="0.9">N</text>
+<line x1="342.5" y1="388.0" x2="337.0" y2="282.7" stroke="#f0806a" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arr-def)" opacity="0.85"/>
+<ellipse cx="766.0" cy="226.0" rx="75.6" ry="56.7" fill="rgba(240,128,106,0.13)" stroke="rgba(240,128,106,0.35)" stroke-width="1"/>
+<text x="766.0" y="229.5" text-anchor="middle" fill="#f0806a" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" opacity="0.9">SS</text>
+<line x1="707.8" y1="317.4" x2="733.4" y2="277.2" stroke="#f0806a" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arr-def)" opacity="0.85"/>
+<ellipse cx="550.0" cy="64.0" rx="100.8" ry="75.6" fill="rgba(240,128,106,0.13)" stroke="rgba(240,128,106,0.35)" stroke-width="1"/>
+<text x="550.0" y="67.5" text-anchor="middle" fill="#f0806a" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" opacity="0.9">FS</text>
+<line x1="532.9" y1="235.0" x2="542.5" y2="139.4" stroke="#f0806a" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arr-def)" opacity="0.85"/>
+<ellipse cx="856.0" cy="64.0" rx="100.8" ry="75.6" fill="rgba(240,128,106,0.13)" stroke="rgba(240,128,106,0.35)" stroke-width="1"/>
+<text x="856.0" y="67.5" text-anchor="middle" fill="#f0806a" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700" opacity="0.9">RCB</text>
+<line x1="908.6" y1="397.1" x2="867.9" y2="139.1" stroke="#f0806a" stroke-width="2" stroke-dasharray="7,5" marker-end="url(#arr-def)" opacity="0.85"/>
+<rect x="441.0" y="392.4" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="451.0" y="405.7" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700">LDE</text>
+<rect x="504.0" y="396.0" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="514.0" y="409.3" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700">LDT</text>
+<rect x="576.0" y="396.0" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="586.0" y="409.3" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700">RDT</text>
+<rect x="639.0" y="392.4" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="649.0" y="405.7" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700">RDE</text>
+<rect x="477.0" y="342.0" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="487.0" y="355.7" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">W</text>
+<rect x="567.0" y="342.0" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="577.0" y="355.7" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">M</text>
+<rect x="144.0" y="396.0" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="154.0" y="409.3" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700">LCB</text>
+<rect x="333.0" y="387.0" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="343.0" y="400.7" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">N</text>
+<rect x="693.0" y="315.0" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="703.0" y="328.7" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">SS</text>
+<rect x="522.0" y="234.0" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="532.0" y="247.7" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">FS</text>
+<rect x="900.0" y="396.0" width="20" height="20" rx="2.5" fill="#222d28" stroke="#cfd6d1" stroke-width="1.3"/>
+<text x="910.0" y="409.3" text-anchor="middle" fill="#f4f1e8" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="9" font-weight="700">RCB</text>
+<circle cx="469.0" cy="424.0" r="9" fill="#f4f1e8" stroke="#15221b" stroke-width="1.4"/>
+<text x="469.0" y="427.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">LT</text>
+<circle cx="514.0" cy="424.0" r="9" fill="#f4f1e8" stroke="#15221b" stroke-width="1.4"/>
+<text x="514.0" y="427.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">LG</text>
+<circle cx="550.0" cy="424.0" r="9" fill="#f4f1e8" stroke="#15221b" stroke-width="1.4"/>
+<text x="550.0" y="427.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">C</text>
+<circle cx="586.0" cy="424.0" r="9" fill="#f4f1e8" stroke="#15221b" stroke-width="1.4"/>
+<text x="586.0" y="427.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">RG</text>
+<circle cx="631.0" cy="424.0" r="9" fill="#f4f1e8" stroke="#15221b" stroke-width="1.4"/>
+<text x="631.0" y="427.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">RT</text>
+<circle cx="658.0" cy="424.0" r="11" fill="#f4f1e8" stroke="#15221b" stroke-width="1.4"/>
+<text x="658.0" y="427.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">Y</text>
+<circle cx="154.0" cy="424.0" r="11" fill="#f4f1e8" stroke="#15221b" stroke-width="1.4"/>
+<text x="154.0" y="427.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">X</text>
+<circle cx="910.0" cy="442.0" r="11" fill="#f4f1e8" stroke="#15221b" stroke-width="1.4"/>
+<text x="910.0" y="445.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">Z</text>
+<circle cx="766.0" cy="442.0" r="11" fill="#f4f1e8" stroke="#15221b" stroke-width="1.4"/>
+<text x="766.0" y="445.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">H</text>
+<circle cx="550.0" cy="514.0" r="11" fill="#f4f1e8" stroke="#fbbf24" stroke-width="2.2"/>
+<text x="550.0" y="517.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">QB</text>
+<circle cx="640.0" cy="514.0" r="11" fill="#f4f1e8" stroke="#15221b" stroke-width="1.4"/>
+<text x="640.0" y="517.7" text-anchor="middle" fill="#15221b" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10" font-weight="700">RB</text>
+<text x="14.0" y="570.0" fill="#ffffff" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="14" font-weight="700">Flood</text>
+<text x="14.0" y="586.0" fill="rgba(255,255,255,0.62)" font-family="Bahnschrift,'DIN Alternate','D-DIN',Barlow,'Roboto Condensed','Segoe UI',Helvetica,Arial,sans-serif" font-size="10.5">Shotgun Trips Right  ·  11 personnel  ·  Pass</text>
+</svg>
